@@ -3,169 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SYSTEM://WASTELAND_HOUND_v0.5</title>
+    <title>SYSTEM://WASTELAND_HOUND_v0.8.2</title>
     <style>
-        /* ==========================================
-         * [CSS_SECTION] 介面與 CyberCode 風格樣式
-         * ========================================== */
         :root {
-            --bg-color: #0a0a0a;
-            --panel-color: #121212;
-            --text-color: #55ff55;
-            --primary-color: #ff8800;
-            --border-color: #224422;
+            --bg-color: #0a0a0a; --panel-color: #121212; --text-color: #55ff55;
+            --primary-color: #ff8800; --border-color: #224422; --zaco-color: #ffd700; 
             --glow-effect: 0 0 8px rgba(85, 255, 85, 0.4);
-            
-            --rarity-common: #888888;
-            --rarity-rare: #55aaff;
-            --rarity-legendary: #ffcc00;
+            --rarity-common: #888888; --rarity-rare: #55aaff;
+            --rarity-legendary: #ffcc00; --rarity-apocalyptic: #ff2222; 
         }
-
         body {
             font-family: 'Courier New', Courier, monospace, "SF Pro Text";
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            padding: 12px;
-            box-sizing: border-box;
-            text-shadow: var(--glow-effect);
-            padding-bottom: 140px; 
+            background-color: var(--bg-color); color: var(--text-color);
+            margin: 0; padding: 12px; box-sizing: border-box;
+            text-shadow: var(--glow-effect); padding-bottom: 140px; 
         }
-
         body::before {
-            content: " ";
-            display: block;
-            position: fixed;
-            top: 0; left: 0; bottom: 0; right: 0;
+            content: " "; display: block; position: fixed; top: 0; left: 0; bottom: 0; right: 0;
             background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            z-index: 999;
-            background-size: 100% 4px, 3px 100%;
-            pointer-events: none;
+            z-index: 999; background-size: 100% 4px, 3px 100%; pointer-events: none;
         }
-
         header {
-            background-color: var(--panel-color);
-            padding: 12px;
-            border: 1px solid var(--text-color);
-            box-shadow: inset var(--glow-effect);
-            margin-bottom: 15px;
+            background-color: var(--panel-color); padding: 12px; border: 1px solid var(--text-color);
+            box-shadow: inset var(--glow-effect); margin-bottom: 15px;
         }
-
-        .system-title {
-            margin: 0; font-size: 1.1rem; color: var(--primary-color);
-            text-shadow: 0 0 8px rgba(255, 136, 0, 0.5); font-weight: bold;
-        }
-
-        .resource-bar {
-            display: flex; justify-content: space-between; font-size: 0.85rem;
-            margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 8px;
-        }
-
-        nav {
-            display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 15px;
-        }
-
-        .tab-btn {
-            flex: 1 1 22%;
-            padding: 8px 0; background-color: transparent;
-            color: var(--text-color); border: 1px solid var(--text-color);
-            font-family: inherit; font-size: 0.8rem; cursor: pointer; text-transform: uppercase;
-        }
-
-        .tab-btn.active {
-            background-color: var(--text-color); color: #000;
-            font-weight: bold; box-shadow: var(--glow-effect); text-shadow: none;
-        }
-
-        .tab-content {
-            display: none; background-color: var(--panel-color);
-            padding: 15px; border: 1px solid var(--border-color); min-height: 240px;
-        }
+        .system-title { margin: 0; font-size: 1.1rem; color: var(--primary-color); text-shadow: 0 0 8px rgba(255, 136, 0, 0.5); font-weight: bold; }
+        .resource-bar { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 5px; font-size: 0.85rem; margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 8px; }
+        nav { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 15px; }
+        .tab-btn { flex: 1 1 22%; padding: 8px 0; background-color: transparent; color: var(--text-color); border: 1px solid var(--text-color); font-family: inherit; font-size: 0.8rem; cursor: pointer; text-transform: uppercase; }
+        .tab-btn.active { background-color: var(--text-color); color: #000; font-weight: bold; box-shadow: var(--glow-effect); text-shadow: none; }
+        .tab-content { display: none; background-color: var(--panel-color); padding: 15px; border: 1px solid var(--border-color); min-height: 240px; }
         .tab-content.active { display: block; }
-
-        .btn {
-            background-color: rgba(85, 255, 85, 0.05); color: var(--text-color);
-            border: 1px solid var(--border-color); padding: 12px; width: 100%;
-            margin-bottom: 12px; font-family: inherit; font-size: 0.9rem;
-            text-align: left; cursor: pointer;
-        }
+        .btn { background-color: rgba(85, 255, 85, 0.05); color: var(--text-color); border: 1px solid var(--border-color); padding: 12px; width: 100%; margin-bottom: 12px; font-family: inherit; font-size: 0.9rem; text-align: left; cursor: pointer; }
         .btn::before { content: "> "; color: var(--primary-color); }
         .btn:active:not(:disabled) { background-color: var(--text-color); color: #000; border-color: var(--text-color); }
         .btn:disabled { opacity: 0.3; cursor: not-allowed; }
-
         .warning-text { color: var(--primary-color); text-shadow: 0 0 8px rgba(255, 136, 0, 0.5); }
-        
         .loot-common { color: var(--rarity-common); text-shadow: none;}
         .loot-rare { color: var(--rarity-rare); text-shadow: 0 0 5px rgba(85, 170, 255, 0.5); }
         .loot-legendary { color: var(--rarity-legendary); text-shadow: 0 0 8px rgba(255, 204, 0, 0.8); font-weight: bold; }
-
-        .inv-list {
-            max-height: 180px; overflow-y: auto; border: 1px solid var(--border-color);
-            padding: 8px; background: rgba(0,0,0,0.4); margin-top: 10px;
-        }
-        .inv-item {
-            padding: 6px 0; border-bottom: 1px dashed #333; font-size: 0.85rem;
-        }
+        .loot-apocalyptic { color: var(--rarity-apocalyptic); text-shadow: 0 0 10px rgba(255, 34, 34, 0.9); font-weight: bold; letter-spacing: 1px; }
+        .inv-list { max-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); padding: 8px; background: rgba(0,0,0,0.4); margin-top: 10px; }
+        .inv-item { padding: 10px 8px; border-bottom: 1px dashed #333; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; }
         .inv-item:last-child { border-bottom: none; }
-
-        .log-panel {
-            position: fixed; bottom: 0; left: 0; right: 0; height: 120px;
-            background-color: #050505; border-top: 1px solid var(--text-color);
-            padding: 8px 12px; box-sizing: border-box; font-size: 0.75rem;
-            overflow-y: hidden; z-index: 10;
-        }
+        .inv-info { flex: 1; cursor: pointer; }
+        .inv-info:hover { background-color: rgba(85, 255, 85, 0.1); }
+        .equip-box { border: 1px solid var(--primary-color); padding: 10px; margin-bottom: 10px; background: rgba(255, 136, 0, 0.05); }
+        .log-panel { position: fixed; bottom: 0; left: 0; right: 0; height: 120px; background-color: #050505; border-top: 1px solid var(--text-color); padding: 8px 12px; box-sizing: border-box; font-size: 0.75rem; overflow-y: hidden; z-index: 10; }
         .log-container { display: flex; flex-direction: column; gap: 2px; }
-        .log-entry { color: #44aa44; }
-        .log-entry.system { color: var(--primary-color); }
+        .log-entry { color: #44aa44; } .log-entry.system { color: var(--primary-color); } .log-entry.zaco { color: var(--zaco-color); }
     </style>
+
+    <!-- 🌐 按順序載入驅動與自訂邏輯模組 -->
+    <script src="https://unpkg.com/dexie@latest/dist/dexie.js"></script>
+    <script src="./database.js"></script>
+    <script src="./game.js"></script>
 </head>
 <body>
-
-    <!-- ==========================================
-     * [HTML_SECTION] 介面結構
-     * ========================================== -->
     <header>
-        <div class="system-title">root@wasteland_os:~# SYSTEM_ONLINE</div>
+        <div class="system-title">root@wasteland_os:~# SYSTEM_LINKED</div>
         <div class="resource-bar">
             <span>[SCRAP: <b id="res-scrap">0</b>]</span>
             <span>[FOOD: <b id="res-food">10</b>]</span>
-            <span>[GEAR: <b id="res-gear">0</b>]</span>
+            <span>[ZACO: <b id="res-zaco" style="color: var(--zaco-color);">0</b>]</span>
         </div>
     </header>
 
     <nav>
-        <button class="tab-btn active" onclick="switchTab('status')">[01_CAMP]</button>
-        <button class="tab-btn" onclick="switchTab('gather')">[02_SCAV]</button>
-        <button class="tab-btn" onclick="switchTab('battle')">[03_EXPL]</button>
-        <button class="tab-btn" onclick="switchTab('inv')">[04_INV]</button>
+        <button class="tab-btn active" data-tab="status" onclick="switchTab('status')">[01_CAMP]</button>
+        <button class="tab-btn" data-tab="gather" onclick="switchTab('gather')">[02_SCAV]</button>
+        <button class="tab-btn" data-tab="battle" onclick="switchTab('battle')">[03_EXPL]</button>
+        <button class="tab-btn" data-tab="inv" onclick="switchTab('inv')">[04_INV]</button>
+        <button class="tab-btn" data-tab="shop" onclick="switchTab('shop')" style="border-color: var(--zaco-color); color: var(--zaco-color);">[05_SHOP]</button>
     </nav>
 
-    <!-- TAB 1: CAMP -->
     <div id="tab-status" class="tab-content active">
-        <h3 class="warning-text">// BASE_CAMP_STATUS</h3>
+        <h3 class="warning-text">// HOUND_STATUS</h3>
+        <div class="equip-box">
+            <div style="font-size: 0.8rem; color: #888;">[目前裝備]</div>
+            <div id="camp-equipped" style="margin: 5px 0;"><span style="color:#777;">[無裝備]</span></div>
+            <div style="color: var(--primary-color);">總武裝評估值: <b id="hound-total-atk">12</b></div>
+            <button class="btn" style="padding: 5px; margin-top: 5px; font-size: 0.8rem;" onclick="unequip()">卸下裝備</button>
+        </div>
+        <p>戰鬥犬生命值: [<span id="hound-hp">100</span>/100] <span id="hound-state" style="color: var(--text-color);">[待命中]</span></p>
+        <button class="btn" onclick="healHound()" style="border-color: #55aaff; color: #55aaff;">FEED_JERKY (+25 HP) [消耗: 1 肉乾]</button>
+        <hr style="border-style: dashed; border-color: var(--border-color);">
+        <h3 class="warning-text">// BASE_CAMP</h3>
         <p>探測器數量：<span id="camp-drones">0</span> (<span id="rate-scrap">0</span>/s)</p>
         <button id="btn-upgrade-drone" class="btn" onclick="buyDrone()">DEPLOY_SCRAP_DRONE [成本: 10 廢料]</button>
         <hr style="border-style: dashed; border-color: var(--border-color);">
-        
-        <h4 class="warning-text">// HOUND_MEDICAL</h4>
-        <p>戰鬥犬生命值: [<span id="hound-hp">100</span>/100] <span id="hound-state" style="color: var(--text-color);">[待命中]</span></p>
-        <button class="btn" onclick="healHound()" style="border-color: #55aaff; color: #55aaff;">FEED_JERKY (餵食肉乾 +25 HP) [消耗: 1 肉乾]</button>
-        
-        <hr style="border-style: dashed; border-color: var(--border-color);">
-        <!-- 新增：存檔系統區塊 -->
-        <h4 class="warning-text" style="color: #888;">// SYSTEM_MAINTENANCE</h4>
         <button class="btn" onclick="saveGame()" style="border-color: #888; color: #888;">FORCE_SAVE (手動備份資料)</button>
-        <button class="btn" onclick="resetGame()" style="border-color: #ff3333; color: #ff3333;">FORMAT_DRIVE (清除存檔重新開始)</button>
+        <button class="btn" onclick="resetGame()" style="border-color: #ff3333; color: #ff3333;">FORMAT_DRIVE (清除存檔)</button>
     </div>
 
-    <!-- TAB 2: SCAVENGE -->
     <div id="tab-gather" class="tab-content">
         <h3 class="warning-text">// SCAVENGE_PROTOCOLS</h3>
         <button class="btn" onclick="gatherResource('scrap')">SEARCH_METALS (獲得金屬廢料)</button>
-        <button class="btn" onclick="gatherResource('food')">HUNT_MUTATED_RODENTS (捕捉變異生物 轉為肉乾)</button>
+        <button class="btn" onclick="gatherResource('food')">HUNT_MUTATED_RODENTS (獲得肉乾)</button>
     </div>
 
-    <!-- TAB 3: EXPLORATION -->
     <div id="tab-battle" class="tab-content">
         <h3 class="warning-text">// OUTLAND_EXPLORATION</h3>
         <button id="btn-explore" class="btn" onclick="toggleExplore()" style="border-color: var(--primary-color); color: var(--primary-color);">EXECUTE_AUTO_EXPLORE [啟動自動探索]</button>
@@ -175,285 +111,23 @@
         </div>
     </div>
 
-    <!-- TAB 4: INVENTORY -->
     <div id="tab-inv" class="tab-content">
-        <h3 class="warning-text">// EQUIPMENT_DATABASE</h3>
-        <p>廢土收集到的裝備清單：</p>
-        <div id="inventory-list" class="inv-list">
-            <span style="color:#777;">[資料庫空載... 請先進行探索]</span>
-        </div>
+        <h3 class="warning-text">// BLACK_MARKET_LINK</h3>
+        <p>點擊裝備名稱進行穿戴，或出售換取 <span style="color:var(--zaco-color); font-weight:bold;">ZaCo</span>：</p>
+        <div id="inventory-list" class="inv-list"><span style="color:#777;">[資料庫空載...]</span></div>
     </div>
 
-    <!-- BOTTOM LOG -->
+    <div id="tab-shop" class="tab-content">
+        <h3 class="warning-text" style="color:var(--zaco-color);">// UNDERGROUND_BLACK_MARKET</h3>
+        <p style="font-size: 0.85rem;">使用 <span style="color:var(--zaco-color); font-weight:bold;">ZaCo</span> 交易地下改造武裝。購買後裝備將直接送入背包 [INV]：</p>
+        <div id="shop-list" class="inv-list"></div>
+    </div>
+
     <div class="log-panel">
         <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 3px; margin-bottom: 5px; color: var(--text-color); font-weight: bold;">[SYSTEM_LOG_STREAM]</div>
         <div id="log-container" class="log-container">
-            <div class="log-entry system">>> 系統核心與記憶體載入完畢。</div>
+            <div class="log-entry system">>> 系統核心模組載入中...</div>
         </div>
-    </div>
-
-    <!-- ==========================================
-     * [JS_SECTION] 遊戲核心邏輯
-     * ========================================== -->
-    <script>
-        // 初始化預設資料結構
-        const defaultGameData = {
-            resources: { scrap: 0, food: 10, gearCount: 0 },
-            autoRates: { scrap: 0 },
-            upgrades: { drones: 0 },
-            costs: { drone: 10 },
-            isExploring: false,
-            hound: { hp: 100, maxHp: 100, atk: 12 },
-            currentEnemy: null,
-            inventory: []
-        };
-
-        // 目前遊戲狀態 (會被存檔覆蓋)
-        let game = JSON.parse(JSON.stringify(defaultGameData));
-
-        const enemyDatabase = [
-            { name: "變異輻射鼠", hp: 20, atk: 3, xp: 5 },
-            { name: "廢土流浪強盜", hp: 45, atk: 6, xp: 12 },
-            { name: "雙頭變異犬", hp: 60, atk: 8, xp: 20 }
-        ];
-
-        const lootPool = {
-            prefix: ["破舊的", "生鏽的", "強化型", "輻射防護", "戰術", "傳奇之"],
-            type: ["外骨骼機甲", "雷射手槍", "防毒面具", "戰術背心", "釘刺球棒"]
-        };
-
-        // --- 新增：存檔系統核心 ---
-        const SAVE_KEY = 'wasteland_hound_save';
-
-        function saveGame(auto = false) {
-            localStorage.setItem(SAVE_KEY, JSON.stringify(game));
-            if (!auto) {
-                logMessage(">> 系統備份完成。資料已寫入本地儲存裝置。", "system");
-            }
-        }
-
-        function loadGame() {
-            const savedData = localStorage.getItem(SAVE_KEY);
-            if (savedData) {
-                try {
-                    const parsed = JSON.parse(savedData);
-                    // 深度合併資料 (保護更新時新增的欄位不報錯)
-                    game.resources = { ...defaultGameData.resources, ...parsed.resources };
-                    game.autoRates = { ...defaultGameData.autoRates, ...parsed.autoRates };
-                    game.upgrades = { ...defaultGameData.upgrades, ...parsed.upgrades };
-                    game.costs = { ...defaultGameData.costs, ...parsed.costs };
-                    game.hound = { ...defaultGameData.hound, ...parsed.hound };
-                    game.inventory = parsed.inventory || [];
-                    
-                    // 安全機制：重新整理時強制關閉探索，避免離線時狀態混亂
-                    game.isExploring = false;
-                    game.currentEnemy = null;
-                    
-                    logMessage(">> 偵測到舊有存檔，記憶還原成功。", "system");
-                } catch (e) {
-                    console.error("存檔損壞", e);
-                    logMessage(">> 存檔讀取失敗，使用全新資料。", "system");
-                }
-            }
-            updateUI();
-        }
-
-        function resetGame() {
-            if (confirm("!! 警告 !!\n確定要格式化系統嗎？所有的廢料、裝備與升級都會消失，此動作無法復原！")) {
-                localStorage.removeItem(SAVE_KEY);
-                location.reload(); // 重新載入網頁來重置狀態
-            }
-        }
-
-        // --- 原有邏輯 ---
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-            document.getElementById(`tab-${tabId}`).classList.add('active');
-            event.currentTarget.classList.add('active');
-            if(tabId === 'inv') renderInventory();
-        }
-
-        function gatherResource(type) {
-            game.resources[type]++;
-            updateUI();
-            logMessage(`手動執行: 成功回收 1 單位 ${type.toUpperCase()}`);
-        }
-
-        function buyDrone() {
-            if (game.resources.scrap >= game.costs.drone) {
-                game.resources.scrap -= game.costs.drone;
-                game.upgrades.drones++;
-                game.autoRates.scrap = game.upgrades.drones * 1;
-                game.costs.drone = Math.floor(10 * Math.pow(1.5, game.upgrades.drones));
-                updateUI();
-                logMessage(`系統更新: 成功部署探測器 #${game.upgrades.drones}。`, 'system');
-            } else {
-                logMessage(`錯誤: [SCRAP] 資源不足。`, 'system');
-            }
-        }
-
-        function healHound() {
-            if (game.hound.hp >= game.hound.maxHp) {
-                logMessage("系統提示: 獵犬生命值已滿，拒絕進食。", "system");
-                return;
-            }
-            if (game.resources.food >= 1) {
-                game.resources.food--;
-                game.hound.hp += 25;
-                if (game.hound.hp > game.hound.maxHp) game.hound.hp = game.hound.maxHp;
-                updateUI();
-                logMessage("醫療指令: 餵食肉乾，獵犬恢復 25 HP。", "normal");
-            } else {
-                logMessage("錯誤: [FOOD] 肉乾庫存不足，請前往 [02_SCAV] 狩獵。", "system");
-            }
-        }
-
-        function toggleExplore() {
-            if (game.hound.hp <= 0 && !game.isExploring) {
-                logMessage("警告: 獵犬瀕死，請先至營地餵食肉乾。", "system");
-                return;
-            }
-            
-            game.isExploring = !game.isExploring;
-            const btn = document.getElementById('btn-explore');
-            const stateEl = document.getElementById('hound-state');
-            const reportEl = document.getElementById('combat-report');
-            
-            if (game.isExploring) {
-                btn.innerText = "HALT_EXPLORATION [停止探索]";
-                btn.style.borderColor = "#ff3333"; btn.style.color = "#ff3333";
-                stateEl.innerText = "[探索中]"; stateEl.style.color = "var(--primary-color)";
-                reportEl.innerHTML = "連線建立中... 獵犬正在搜尋目標。";
-                logMessage("戰術指令: 獵犬已進入荒野邊境。", "system");
-            } else {
-                btn.innerText = "EXECUTE_AUTO_EXPLORE [啟動自動探索]";
-                btn.style.borderColor = "var(--primary-color)"; btn.style.color = "var(--primary-color)";
-                stateEl.innerText = "[待命中]"; stateEl.style.color = "var(--text-color)";
-                reportEl.innerHTML = "探索已中斷，獵犬返回營地。";
-                game.currentEnemy = null; // 清除目前敵人
-                logMessage("戰術指令: 招回獵犬返回營地。", "system");
-            }
-        }
-
-        function handleExplorationTick() {
-            const reportEl = document.getElementById('combat-report');
-            
-            if (game.hound.hp <= 0) {
-                if (game.isExploring) toggleExplore();
-                reportEl.innerHTML = "<span style='color:#ff3333;'>[警告] 獵犬重傷失去戰鬥力！已自動撤回營地。</span>";
-                return;
-            }
-
-            if (!game.isExploring) return;
-
-            if (!game.currentEnemy) {
-                const randomEnemy = enemyDatabase[Math.floor(Math.random() * enemyDatabase.length)];
-                game.currentEnemy = { ...randomEnemy };
-                reportEl.innerHTML = `>> 偵測到敵對目標：<span class='warning-text'>${game.currentEnemy.name}</span> (HP: ${game.currentEnemy.hp})`;
-                return;
-            }
-
-            game.currentEnemy.hp -= game.hound.atk;
-            reportEl.innerHTML = `🐾 你的獵犬造成了 ${game.hound.atk} 點傷害。<br>`;
-
-            if (game.currentEnemy.hp <= 0) {
-                reportEl.innerHTML += `<span style='color:var(--text-color);'>✓ 擊殺目標！正在搜刮戰利品...</span>`;
-                generateLoot();
-                game.currentEnemy = null;
-                return;
-            }
-
-            game.hound.hp -= game.currentEnemy.atk;
-            if (game.hound.hp < 0) game.hound.hp = 0;
-            reportEl.innerHTML += `💥 [${game.currentEnemy.name}] 反擊，獵犬受到 ${game.currentEnemy.atk} 點傷害。`;
-            
-            document.getElementById('hound-hp').innerText = game.hound.hp;
-        }
-
-        function generateLoot() {
-            const rand = Math.random() * 100;
-            let rarity = "common", rarityText = "普通", rarityClass = "loot-common";
-
-            if (rand > 95) { rarity = "legendary"; rarityText = "傳奇"; rarityClass = "loot-legendary"; } 
-            else if (rand > 70) { rarity = "rare"; rarityText = "稀有"; rarityClass = "loot-rare"; }
-
-            const p = lootPool.prefix[Math.floor(Math.random() * lootPool.prefix.length)];
-            const t = lootPool.type[Math.floor(Math.random() * lootPool.type.length)];
-            const gearName = `[${rarityText}] ${p}${t}`;
-
-            game.resources.gearCount++;
-            game.inventory.unshift({ name: gearName, rarity: rarity });
-            
-            updateUI();
-            if(document.getElementById('tab-inv').classList.contains('active')) renderInventory();
-            
-            logMessage(`獲得裝備: <span class="${rarityClass}">${gearName}</span>`, 'normal');
-        }
-
-        function renderInventory() {
-            const list = document.getElementById('inventory-list');
-            if (game.inventory.length === 0) {
-                list.innerHTML = "<span style='color:#777;'>[資料庫空載... 請先進行探索]</span>";
-                return;
-            }
-            
-            list.innerHTML = "";
-            game.inventory.forEach((item, index) => {
-                const el = document.createElement('div');
-                el.className = 'inv-item';
-                let rarityClass = 'loot-common';
-                if (item.rarity === 'rare') rarityClass = 'loot-rare';
-                if (item.rarity === 'legendary') rarityClass = 'loot-legendary';
-                
-                el.innerHTML = `<span style="color:#555;">[ID:${String(game.inventory.length - index).padStart(3, '0')}]</span> <span class="${rarityClass}">${item.name}</span>`;
-                list.appendChild(el);
-            });
-        }
-
-        function logMessage(text, type = 'normal') {
-            const container = document.getElementById('log-container');
-            const entry = document.createElement('div');
-            entry.classList.add('log-entry');
-            if (type === 'system') entry.classList.add('system');
-            
-            const time = new Date().toLocaleTimeString();
-            entry.innerHTML = `[${time}] ${text}`;
-            
-            container.appendChild(entry);
-            if (container.children.length > 4) container.removeChild(container.firstChild);
-        }
-
-        function updateUI() {
-            document.getElementById('res-scrap').innerText = game.resources.scrap;
-            document.getElementById('res-food').innerText = game.resources.food;
-            document.getElementById('res-gear').innerText = game.resources.gearCount;
-            document.getElementById('rate-scrap').innerText = game.autoRates.scrap;
-            document.getElementById('camp-drones').innerText = game.upgrades.drones;
-            document.getElementById('hound-hp').innerText = game.hound.hp;
-            document.getElementById('btn-upgrade-drone').innerText = `DEPLOY_SCRAP_DRONE [成本: ${game.costs.drone} 廢料]`;
-        }
-
-        // --- 初始化啟動區塊 ---
-        // 遊戲啟動時載入存檔
-        loadGame();
-
-        // 背景掛機核心計時器 (1秒)
-        setInterval(() => {
-            if (game.autoRates.scrap > 0) {
-                game.resources.scrap += game.autoRates.scrap;
-                updateUI();
-            }
-            if (game.isExploring) {
-                handleExplorationTick();
-            }
-        }, 1000);
-
-        // 自動存檔計時器 (每 10 秒存檔一次)
-        setInterval(() => {
-            saveGame(true); 
-        }, 10000);
-
-    </script>
+    }
 </body>
 </html>
