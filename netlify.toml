@@ -1,0 +1,6 @@
+[build]
+  # 強制將建置指令清空，徹底覆蓋 Netlify 後台的 Hugo 自動偵測
+  command = ""
+  
+  # 指定發布當前根目錄（因為 index.html 就在這一層）
+  publish = "."
