@@ -1,0 +1,28 @@
+{
+  "game_version": "v0.8.2",
+  "enemy_database": [
+    { "name": "變異輻射鼠", "hp": 20, "atk": 3 },
+    { "name": "廢土流浪強盜", "hp": 45, "atk": 6 },
+    { "name": "雙頭變異犬", "hp": 70, "atk": 9 },
+    { "name": "失控安保機甲", "hp": 120, "atk": 15 }
+  ],
+  "loot_pool": {
+    "prefix": ["破舊的", "生鏽的", "強化型", "輻射防護", "戰術", "傳奇之", "末日", "禁忌的"],
+    "slots": {
+      "helmet": { "names": ["生化面甲", "戰術頭盔", "防毒呼吸器", "電漿導航儀"], "typeName": "頭盔" },
+      "collar": { "names": ["釘刺項圈", "電擊束環", "鈦鋼頸甲", "超頻能量環"], "typeName": "項圈" },
+      "harness": { "names": ["防彈胸背帶", "重型外骨骼", "減震裝甲", "極限生化甲"], "typeName": "胸背帶" }
+    },
+    "helmetEffects": [
+      { "id": "poison", "name": "劇毒", "desc": "每回合毒傷 -4 HP" },
+      { "id": "debuff", "name": "威嚇", "desc": "敵人攻擊力 -2" },
+      { "id": "crit", "name": "撕裂", "desc": "20% 機率造成 2 倍暴擊" }
+    ]
+  },
+  "shop_database": [
+    { "id": "shop_jerky_bulk", "name": "[物資箱] 脫水肉乾配給包", "slot": "usable", "rarity": "common", "atk": 0, "maxHp": 0, "class": "loot-common", "price": 5, "desc": "內含 200 份末日高能肉乾" },
+
+    { "id": "shop_1", "name": "[軍規] 強化鈦鋼犬齒", "slot": "collar", "rarity": "rare", "atk": 10, "maxHp": 0, "class": "loot-rare", "price": 50 },
+    { "id": "shop_2", "name": "[傳奇] 舊時代戰術外骨骼", "slot": "harness", "rarity": "legendary", "atk": 0, "maxHp": 80, "class": "loot-legendary", "price": 200 }
+  ]
+}
