@@ -114,9 +114,23 @@
         <button class="btn" onclick="gatherResource('food')">HUNT_MUTATED_RODENTS (獲得肉乾)</button>
     </div>
 
-    <div id="tab-battle" class="tab-content">
+<div id="tab-battle" class="tab-content">
         <h3 class="warning-text">// OUTLAND_EXPLORATION</h3>
+        
+        <div id="area-image-container" style="width: 100%; height: 120px; background-color: #050505; border: 1px solid #333; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;">
+            <span id="area-image-text" style="color: #555; font-size: 0.8rem; z-index: 2; text-shadow: none;">[NO_SIGNAL_IMAGE_NOT_FOUND]</span>
+            <img id="area-image" src="" style="width: 100%; height: 100%; object-fit: cover; position: absolute; opacity: 0.4; display: none;">
+        </div>
+        
+        <div style="margin-bottom: 10px; border: 1px dashed var(--border-color); padding: 10px; background: rgba(0,0,0,0.3);">
+            <div style="color:#888; font-size:0.8rem; margin-bottom:5px;">[TARGET_AREA / 目標區域設定]</div>
+            <select id="area-select" class="btn" style="background:#111; margin-bottom:0; padding:8px; border-color:#555;" onchange="changeArea()">
+                <option value="wasteland">>> 荒野外圍 (最高掉落鎖定: 傳奇)</option>
+                </select>
+        </div>
+        
         <button id="btn-explore" class="btn" onclick="toggleExplore()" style="border-color: var(--primary-color); color: var(--primary-color);">EXECUTE_AUTO_EXPLORE [啟動自動探索]</button>
+        
         <div style="margin-top: 15px; border: 1px dashed var(--border-color); padding: 10px; background: rgba(0,0,0,0.3);">
             <div class="warning-text" style="font-weight: bold; margin-bottom: 5px;">[當前戰情回報]</div>
             <div id="combat-report">等待探索指令輸入...</div>

@@ -3,7 +3,7 @@ let gameConfig = null;
 let gameState = {
     resources: { scrap: 0, food: 10, zaco: 0 },
     upgrades: { drones: 0 }, costs: { drone: 10 }, autoRates: { scrap: 0 },
-    isExploring: false,
+    isExploring: false,currentArea: "wasteland",
     hound: { 
         hp: 100, maxHp: 100, baseAtk: 12, totalAtk: 12, 
         baseDef: 0, totalDef: 0, 
@@ -23,6 +23,7 @@ window.addEventListener("DOMContentLoaded", async () => {
         gameConfig = await response.json();
         await loadGameData();
         initGameLoops();
+		renderDungeonList();
     } catch (e) { console.error("系統初始化失敗:", e); }
 });
 
@@ -152,8 +153,14 @@ function handleExplorationTick() {
     if (!gameState.isExploring) return;
     
     if (!gameState.currentEnemy) {
-        const dbEnemies = gameConfig.enemy_database;
-        gameState.currentEnemy = { ...dbEnemies[Math.floor(Math.random() * dbEnemies.length)] };
+        let possibleEnemies = gameConfig.enemy_database;
+        // 如果不是在荒野，就過濾出副本專屬怪物
+        if (gameState.currentArea !== "wasteland") {
+            const dungeon = gameConfig.dungeon_database.find(d => d.id === gameState.currentArea);
+            if (dungeon) possibleEnemies = possibleEnemies.filter(e => dungeon.enemies.includes(e.name));
+        }
+        
+        gameState.currentEnemy = { ...possibleEnemies[Math.floor(Math.random() * possibleEnemies.length)] };
         reportEl.innerHTML = `>> 遇敵：<span class='warning-text'>${gameState.currentEnemy.name}</span> (HP: ${gameState.currentEnemy.hp})`;
         return;
     }
@@ -189,6 +196,12 @@ function handleExplorationTick() {
             reportEl.innerHTML += ` <span style="color: #ff3333;">(反彈 ${reflectDmg} 傷害)</span>`;
         }
     }
+	// 秒殺檢定提示
+    if (gameState.hound.hp <= 0) {
+        reportEl.innerHTML += `<br><b style="color:#ff3333; font-size:1.1rem;">💀 [SYSTEM_WARNING] 承受傷害超過極限，獵犬遭到秒殺！</b><br><span style="color:#ffaa00;">>> 系統提示：請提升【胸背帶】生命值與【頭盔】防禦力，或農出【滅世】級別武裝再進行挑戰。</span>`;
+        if (gameState.isExploring) toggleExplore(); // 強制停止探索
+        return;
+    }
 
     const hpPercent = (gameState.hound.hp / gameState.hound.maxHp) * 100;
     if (hpPercent <= 75 && gameState.resources.food > 0 && gameState.hound.hp > 0) {
@@ -200,12 +213,26 @@ function handleExplorationTick() {
 }
 
 async function generateLoot() {
-    const r = Math.random() * 100;
+    // 使用百萬分比實現超低長線掉落率
+    const r = Math.floor(Math.random() * 1000000);
     let rarity = "common", rarityText = "普通", rarityClass = "loot-common", statMult = 1; let isSet = false;
-    if (r > 98) { rarity = "apocalyptic"; rarityText = "滅世"; rarityClass = "loot-apocalyptic"; statMult = 5; }
-    else if (r > 90) { rarity = "set"; rarityText = "套裝"; rarityClass = "loot-set"; statMult = 2; isSet = true; }
-    else if (r > 75) { rarity = "legendary"; rarityText = "傳奇"; rarityClass = "loot-legendary"; statMult = 3; }
-    else if (r > 40) { rarity = "rare"; rarityText = "稀有"; rarityClass = "loot-rare"; statMult = 1.8; }
+    
+    // 設定機率閾值 (荒野無法掉落紅裝)
+    if (gameState.currentArea !== "wasteland" && r > 999995) { 
+        rarity = "apocalyptic"; rarityText = "滅世"; rarityClass = "loot-apocalyptic"; statMult = 5; // 0.0005%
+    }
+    else if (r > 998500) { rarity = "legendary"; rarityText = "傳奇"; rarityClass = "loot-legendary"; statMult = 3; } // ~0.15%
+    else if (r > 988500) { rarity = "set"; rarityText = "套裝"; rarityClass = "loot-set"; statMult = 2; isSet = true; } // ~1%
+    else if (r > 838500) { rarity = "rare"; rarityText = "稀有"; rarityClass = "loot-rare"; statMult = 1.8; } // ~15%
+
+    // 讀取副本專屬的屬性加成倍率 (loot_multiplier)
+    let areaMultiplier = 1;
+    if (gameState.currentArea !== "wasteland") {
+        const dungeon = gameConfig.dungeon_database.find(d => d.id === gameState.currentArea);
+        if (dungeon && dungeon.loot_multiplier) areaMultiplier = dungeon.loot_multiplier;
+    }
+    // 將基礎稀有度倍率 乘上 副本環境倍率
+    statMult *= areaMultiplier;
 
     const pool = gameConfig.loot_pool;
     const slotKeys = ["helmet", "collar", "harness"];
@@ -403,3 +430,41 @@ function updateUI() {
 
 function saveGame() { savePlayerState(); logMessage(">> 資料庫快照備份完成。", "system"); }
 function resetGame() { if (confirm("確定格式化系統？這會永久抹除所有資料庫紀錄！")) { db.delete().then(() => { location.reload(); }); } }
+
+function renderDungeonList() {
+    const selectEl = document.getElementById('area-select');
+    if (!selectEl) return;
+    
+    gameConfig.dungeon_database.forEach(dungeon => {
+        const option = document.createElement('option');
+        option.value = dungeon.id;
+        option.innerText = `>> ${dungeon.name} [推薦 ATK: ${dungeon.req_atk}]`;
+        selectEl.appendChild(option);
+    });
+    selectEl.value = gameState.currentArea;
+}
+
+function changeArea() {
+    if (gameState.isExploring) {
+        logMessage(">> 探索進行中，無法切換區域！請先停止探索。", "system");
+        document.getElementById('area-select').value = gameState.currentArea;
+        return;
+    }
+    gameState.currentArea = document.getElementById('area-select').value;
+    
+    // 切換影像觀測區圖片
+    const imgEl = document.getElementById('area-image');
+    const textEl = document.getElementById('area-image-text');
+    if (gameState.currentArea !== 'wasteland') {
+        const dungeon = gameConfig.dungeon_database.find(d => d.id === gameState.currentArea);
+        if (dungeon && dungeon.img_url) {
+            imgEl.src = dungeon.img_url; imgEl.style.display = 'block'; textEl.style.display = 'none';
+        } else {
+            imgEl.style.display = 'none'; textEl.style.display = 'block'; textEl.innerText = "[NO_SIGNAL_IMAGE_NOT_FOUND]";
+        }
+        logMessage(`>> 目標區域重新定位：${dungeon.name}`, "system");
+    } else {
+        imgEl.style.display = 'none'; textEl.style.display = 'block'; textEl.innerText = "[NO_SIGNAL_IMAGE_NOT_FOUND]";
+        logMessage(`>> 目標區域重新定位：荒野外圍`, "system");
+    }
+}
