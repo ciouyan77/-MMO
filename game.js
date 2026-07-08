@@ -1,36 +1,36 @@
 // 全域記憶體快照
-let gameConfig = null; // 存放非同步載入的 json
+let gameConfig = null;
 let gameState = {
     resources: { scrap: 0, food: 10, zaco: 0 },
     upgrades: { drones: 0 }, costs: { drone: 10 }, autoRates: { scrap: 0 },
     isExploring: false,
-    hound: { hp: 100, maxHp: 100, baseAtk: 12, totalAtk: 12 },
+    hound: { 
+        hp: 100, maxHp: 100, baseAtk: 12, totalAtk: 12, 
+        baseDef: 0, totalDef: 0, 
+        baseDodge: 5, totalDodge: 5, 
+        baseCrit: 10, totalCrit: 10, 
+        ohko: 0, activeSets: [] 
+    },
     equipped: { helmet: null, collar: null, harness: null },
-    currentEnemy: null
+    currentEnemy: null,
+    autoSell: { common: false, rare: false }
 };
 
 // 啟動初始化
 window.addEventListener("DOMContentLoaded", async () => {
     try {
-        // 1. 讀取配置檔 json
         const response = await fetch('./config.json');
         gameConfig = await response.json();
-
-        // 2. 載入資料庫存檔
         await loadGameData();
-
-        // 3. 啟動計時器
         initGameLoops();
-    } catch (e) {
-        console.error("系統初始化失敗:", e);
-    }
+    } catch (e) { console.error("系統初始化失敗:", e); }
 });
 
 // 資料庫載入
 async function loadGameData() {
     let savedState = await db.player_state.get(1);
     if (!savedState) {
-        savedState = { id: 1, resources: { scrap: 0, food: 10, zaco: 0 }, upgrades: { drones: 0 }, costs: { drone: 10 }, autoRates: { scrap: 0 }, hound_hp: 100 };
+        savedState = { id: 1, resources: { scrap: 0, food: 10, zaco: 0 }, upgrades: { drones: 0 }, costs: { drone: 10 }, autoRates: { scrap: 0 }, hound_hp: 100, autoSell: { common: false, rare: false } };
         await db.player_state.add(savedState);
     }
     gameState.resources = savedState.resources;
@@ -38,62 +38,83 @@ async function loadGameData() {
     gameState.costs = savedState.costs;
     gameState.autoRates = savedState.autoRates;
     gameState.hound.hp = savedState.hound_hp;
+    gameState.autoSell = savedState.autoSell || { common: false, rare: false };
 
-    // 撈出穿戴裝備
+    if(document.getElementById('auto-common')) document.getElementById('auto-common').checked = gameState.autoSell.common;
+    if(document.getElementById('auto-rare')) document.getElementById('auto-rare').checked = gameState.autoSell.rare;
+
     const equippedItems = await db.inventory_items.where("is_equipped").equals(1).toArray();
     gameState.equipped = { helmet: null, collar: null, harness: null };
     equippedItems.forEach(item => { gameState.equipped[item.slot] = item; });
 
-    calculateHoundStats();
-    updateUI();
+    calculateHoundStats(); updateUI();
     logMessage(">> 模組化資料庫鏈結成功。", "system");
 }
 
-// 快速存檔
 async function savePlayerState() {
     await db.player_state.put({
         id: 1, resources: gameState.resources, upgrades: gameState.upgrades,
-        costs: gameState.costs, autoRates: gameState.autoRates, hound_hp: gameState.hound.hp
+        costs: gameState.costs, autoRates: gameState.autoRates, hound_hp: gameState.hound.hp, autoSell: gameState.autoSell
     });
 }
 
 // 計算能力值
 function calculateHoundStats() {
-    let bonusAtk = 0; let bonusMaxHp = 0;
-    if (gameState.equipped.collar) bonusAtk += (gameState.equipped.collar.atk || 0);
-    if (gameState.equipped.harness) bonusMaxHp += (gameState.equipped.harness.maxHp || 0);
-    gameState.hound.totalAtk = gameState.hound.baseAtk + bonusAtk;
-    gameState.hound.maxHp = 100 + bonusMaxHp;
+    let bAtk = 0, bHp = 0, bDef = 0, bDodge = 0, bCrit = 0, ohko = 0;
+    let setCounts = {};
+
+    Object.values(gameState.equipped).forEach(item => {
+        if (!item) return;
+        if (item.atk) bAtk += item.atk;
+        if (item.maxHp) bHp += item.maxHp;
+        if (item.def) bDef += item.def;
+        if (item.dodge) bDodge += item.dodge;
+        if (item.crit) bCrit += item.crit;
+        if (item.setId) setCounts[item.setId] = (setCounts[item.setId] || 0) + 1;
+    });
+
+    let activeText = []; gameState.hound.activeSets = []; let atkMultiplier = 1;
+    for (const [setId, count] of Object.entries(setCounts)) {
+        if (count >= 2) {
+            gameState.hound.activeSets.push(`${setId}_2pc`);
+            if (setId === 'scavenger') bAtk += 15; if (setId === 'ninja') bDodge += 10;
+            if (setId === 'thug') bCrit += 15; if (setId === 'zombie') ohko += 5; if (setId === 'abyss') bDef += 10;
+            activeText.push(`[${gameConfig.loot_pool.sets[setId].name}] 2件套啟動`);
+        }
+        if (count >= 3) {
+            gameState.hound.activeSets.push(`${setId}_3pc`);
+            if (setId === 'scavenger') atkMultiplier = 1.3; if (setId === 'zombie') ohko = 15;
+            activeText.push(`[${gameConfig.loot_pool.sets[setId].name}] 3件套完美共鳴！`);
+        }
+    }
+
+    gameState.hound.totalAtk = Math.floor((gameState.hound.baseAtk + bAtk) * atkMultiplier);
+    gameState.hound.maxHp = 100 + bHp; gameState.hound.totalDef = gameState.hound.baseDef + bDef;
+    gameState.hound.totalDodge = gameState.hound.baseDodge + bDodge; gameState.hound.totalCrit = gameState.hound.baseCrit + bCrit;
+    gameState.hound.ohko = ohko;
     if (gameState.hound.hp > gameState.hound.maxHp) gameState.hound.hp = gameState.hound.maxHp;
+    
+    const setText = document.getElementById('set-bonus-text');
+    if (setText) setText.innerHTML = activeText.length > 0 ? activeText.join("<br>") : "<span style='color:#777;'>[未啟動任何套裝效果]</span>";
 }
 
-// 核心 Tick 循環
 function initGameLoops() {
     setInterval(() => {
-        if (gameState.autoRates.scrap > 0) {
-            gameState.resources.scrap += gameState.autoRates.scrap;
-            updateUI();
-        }
+        if (gameState.autoRates.scrap > 0) { gameState.resources.scrap += gameState.autoRates.scrap; updateUI(); }
         if (gameState.isExploring) handleExplorationTick();
     }, 1000);
     setInterval(() => { savePlayerState(); }, 10000);
 }
 
-// 基礎功能 (按鈕觸發)
 function switchTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
     document.getElementById(`tab-${tabId}`).classList.add('active');
     document.querySelector(`.tab-btn[data-tab="${tabId}"]`).classList.add('active');
-    if(tabId === 'inv') renderInventory();
-    if(tabId === 'shop') renderShop();
+    if(tabId === 'inv') renderInventory(); if(tabId === 'shop') renderShop();
 }
 
-function gatherResource(type) {
-    gameState.resources[type]++; updateUI(); savePlayerState();
-    logMessage(`回收 1 ${type.toUpperCase()}`);
-}
-
+function gatherResource(type) { gameState.resources[type]++; updateUI(); savePlayerState(); logMessage(`回收 1 ${type.toUpperCase()}`); }
 function buyDrone() {
     if (gameState.resources.scrap >= gameState.costs.drone) {
         gameState.resources.scrap -= gameState.costs.drone; gameState.upgrades.drones++;
@@ -106,19 +127,15 @@ function buyDrone() {
 function healHound() {
     if (gameState.hound.hp >= gameState.hound.maxHp) return;
     if (gameState.resources.food >= 1) {
-        gameState.resources.food--;
-        gameState.hound.hp = Math.min(gameState.hound.hp + 25, gameState.hound.maxHp);
-        updateUI(); savePlayerState();
-        logMessage(`餵食肉乾，恢復 25 HP。[${gameState.hound.hp}/${gameState.hound.maxHp}]`);
+        gameState.resources.food--; gameState.hound.hp = Math.min(gameState.hound.hp + 25, gameState.hound.maxHp);
+        updateUI(); savePlayerState(); logMessage(`餵食肉乾，恢復 25 HP。[${gameState.hound.hp}/${gameState.hound.maxHp}]`);
     }
 }
 
 function toggleExplore() {
     if (gameState.hound.hp <= 0 && !gameState.isExploring) { logMessage("獵犬處於重傷休克狀態，請餵食肉乾。", "system"); return; }
     gameState.isExploring = !gameState.isExploring;
-    const btn = document.getElementById('btn-explore');
-    const stateEl = document.getElementById('hound-state');
-    const reportEl = document.getElementById('combat-report');
+    const btn = document.getElementById('btn-explore'); const stateEl = document.getElementById('hound-state'); const reportEl = document.getElementById('combat-report');
     if (gameState.isExploring) {
         btn.innerText = "HALT_EXPLORATION [停止探索]"; btn.style.borderColor = "#ff3333"; btn.style.color = "#ff3333";
         stateEl.innerText = "[探索中]"; stateEl.style.color = "var(--primary-color)"; reportEl.innerHTML = "波段掃描中...搜尋目標中...";
@@ -141,111 +158,183 @@ function handleExplorationTick() {
         return;
     }
 
-    let dmg = gameState.hound.totalAtk;
-    gameState.currentEnemy.hp -= dmg;
-    reportEl.innerHTML = `🐾 獵犬撕咬造成 <b style="color:#55ff55">${dmg}</b> 傷害。<br>`;
+    if (!gameState.hound.activeSets) gameState.hound.activeSets = [];
+    let currentCrit = gameState.hound.totalCrit || 10; let currentDodge = gameState.hound.totalDodge || 5; let currentDef = gameState.hound.totalDef || 0;
+
+    if (gameState.hound.ohko > 0 && Math.random() * 100 < gameState.hound.ohko) {
+        gameState.currentEnemy.hp = 0; reportEl.innerHTML = `<b style="color:#ff3333;">💀 [殭屍骰觸發] 獵犬撕裂了目標的喉嚨！一擊必殺！</b><br>`;
+    } else {
+        let dmg = gameState.hound.totalAtk;
+        if (Math.random() * 100 < currentCrit) {
+            let critMult = gameState.hound.activeSets.includes('thug_3pc') ? 3 : 2; dmg *= critMult;
+            reportEl.innerHTML = `🐾 獵犬撕咬造成 <b style="color:#ffaa00">${dmg}</b> 暴擊傷害！(x${critMult})<br>`;
+        } else { reportEl.innerHTML = `🐾 獵犬撕咬造成 <b style="color:#55ff55">${dmg}</b> 傷害。<br>`; }
+        gameState.currentEnemy.hp -= dmg;
+    }
 
     if (gameState.currentEnemy.hp <= 0) {
         reportEl.innerHTML += `<span style='color:var(--text-color);'>✓ 目標清除！</span><br>`;
-        if (Math.random() < 0.40) {
-            reportEl.innerHTML += `<span style='color:var(--text-color);'>搜刮戰利品中...</span>`;
-            generateLoot();
-        } else { reportEl.innerHTML += `<span style='color:#777;'>殘骸中空無一物。</span>`; }
+        if (Math.random() < 0.40) { reportEl.innerHTML += `<span style='color:var(--text-color);'>搜刮戰利品中...</span>`; generateLoot(); } 
+        else { reportEl.innerHTML += `<span style='color:#777;'>殘骸中空無一物。</span>`; }
         gameState.currentEnemy = null; savePlayerState(); return;
     }
 
-    gameState.hound.hp = Math.max(0, gameState.hound.hp - gameState.currentEnemy.atk);
-    gameState.hound.hp = Math.max(0, gameState.hound.hp - gameState.currentEnemy.atk);
-    reportEl.innerHTML += `💥 遭受反擊，受傷 ${gameState.currentEnemy.atk} 點。`;
-    // ✨ 【新增：戰時自動醫療注射邏輯】
-    // 當血量低於 75%，且身上還有肉乾時，自動消耗並補血
-    const hpPercent = (gameState.hound.hp / gameState.hound.maxHp) * 100;
-    if (hpPercent <= 75 && gameState.resources.food > 0 && gameState.hound.hp > 0) {
-        gameState.resources.food--;
-        const oldHp = gameState.hound.hp;
-        gameState.hound.hp = Math.min(gameState.hound.hp + 25, gameState.hound.maxHp);
-        const healedAmount = gameState.hound.hp - oldHp;
-        
-        // 戰情面板即時回報
-        reportEl.innerHTML += `<br><span style="color:#55aaff;">⚡ [自動戰術補給] 獵犬吞下肉乾，恢復 ${healedAmount} HP！(剩餘肉乾: ${gameState.resources.food})</span>`;
-        logMessage(`自動補給：獵犬戰傷觸發醫療，消耗 1 肉乾，恢復 ${healedAmount} HP。`);
+    if (Math.random() * 100 < currentDodge) { reportEl.innerHTML += `💨 [幻影] 獵犬靈巧地閃避了敵人的攻擊！`; } 
+    else {
+        let dmgTaken = Math.max(1, gameState.currentEnemy.atk - currentDef);
+        gameState.hound.hp = Math.max(0, gameState.hound.hp - dmgTaken);
+        reportEl.innerHTML += `💥 遭受攻擊，裝甲抵禦後受傷 ${dmgTaken} 點。`;
+        if (gameState.hound.activeSets.includes('abyss_3pc')) {
+            let reflectDmg = Math.floor(dmgTaken * 0.5); gameState.currentEnemy.hp -= reflectDmg;
+            reportEl.innerHTML += ` <span style="color: #ff3333;">(反彈 ${reflectDmg} 傷害)</span>`;
+        }
     }
 
-    document.getElementById('hound-hp').innerText = gameState.hound.hp;
-
-
-    reportEl.innerHTML += `💥 遭受反擊，受傷 ${gameState.currentEnemy.atk} 點。`;
+    const hpPercent = (gameState.hound.hp / gameState.hound.maxHp) * 100;
+    if (hpPercent <= 75 && gameState.resources.food > 0 && gameState.hound.hp > 0) {
+        gameState.resources.food--; const oldHp = gameState.hound.hp;
+        gameState.hound.hp = Math.min(gameState.hound.hp + 25, gameState.hound.maxHp);
+        reportEl.innerHTML += `<br><span style="color:#55aaff;">⚡ [自動補給] 消耗 1 肉乾，恢復 ${gameState.hound.hp - oldHp} HP！</span>`;
+    }
     document.getElementById('hound-hp').innerText = gameState.hound.hp;
 }
 
 async function generateLoot() {
     const r = Math.random() * 100;
-    let rarity = "common", rarityText = "普通", rarityClass = "loot-common", statMultiplier = 1;
-    if (r > 99) { rarity = "apocalyptic"; rarityText = "滅世"; rarityClass = "loot-apocalyptic"; statMultiplier = 5; }
-    else if (r > 90) { rarity = "legendary"; rarityText = "傳奇"; rarityClass = "loot-legendary"; statMultiplier = 3; }
-    else if (r > 60) { rarity = "rare"; rarityText = "稀有"; rarityClass = "loot-rare"; statMultiplier = 1.8; }
+    let rarity = "common", rarityText = "普通", rarityClass = "loot-common", statMult = 1; let isSet = false;
+    if (r > 98) { rarity = "apocalyptic"; rarityText = "滅世"; rarityClass = "loot-apocalyptic"; statMult = 5; }
+    else if (r > 90) { rarity = "set"; rarityText = "套裝"; rarityClass = "loot-set"; statMult = 2; isSet = true; }
+    else if (r > 75) { rarity = "legendary"; rarityText = "傳奇"; rarityClass = "loot-legendary"; statMult = 3; }
+    else if (r > 40) { rarity = "rare"; rarityText = "稀有"; rarityClass = "loot-rare"; statMult = 1.8; }
 
     const pool = gameConfig.loot_pool;
     const slotKeys = ["helmet", "collar", "harness"];
     const slot = slotKeys[Math.floor(Math.random() * slotKeys.length)];
     const slotData = pool.slots[slot];
     const baseName = slotData.names[Math.floor(Math.random() * slotData.names.length)];
-    const prefix = pool.prefix[Math.floor(Math.random() * pool.prefix.length)];
 
-    let item = {
-        name: `[${rarityText}] ${prefix}${baseName}`, slot: slot, slotText: slotData.typeName,
-        rarity: rarity, class: rarityClass, atk: 0, maxHp: 0, effect: null, is_equipped: 0
-    };
+    let item = { slot: slot, slotText: slotData.typeName, rarity: rarity, class: rarityClass, atk: 0, maxHp: 0, def: 0, dodge: 0, crit: 0, setId: null, is_equipped: 0, is_locked: 0 };
 
-    if (slot === 'collar') item.atk = Math.floor((Math.random() * 4 + 3) * statMultiplier);
-    else if (slot === 'harness') item.maxHp = Math.floor((Math.random() * 15 + 20) * statMultiplier);
-    else if (slot === 'helmet') item.effect = pool.helmetEffects[Math.floor(Math.random() * pool.helmetEffects.length)];
+    if (isSet) {
+        const setKeys = Object.keys(pool.sets); const setId = setKeys[Math.floor(Math.random() * setKeys.length)];
+        item.name = `[套裝] ${pool.sets[setId].name}・${baseName}`; item.setId = setId;
+        if (slot === 'collar') item.atk = Math.floor(4 * statMult); else if (slot === 'harness') item.maxHp = Math.floor(20 * statMult); else if (slot === 'helmet') item.def = Math.floor(3 * statMult);
+    } else {
+        const affix = pool.affixes[Math.floor(Math.random() * pool.affixes.length)];
+        item.name = `[${rarityText}] ${affix.name}${baseName}`;
+        if (slot === 'collar') item.atk = Math.floor((Math.random() * 4 + 3) * statMult); else if (slot === 'harness') item.maxHp = Math.floor((Math.random() * 15 + 20) * statMult); else if (slot === 'helmet') item.def = Math.floor((Math.random() * 3 + 2) * statMult);
+        if (affix.type === 'atk') item.atk += Math.floor(3 * statMult); if (affix.type === 'hp') item.maxHp += Math.floor(15 * statMult); if (affix.type === 'def') item.def += Math.floor(3 * statMult); if (affix.type === 'crit') item.crit += Math.floor(3 * statMult); if (affix.type === 'dodge') item.dodge += Math.floor(3 * statMult);
+    }
+
+    if (gameState.autoSell && gameState.autoSell[rarity]) {
+        let val = rarity === 'rare' ? 5 : 1;
+        gameState.resources.zaco += val;
+        logMessage(`>> [自動拆解] 將 <span class="${item.class}">${item.name}</span> 轉換為 +${val} ZaCo`);
+        return; 
+    }
 
     await db.inventory_items.add(item);
     if (document.getElementById('tab-inv').classList.contains('active')) renderInventory();
-    let logDesc = item.effect ? `[特效: ${item.effect.name}]` : (item.atk > 0 ? `ATK +${item.atk}` : `MaxHP +${item.maxHp}`);
-    logMessage(`獲得戰利品: <span class="${rarityClass}">${item.name} (${logDesc})</span>`);
+    logMessage(`獲得戰利品: <span class="${item.class}">${item.name}</span>`);
 }
+
+function toggleAutoSell(type) { gameState.autoSell[type] = document.getElementById(`auto-${type}`).checked; savePlayerState(); }
 
 async function equipItem(id) {
     const item = await db.inventory_items.get(id); if (!item) return;
     await db.inventory_items.where("slot").equals(item.slot).modify({ is_equipped: 0 });
     await db.inventory_items.update(id, { is_equipped: 1 });
-
     const equippedItems = await db.inventory_items.where("is_equipped").equals(1).toArray();
     gameState.equipped = { helmet: null, collar: null, harness: null };
     equippedItems.forEach(i => { gameState.equipped[i.slot] = i; });
-
     calculateHoundStats(); updateUI(); renderInventory();
     logMessage(`裝備成功：獵犬已配備 <span class="${item.class}">${item.name}</span>`);
 }
 
-async function unequip() {
-    await db.inventory_items.where("is_equipped").equals(1).modify({ is_equipped: 0 });
-    gameState.equipped = { helmet: null, collar: null, harness: null };
+async function unequipSlot(slot) {
+    const item = gameState.equipped[slot]; if(!item) return;
+    await db.inventory_items.update(item.id, { is_equipped: 0 });
+    gameState.equipped[slot] = null;
     calculateHoundStats(); updateUI();
     if(document.getElementById('tab-inv').classList.contains('active')) renderInventory();
-    logMessage(">> 已解除所有武裝面板。");
+    logMessage(`>> 已卸下裝備：${item.name}`);
 }
 
 async function sellItem(event, id) {
-    event.stopPropagation(); const item = await db.inventory_items.get(id); if (!item) return;
-    let val = 1; if(item.rarity==='rare') val=5; if(item.rarity==='legendary') val=25; if(item.rarity==='apocalyptic') val=150;
+    event.stopPropagation(); const item = await db.inventory_items.get(id); if (!item || item.is_locked) return;
+    let val = 1; if(item.rarity==='rare') val=5; if(item.rarity==='set') val=80; if(item.rarity==='legendary') val=25; if(item.rarity==='apocalyptic') val=150;
     gameState.resources.zaco += val; await db.inventory_items.delete(id);
     logMessage(`出售 ${item.name}，獲得 <span style="color:var(--zaco-color)">+${val} ZaCo</span>`, 'zaco');
     updateUI(); renderInventory();
 }
 
+async function toggleLock(event, id) {
+    event.stopPropagation(); const item = await db.inventory_items.get(id); if (!item) return;
+    await db.inventory_items.update(id, { is_locked: item.is_locked ? 0 : 1 }); renderInventory();
+}
+
+let pendingEquipId = null;
+async function showCompare(id) {
+    const item = await db.inventory_items.get(id); if (!item) return;
+    const currentEquip = gameState.equipped[item.slot];
+    
+    const buildStatsHTML = (eqItem, title) => {
+        if(!eqItem) return `<div style="border:1px dashed #555; padding:8px;"><div style="color:#888; margin-bottom:5px;">[${title}]</div><span style="color:#555;">(無裝備)</span></div>`;
+        return `<div style="border:1px dashed ${eqItem.is_equipped ? 'var(--text-color)' : 'var(--primary-color)'}; padding:8px;">
+            <div style="color:#888; margin-bottom:5px;">[${title}]</div>
+            <div class="${eqItem.class}" style="margin-bottom:5px; font-weight:bold;">${eqItem.name}</div>
+            ${eqItem.atk ? `<div>ATK: ${eqItem.atk}</div>` : ''} ${eqItem.maxHp ? `<div>HP: ${eqItem.maxHp}</div>` : ''}
+            ${eqItem.def ? `<div>DEF: ${eqItem.def}</div>` : ''} ${eqItem.crit ? `<div>CRIT: ${eqItem.crit}%</div>` : ''}
+            ${eqItem.dodge ? `<div>DODGE: ${eqItem.dodge}%</div>` : ''}
+        </div>`;
+    };
+    document.getElementById('compare-content').innerHTML = buildStatsHTML(currentEquip, "當前著裝") + buildStatsHTML(item, "準備換上");
+    pendingEquipId = id; document.getElementById('compare-backdrop').style.display = 'block'; document.getElementById('compare-modal').style.display = 'block';
+}
+
+function closeCompare() { pendingEquipId = null; document.getElementById('compare-backdrop').style.display = 'none'; document.getElementById('compare-modal').style.display = 'none'; }
+async function confirmEquip() { if(pendingEquipId) await equipItem(pendingEquipId); closeCompare(); }
+
 async function renderInventory() {
     const list = document.getElementById('inventory-list');
-    const items = await db.inventory_items.where("is_equipped").equals(0).toArray();
-    if (items.length === 0) { list.innerHTML = "<span style='color:#777;'>[數據空載 / 背包空無一物]</span>"; return; }
+    let items = await db.inventory_items.where("is_equipped").equals(0).toArray();
+    
+    const searchEl = document.getElementById('inv-search');
+    if(searchEl && searchEl.value) {
+        const searchQ = searchEl.value.toLowerCase();
+        items = items.filter(i => i.name.toLowerCase().includes(searchQ));
+    }
+    
+    const sortEl = document.getElementById('inv-sort');
+    if(sortEl) {
+        const sortQ = sortEl.value;
+        const rWeights = { common: 1, rare: 2, set: 3, legendary: 4, apocalyptic: 5 };
+        items.sort((a, b) => {
+            if(sortQ === 'rarity-desc') return rWeights[b.rarity] - rWeights[a.rarity];
+            if(sortQ === 'rarity-asc') return rWeights[a.rarity] - rWeights[b.rarity];
+            if(sortQ === 'atk-desc') return (b.atk||0) - (a.atk||0);
+            if(sortQ === 'hp-desc') return (b.maxHp||0) - (a.maxHp||0);
+            return 0;
+        });
+    }
+
+    if (items.length === 0) { list.innerHTML = "<span style='color:#777;'>[數據空載 / 無符合條件的裝備]</span>"; return; }
     list.innerHTML = "";
     items.forEach((item) => {
         const el = document.createElement('div'); el.className = 'inv-item';
-        let price = 1; if(item.rarity==='rare') price=5; if(item.rarity==='legendary') price=25; if(item.rarity==='apocalyptic') price=150;
-        let desc = item.effect ? `特效: ${item.effect.name}` : (item.atk > 0 ? `ATK +${item.atk}` : `HP +${item.maxHp}`);
-        el.innerHTML = `<div class="inv-info" onclick="equipItem(${item.id})"><span class="${item.class}">${item.name}</span><br><span style="color:#888; font-size:0.75rem;">[${item.slotText}] ${desc}</span></div><button class="btn" style="width: auto; padding: 5px 10px; margin: 0; border-color: var(--zaco-color); color: var(--zaco-color);" onclick="sellItem(event, ${item.id})">出售 ($${price})</button>`;
+        let price = 1; if(item.rarity==='rare') price=5; if(item.rarity==='set') price=80; if(item.rarity==='legendary') price=25; if(item.rarity==='apocalyptic') price=150;
+        let descArr = []; if (item.atk) descArr.push(`ATK +${item.atk}`); if (item.maxHp) descArr.push(`HP +${item.maxHp}`); if (item.def) descArr.push(`DEF +${item.def}`); if (item.crit) descArr.push(`暴擊 +${item.crit}%`); if (item.dodge) descArr.push(`閃避 +${item.dodge}%`); if (item.setId) descArr.push(`套裝: ${gameConfig.loot_pool.sets[item.setId].name}`);
+        
+        const lockIcon = item.is_locked ? "🔒" : "🔓"; const lockColor = item.is_locked ? "var(--primary-color)" : "#555";
+        el.innerHTML = `
+            <div class="inv-info" onclick="showCompare(${item.id})">
+                <span class="${item.class}">${item.name}</span><br>
+                <span style="color:#888; font-size:0.75rem;">[${item.slotText}] ${descArr.length > 0 ? descArr.join(" | ") : "無附加"}</span>
+            </div>
+            <div style="display:flex; gap:5px;">
+                <button class="btn" style="width: auto; padding: 5px; margin: 0; border-color: ${lockColor}; color: ${lockColor};" onclick="toggleLock(event, ${item.id})">${lockIcon}</button>
+                <button class="btn" style="width: auto; padding: 5px 10px; margin: 0; border-color: var(--zaco-color); color: var(--zaco-color);" onclick="sellItem(event, ${item.id})" ${item.is_locked ? 'disabled' : ''}>出售 ($${price})</button>
+            </div>`;
         list.appendChild(el);
     });
 }
@@ -254,19 +343,15 @@ async function buyShopItem(index) {
     const item = gameConfig.shop_database[index];
     if (gameState.resources.zaco >= item.price) {
         gameState.resources.zaco -= item.price;
-        
-        // ✨ 新增判斷：如果是批發肉乾
         if (item.slot === 'usable' && item.id === 'shop_jerky_bulk') {
             gameState.resources.food += 200;
             logMessage(`地下交易完成: 拆開 <span class="${item.class}">${item.name}</span>，獲得 200 份肉乾！`, 'zaco');
         } else {
-            // 原本的裝備寫入資料庫邏輯
-            const dbItem = { name: item.name, slot: item.slot, slotText: item.slot === 'collar' ? '項圈' : '胸背帶', rarity: item.rarity, class: item.class, atk: item.atk, maxHp: item.maxHp, effect: null, is_equipped: 0 };
+            const dbItem = { name: item.name, slot: item.slot, slotText: item.slot === 'collar' ? '項圈' : (item.slot === 'helmet' ? '頭盔' : '胸背帶'), rarity: item.rarity, class: item.class, atk: item.atk, maxHp: item.maxHp, def: item.def||0, is_equipped: 0, is_locked: 0, setId: item.setId||null };
             await db.inventory_items.add(dbItem);
             logMessage(`地下交易完成: 獲得 <span class="${item.class}">${item.name}</span>`, 'zaco');
         }
-        updateUI();
-        savePlayerState();
+        updateUI(); savePlayerState();
     } else { logMessage(`[ZACO_ERROR] 帳戶餘額不足以支付黑市交易。`, 'system'); }
 }
 
@@ -274,13 +359,11 @@ function renderShop() {
     const list = document.getElementById('shop-list'); list.innerHTML = "";
     gameConfig.shop_database.forEach((item, index) => {
         const el = document.createElement('div'); el.className = 'inv-item';
-        // 優化描述顯示
-        let desc = item.desc ? item.desc : (item.atk > 0 ? `固定加成: ATK +${item.atk}` : `固定加成: HP +${item.maxHp}`);
+        let desc = item.desc ? item.desc : (item.atk > 0 ? `加成: ATK +${item.atk}` : `加成: HP +${item.maxHp}`);
         el.innerHTML = `<div class="inv-info"><span class="${item.class}">${item.name}</span><br><span style="color:#888; font-size:0.75rem;">${desc}</span></div><button class="btn" style="width: auto; padding: 6px 12px; margin: 0; border-color: var(--zaco-color); color: var(--zaco-color); font-weight:bold;" onclick="buyShopItem(${index})">購入 ($${item.price})</button>`;
         list.appendChild(el);
     });
 }
-
 
 function logMessage(text, type = 'normal') {
     const container = document.getElementById('log-container'); const entry = document.createElement('div');
@@ -297,13 +380,25 @@ function updateUI() {
     document.getElementById('hound-hp').innerText = gameState.hound.hp;
     document.getElementById('btn-upgrade-drone').innerText = `DEPLOY_SCRAP_DRONE [成本: ${gameState.costs.drone} 廢料]`;
     
-    const equipDiv = document.getElementById('camp-equipped'); const atkDiv = document.getElementById('hound-total-atk');
+    document.getElementById('hound-total-atk').innerText = `${gameState.hound.totalAtk} (HP上限: ${gameState.hound.maxHp})`;
+    document.getElementById('hound-def').innerText = gameState.hound.totalDef;
+    document.getElementById('hound-crit').innerText = `${gameState.hound.totalCrit}%`;
+    document.getElementById('hound-dodge').innerText = `${gameState.hound.totalDodge}%`;
+    document.getElementById('hound-ohko').innerText = `${gameState.hound.ohko}%`;
+
+    const equipDiv = document.getElementById('camp-equipped'); 
     let eqText = [];
-    if (gameState.equipped.helmet) eqText.push(`<span class="${gameState.equipped.helmet.class}">[頭盔:${gameState.equipped.helmet.name}]</span>`);
-    if (gameState.equipped.collar) eqText.push(`<span class="${gameState.equipped.collar.class}">[項圈:${gameState.equipped.collar.name}]</span>`);
-    if (gameState.equipped.harness) eqText.push(`<span class="${gameState.equipped.harness.class}">[胸背:${gameState.equipped.harness.name}]</span>`);
-    equipDiv.innerHTML = eqText.length > 0 ? eqText.join(" <br> ") : `<span style="color:#777;">[無裝備]</span>`;
-    atkDiv.innerText = `${gameState.hound.totalAtk} (HP上限: ${gameState.hound.maxHp})`;
+    const buildEqLine = (slot, item) => {
+        if(!item) return "";
+        return `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; border-bottom:1px dashed #333; padding-bottom:5px;">
+            <span class="${item.class}">[${item.slotText}] ${item.name}</span>
+            <button class="btn" style="width:auto; padding:3px 8px; margin:0; font-size:0.75rem; border-color:#ff3333; color:#ff3333;" onclick="unequipSlot('${slot}')">卸下</button>
+        </div>`;
+    };
+    if (gameState.equipped.helmet) eqText.push(buildEqLine('helmet', gameState.equipped.helmet));
+    if (gameState.equipped.collar) eqText.push(buildEqLine('collar', gameState.equipped.collar));
+    if (gameState.equipped.harness) eqText.push(buildEqLine('harness', gameState.equipped.harness));
+    equipDiv.innerHTML = eqText.length > 0 ? eqText.join("") : `<span style="color:#777;">[無裝備]</span>`;
 }
 
 function saveGame() { savePlayerState(); logMessage(">> 資料庫快照備份完成。", "system"); }

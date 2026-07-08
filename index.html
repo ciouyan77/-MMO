@@ -10,7 +10,7 @@
             --primary-color: #ff8800; --border-color: #224422; --zaco-color: #ffd700; 
             --glow-effect: 0 0 8px rgba(85, 255, 85, 0.4);
             --rarity-common: #888888; --rarity-rare: #55aaff;
-            --rarity-legendary: #ffcc00; --rarity-apocalyptic: #ff2222; 
+            --rarity-legendary: #ffcc00; --rarity-apocalyptic: #ff2222; --rarity-set: #55ff55;
         }
         body {
             font-family: 'Courier New', Courier, monospace, "SF Pro Text";
@@ -43,6 +43,7 @@
         .loot-rare { color: var(--rarity-rare); text-shadow: 0 0 5px rgba(85, 170, 255, 0.5); }
         .loot-legendary { color: var(--rarity-legendary); text-shadow: 0 0 8px rgba(255, 204, 0, 0.8); font-weight: bold; }
         .loot-apocalyptic { color: var(--rarity-apocalyptic); text-shadow: 0 0 10px rgba(255, 34, 34, 0.9); font-weight: bold; letter-spacing: 1px; }
+	.loot-set { color: var(--rarity-set); text-shadow: 0 0 8px rgba(85, 255, 85, 0.8); font-weight: bold; letter-spacing: 1px; }
         .inv-list { max-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); padding: 8px; background: rgba(0,0,0,0.4); margin-top: 10px; }
         .inv-item { padding: 10px 8px; border-bottom: 1px dashed #333; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; }
         .inv-item:last-child { border-bottom: none; }
@@ -52,6 +53,10 @@
         .log-panel { position: fixed; bottom: 0; left: 0; right: 0; height: 120px; background-color: #050505; border-top: 1px solid var(--text-color); padding: 8px 12px; box-sizing: border-box; font-size: 0.75rem; overflow-y: hidden; z-index: 10; }
         .log-container { display: flex; flex-direction: column; gap: 2px; }
         .log-entry { color: #44aa44; } .log-entry.system { color: var(--primary-color); } .log-entry.zaco { color: var(--zaco-color); }
+.modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--panel-color); border: 2px solid var(--primary-color); padding: 15px; z-index: 1000; width: 90%; max-width: 400px; box-shadow: 0 0 20px rgba(255, 136, 0, 0.4); }
+        .modal-backdrop { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 999; }
+        .filter-bar { display: flex; gap: 5px; margin-bottom: 10px; }
+        .filter-bar input, .filter-bar select { flex: 1; background: #222; color: var(--text-color); border: 1px solid var(--border-color); padding: 8px; font-family: inherit; font-size: 0.8rem; }
     </style>
 
     <!-- 🌐 按順序載入驅動與自訂邏輯模組 -->
@@ -82,8 +87,15 @@
         <div class="equip-box">
             <div style="font-size: 0.8rem; color: #888;">[目前裝備]</div>
             <div id="camp-equipped" style="margin: 5px 0;"><span style="color:#777;">[無裝備]</span></div>
-            <div style="color: var(--primary-color);">總武裝評估值: <b id="hound-total-atk">12</b></div>
-            <button class="btn" style="padding: 5px; margin-top: 5px; font-size: 0.8rem;" onclick="unequip()">卸下裝備</button>
+           <div style="color: var(--primary-color);">總武裝評估值: <b id="hound-total-atk">12</b></div>
+            <div style="font-size: 0.8rem; color: #aaa; margin-top: 5px; display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+                <span>防禦: <b id="hound-def" style="color: #fff;">0</b></span>
+                <span>暴擊: <b id="hound-crit" style="color: #ffaa00;">10%</b></span>
+                <span>閃避: <b id="hound-dodge" style="color: #55aaff;">5%</b></span>
+                <span>秒殺: <b id="hound-ohko" style="color: #ff3333;">0%</b></span>
+            </div>
+            <div id="set-bonus-text" style="font-size: 0.75rem; color: var(--rarity-set); margin-top: 5px;">[未啟動任何套裝效果]</div>
+            
         </div>
         <p>戰鬥犬生命值: [<span id="hound-hp">100</span>/100] <span id="hound-state" style="color: var(--text-color);">[待命中]</span></p>
         <button class="btn" onclick="healHound()" style="border-color: #55aaff; color: #55aaff;">FEED_JERKY (+25 HP) [消耗: 1 肉乾]</button>
@@ -111,10 +123,33 @@
         </div>
     </div>
 
-    <div id="tab-inv" class="tab-content">
+<div id="tab-inv" class="tab-content">
         <h3 class="warning-text">// BLACK_MARKET_LINK</h3>
-        <p>點擊裝備名稱進行穿戴，或出售換取 <span style="color:var(--zaco-color); font-weight:bold;">ZaCo</span>：</p>
+        <div class="filter-bar">
+            <input type="text" id="inv-search" placeholder="輸入關鍵字..." oninput="renderInventory()">
+            <select id="inv-sort" onchange="renderInventory()">
+                <option value="rarity-desc">稀有度 (高優先)</option>
+                <option value="rarity-asc">稀有度 (低優先)</option>
+                <option value="atk-desc">攻擊力優先</option>
+                <option value="hp-desc">生命值優先</option>
+            </select>
+        </div>
+        <div style="font-size: 0.75rem; color: #aaa; margin-bottom: 10px; border: 1px dashed #444; padding: 8px; background: rgba(0,0,0,0.3);">
+            <b style="color:var(--primary-color);">[LOOT_FILTER] 自動拆解設定:</b><br>
+            <label style="margin-right:10px;"><input type="checkbox" id="auto-common" onchange="toggleAutoSell('common')"> 普通(灰)</label>
+            <label style="margin-right:10px;"><input type="checkbox" id="auto-rare" onchange="toggleAutoSell('rare')"> 稀有(藍)</label>
+        </div>
         <div id="inventory-list" class="inv-list"><span style="color:#777;">[資料庫空載...]</span></div>
+    </div>
+
+    <div id="compare-backdrop" class="modal-backdrop" onclick="closeCompare()"></div>
+    <div id="compare-modal" class="modal">
+        <h3 class="warning-text" style="margin-top:0;">// 裝備效能比對</h3>
+        <div id="compare-content" style="font-size:0.85rem; display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;"></div>
+        <div style="display:flex; gap:10px;">
+            <button class="btn" onclick="confirmEquip()" style="margin-bottom:0; flex:1;">確認著裝</button>
+            <button class="btn" onclick="closeCompare()" style="margin-bottom:0; flex:1; border-color:#888; color:#888;">取消</button>
+        </div>
     </div>
 
     <div id="tab-shop" class="tab-content">
@@ -128,6 +163,6 @@
         <div id="log-container" class="log-container">
             <div class="log-entry system">>> 系統核心模組載入中...</div>
         </div>
-    }
+    </div>
 </body>
 </html>

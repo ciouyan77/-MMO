@@ -7,22 +7,31 @@
     { "name": "失控安保機甲", "hp": 120, "atk": 15 }
   ],
   "loot_pool": {
-    "prefix": ["破舊的", "生鏽的", "強化型", "輻射防護", "戰術", "傳奇之", "末日", "禁忌的"],
-    "slots": {
-      "helmet": { "names": ["生化面甲", "戰術頭盔", "防毒呼吸器", "電漿導航儀"], "typeName": "頭盔" },
-      "collar": { "names": ["釘刺項圈", "電擊束環", "鈦鋼頸甲", "超頻能量環"], "typeName": "項圈" },
-      "harness": { "names": ["防彈胸背帶", "重型外骨骼", "減震裝甲", "極限生化甲"], "typeName": "胸背帶" }
+    "affixes": [
+      { "name": "嗜血", "type": "atk", "desc": "攻擊力增強" },
+      { "name": "無懼", "type": "hp", "desc": "生命值增強" },
+      { "name": "鐵壁", "type": "def", "desc": "防禦力提升" },
+      { "name": "致命", "type": "crit", "desc": "暴擊率提升" },
+      { "name": "幻影", "type": "dodge", "desc": "閃避率提升" }
+    ],
+    "sets": {
+      "scavenger": { "id": "scavenger", "name": "清道夫", "2pc": "基礎攻擊力 +15", "3pc": "總攻擊力 +30%" },
+      "ninja": { "id": "ninja", "name": "都市忍者", "2pc": "閃避率 +10%", "3pc": "閃避後下次必定暴擊" },
+      "thug": { "id": "thug", "name": "廢土暴徒", "2pc": "暴擊率 +15%", "3pc": "暴擊傷害變為 3 倍" },
+      "zombie": { "id": "zombie", "name": "殭屍骰", "2pc": "5% 機率一擊必殺", "3pc": "15% 機率一擊必殺" },
+      "abyss": { "id": "abyss", "name": "深淵琉璃", "2pc": "防禦力 +10", "3pc": "反彈 50% 承受傷害" }
     },
-    "helmetEffects": [
-      { "id": "poison", "name": "劇毒", "desc": "每回合毒傷 -4 HP" },
-      { "id": "debuff", "name": "威嚇", "desc": "敵人攻擊力 -2" },
-      { "id": "crit", "name": "撕裂", "desc": "20% 機率造成 2 倍暴擊" }
-    ]
+    "slots": {
+      "helmet": { "names": ["生化面甲", "戰術頭盔", "防毒呼吸器"], "typeName": "頭盔" },
+      "collar": { "names": ["釘刺項圈", "電擊束環", "鈦鋼頸甲"], "typeName": "項圈" },
+      "harness": { "names": ["防彈胸背帶", "重型外骨骼", "減震裝甲"], "typeName": "胸背帶" }
+    }
   },
-  "shop_database": [
-    { "id": "shop_jerky_bulk", "name": "[物資箱] 脫水肉乾配給包", "slot": "usable", "rarity": "common", "atk": 0, "maxHp": 0, "class": "loot-common", "price": 5, "desc": "內含 200 份末日高能肉乾" },
 
-    { "id": "shop_1", "name": "[軍規] 強化鈦鋼犬齒", "slot": "collar", "rarity": "rare", "atk": 10, "maxHp": 0, "class": "loot-rare", "price": 50 },
-    { "id": "shop_2", "name": "[傳奇] 舊時代戰術外骨骼", "slot": "harness", "rarity": "legendary", "atk": 0, "maxHp": 80, "class": "loot-legendary", "price": 200 }
+  "shop_database": [
+    { "id": "shop_jerky_bulk", "name": "[物資箱] 脫水肉乾配給包", "slot": "usable", "rarity": "common", "atk": 0, "maxHp": 0, "class": "loot-common", "price": 5, "desc": "內含 200 份肉乾" },
+    { "id": "shop_ninja_1", "name": "[套裝] 都市忍者・生化面甲", "slot": "helmet", "rarity": "set", "setId": "ninja", "atk": 2, "maxHp": 10, "class": "loot-set", "price": 80, "desc": "【都市忍者】套件 (頭盔)" },
+    { "id": "shop_ninja_2", "name": "[套裝] 都市忍者・電擊束環", "slot": "collar", "rarity": "set", "setId": "ninja", "atk": 8, "maxHp": 0, "class": "loot-set", "price": 80, "desc": "【都市忍者】套件 (項圈)" },
+    { "id": "shop_ninja_3", "name": "[套裝] 都市忍者・防彈胸背帶", "slot": "harness", "rarity": "set", "setId": "ninja", "atk": 0, "maxHp": 40, "class": "loot-set", "price": 80, "desc": "【都市忍者】套件 (胸背帶)" }
   ]
 }
