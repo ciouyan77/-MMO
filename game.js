@@ -152,15 +152,25 @@ function handleExplorationTick() {
     if (gameState.hound.hp <= 0) { if (gameState.isExploring) toggleExplore(); reportEl.innerHTML = "<span style='color:#ff3333;'>獵犬重傷！自動防衛撤回。</span>"; return; }
     if (!gameState.isExploring) return;
     
-    if (!gameState.currentEnemy) {
+if (!gameState.currentEnemy) {
         let possibleEnemies = gameConfig.enemy_database;
-        // 如果不是在荒野，就過濾出副本專屬怪物
-        if (gameState.currentArea !== "wasteland") {
+        
+        if (gameState.currentArea === "wasteland") {
+            // [安全機制] 荒野外圍只能遇到 ATK 10 以下的新手怪物
+            possibleEnemies = possibleEnemies.filter(e => e.atk <= 10);
+        } else {
+            // 進入副本，依照 JSON 設定過濾專屬怪物
             const dungeon = gameConfig.dungeon_database.find(d => d.id === gameState.currentArea);
             if (dungeon) possibleEnemies = possibleEnemies.filter(e => dungeon.enemies.includes(e.name));
         }
         
+        // 萬一發生設定錯誤導致無怪可打，給予防呆預設怪物
+        if (possibleEnemies.length === 0) possibleEnemies = [{ name: "系統錯誤代碼: 404_ENEMY", hp: 10, atk: 1 }];
+        
         gameState.currentEnemy = { ...possibleEnemies[Math.floor(Math.random() * possibleEnemies.length)] };
+        reportEl.innerHTML = `>> 遇敵：<span class='warning-text'>${gameState.currentEnemy.name}</span> (HP: ${gameState.currentEnemy.hp})`;
+        return;
+    }
         reportEl.innerHTML = `>> 遇敵：<span class='warning-text'>${gameState.currentEnemy.name}</span> (HP: ${gameState.currentEnemy.hp})`;
         return;
     }
