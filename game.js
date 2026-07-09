@@ -557,3 +557,48 @@ updateUI = function() {
     const baitsEl = document.getElementById('res-baits');
     if (baitsEl) baitsEl.innerText = gameState.resources.baits || 0;
 };
+
+// ====== 一鍵批量拆解 ======
+async function bulkSellItems() {
+    const rarity = document.getElementById('bulk-sell-rarity').value;
+    // 撈出背包裡所有的裝備
+    const allItems = await db.inventory_items.toArray();
+    
+    // 核心過濾器：只挑選「品質相符」且「未裝備」且「未鎖定」的裝備
+    // (防呆機制：以防 item.is_locked 為 undefined，使用 !item.is_locked 判斷)
+    const itemsToSell = allItems.filter(item => 
+        item.rarity === rarity && 
+        !item.is_equipped && 
+        !item.is_locked
+    );
+
+    if (itemsToSell.length === 0) {
+        logMessage(`>> [系統提示] 找不到可拆解的未鎖定 ${rarity} 級裝備！`, "system");
+        return;
+    }
+
+    // 計算總回收廢料與收集要刪除的 ID
+    const idsToDelete = [];
+    let totalScrap = 0;
+    
+    itemsToSell.forEach(item => {
+        idsToDelete.push(item.id);
+        // 依照品質給予不同廢料
+        if (item.rarity === 'common') totalScrap += 5;
+        else if (item.rarity === 'rare') totalScrap += 15;
+        else if (item.rarity === 'set') totalScrap += 30;
+        else if (item.rarity === 'legendary') totalScrap += 50;
+        else totalScrap += 5;
+    });
+
+    // 透過 Dexie.js 的 bulkDelete 一次性刪除，效能最高
+    await db.inventory_items.bulkDelete(idsToDelete);
+    
+    // 發放廢料並更新介面
+    gameState.resources.scrap += totalScrap;
+    savePlayerState();
+    updateUI();
+    renderInventory();
+    
+    logMessage(`>> [批量拆解] 成功銷毀 ${itemsToSell.length} 件武裝，回收 ${totalScrap} 單位廢料。`, "system");
+}

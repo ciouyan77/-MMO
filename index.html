@@ -147,6 +147,19 @@
 
 <div id="tab-inv" class="tab-content">
         <h3 class="warning-text">// BLACK_MARKET_LINK</h3>
+		<div style="margin-bottom: 15px; border: 1px dashed #aa2222; padding: 10px; background: rgba(50,0,0,0.1);">
+            <div style="color:#ff5555; font-size:0.85rem; font-weight:bold; margin-bottom:5px;">[MASS_RECYCLE / 批量拆解協定]</div>
+            <div style="display:flex; gap:10px; align-items:center;">
+                <select id="bulk-sell-rarity" class="btn" style="flex:2; background:#111; margin-bottom:0; padding:8px; border-color:#555;">
+                    <option value="common">一般 (Common)</option>
+                    <option value="rare">稀有 (Rare)</option>
+                    <option value="set">套裝 (Set)</option>
+                    <option value="legendary">傳奇 (Legendary)</option>
+                </select>
+                <button class="btn" onclick="bulkSellItems()" style="flex:1; margin-bottom:0; border-color:#ff3333; color:#ff3333;">確認拆解</button>
+            </div>
+            <div style="font-size:0.75rem; color:#aaa; margin-top:5px;">⚠️ 警告：系統將銷毀所有未裝備且「未鎖定」的選定品質裝備。</div>
+        </div>
         <div class="filter-bar">
             <input type="text" id="inv-search" placeholder="輸入關鍵字..." oninput="renderInventory()">
             <select id="inv-sort" onchange="renderInventory()">
