@@ -7,9 +7,9 @@
     { "name": "失控安保機甲", "hp": 1200, "atk": 180 }
   ],
   "dungeon_database": [
-    { "id": "dungeon_1", "name": "[副本] 廢棄下水道", "req_atk": 15, "enemies": ["變異輻射鼠", "廢土流浪強盜"], "loot_multiplier": 1.2, "img_url=": "https://cdn.jsdelivr.net/gh/ciouyan77/-MMO@refs/heads/main/Gemini_Generated_Image_6ygm776ygm776ygm.png?token=GHSAT0AAAAAAECD6GRPKYS4EVDIPRFXSODA2SOPJFQ", "desc": "適合新手的初階探索區域。" },
-    { "id": "dungeon_2", "name": "[副本] 事件爆發的醫院", "req_atk": 40, "enemies": ["廢土流浪強盜", "雙頭變異犬"], "loot_multiplier": 1.6, "img_url": "https://github.com/ciouyan77/-MMO/blob/main/Gemini_Generated_Image_4de6sa4de6sa4de6.png?raw=true", "desc": "充滿變異生物的感染源，掉落物素質更佳。" },
-    { "id": "dungeon_3", "name": "[副本] 失控安保工廠", "req_atk": 80, "enemies": ["雙頭變異犬", "失控安保機甲"], "loot_multiplier": 2.2, "img_url=": "https://raw.githubusercontent.com/ciouyan77/-MMO/refs/heads/main/Gemini_Generated_Image_4zqnf24zqnf24zqn.png?token=GHSAT0AAAAAAECD6GROSEJZFUFDIXN6HLC22SOPI5A", "desc": "高度危險的舊時代軍工廠。" }
+    { "id": "dungeon_1", "name": "[副本] 廢棄下水道", "req_atk": 15, "enemies": ["變異輻射鼠", "廢土流浪強盜"], "loot_multiplier": 1.2, "img_url=": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_9274.png", "desc": "適合新手的初階探索區域。" },
+    { "id": "dungeon_2", "name": "[副本] 事件爆發的醫院", "req_atk": 40, "enemies": ["廢土流浪強盜", "雙頭變異犬"], "loot_multiplier": 1.6, "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_9273.png", "desc": "充滿變異生物的感染源，掉落物素質更佳。" },
+    { "id": "dungeon_3", "name": "[副本] 失控安保工廠", "req_atk": 80, "enemies": ["雙頭變異犬", "失控安保機甲"], "loot_multiplier": 2.2, "img_url=": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_9275.png", "desc": "高度危險的舊時代軍工廠。" }
   ],
   "loot_pool": {
     "affixes": [
@@ -39,9 +39,4 @@
     { "id": "shop_ninja_2", "name": "[套裝] 都市忍者・電擊束環", "slot": "collar", "rarity": "set", "setId": "ninja", "atk": 8, "maxHp": 0, "class": "loot-set", "price": 80, "desc": "【都市忍者】套件 (項圈)" },
     { "id": "shop_ninja_3", "name": "[套裝] 都市忍者・防彈胸背帶", "slot": "harness", "rarity": "set", "setId": "ninja", "atk": 0, "maxHp": 40, "class": "loot-set", "price": 80, "desc": "【都市忍者】套件 (胸背帶)" }
   ],
-  "dungeon_database": [
-    { "id": "dungeon_1", "name": "[副本] 廢棄下水道", "req_atk": 15, "enemies": ["變異輻射鼠", "廢土流浪強盜"], "loot_multiplier": 1.2, "img_url": "", "desc": "適合新手的初階探索區域。" },
-    { "id": "dungeon_2", "name": "[副本] 事件爆發的醫院", "req_atk": 40, "enemies": ["廢土流浪強盜", "雙頭變異犬"], "loot_multiplier": 1.6, "img_url": "", "desc": "充滿變異生物的感染源，掉落物素質更佳。" },
-    { "id": "dungeon_3", "name": "[副本] 失控安保工廠", "req_atk": 80, "enemies": ["雙頭變異犬", "失控安保機甲"], "loot_multiplier": 2.2, "img_url": "", "desc": "高度危險的舊時代軍工廠。" }
-  ]
 }
