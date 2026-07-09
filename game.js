@@ -148,78 +148,97 @@ function toggleExplore() {
 }
 
 function handleExplorationTick() {
-    const reportEl = document.getElementById('combat-report');
-    if (gameState.hound.hp <= 0) { if (gameState.isExploring) toggleExplore(); reportEl.innerHTML = "<span style='color:#ff3333;'>獵犬重傷！自動防衛撤回。</span>"; return; }
     if (!gameState.isExploring) return;
-    
-if (!gameState.currentEnemy) {
+    const reportEl = document.getElementById('combat-report');
+    if (!reportEl) return;
+
+    // 1. 遇敵與區域過濾邏輯
+    if (!gameState.currentEnemy) {
         let possibleEnemies = gameConfig.enemy_database;
         
         if (gameState.currentArea === "wasteland") {
-            // [安全機制] 荒野外圍只能遇到 ATK 10 以下的新手怪物
             possibleEnemies = possibleEnemies.filter(e => e.atk <= 10);
         } else {
-            // 進入副本，依照 JSON 設定過濾專屬怪物
             const dungeon = gameConfig.dungeon_database.find(d => d.id === gameState.currentArea);
             if (dungeon) possibleEnemies = possibleEnemies.filter(e => dungeon.enemies.includes(e.name));
         }
         
-        // 萬一發生設定錯誤導致無怪可打，給予防呆預設怪物
         if (possibleEnemies.length === 0) possibleEnemies = [{ name: "系統錯誤代碼: 404_ENEMY", hp: 10, atk: 1 }];
         
         gameState.currentEnemy = { ...possibleEnemies[Math.floor(Math.random() * possibleEnemies.length)] };
         reportEl.innerHTML = `>> 遇敵：<span class='warning-text'>${gameState.currentEnemy.name}</span> (HP: ${gameState.currentEnemy.hp})`;
         return;
     }
-        reportEl.innerHTML = `>> 遇敵：<span class='warning-text'>${gameState.currentEnemy.name}</span> (HP: ${gameState.currentEnemy.hp})`;
-        return;
-    }
 
-    if (!gameState.hound.activeSets) gameState.hound.activeSets = [];
-    let currentCrit = gameState.hound.totalCrit || 10; let currentDodge = gameState.hound.totalDodge || 5; let currentDef = gameState.hound.totalDef || 0;
+    // 2. 戰鬥傷害邏輯
+    let currentAtk = gameState.hound.totalAtk;
+    let currentDef = gameState.hound.totalDef;
+    let currentDodge = gameState.hound.totalDodge;
+    let currentCrit = gameState.hound.totalCrit;
+    
+    let isCrit = Math.random() * 100 < currentCrit;
+    let dmgDealt = isCrit ? currentAtk * 2 : currentAtk;
 
-    if (gameState.hound.ohko > 0 && Math.random() * 100 < gameState.hound.ohko) {
-        gameState.currentEnemy.hp = 0; reportEl.innerHTML = `<b style="color:#ff3333;">💀 [殭屍骰觸發] 獵犬撕裂了目標的喉嚨！一擊必殺！</b><br>`;
+    if (isCrit && gameState.hound.activeSets.includes('thug_3pc')) dmgDealt = currentAtk * 3;
+
+    let ohkoChance = gameState.hound.ohko || 0;
+    if (Math.random() * 100 < ohkoChance) {
+        dmgDealt = 999999;
+        reportEl.innerHTML = `<span style="color:#ff2222;">>> [致命一擊] 觸發殭屍骰效果，直接秒殺！</span>`;
     } else {
-        let dmg = gameState.hound.totalAtk;
-        if (Math.random() * 100 < currentCrit) {
-            let critMult = gameState.hound.activeSets.includes('thug_3pc') ? 3 : 2; dmg *= critMult;
-            reportEl.innerHTML = `🐾 獵犬撕咬造成 <b style="color:#ffaa00">${dmg}</b> 暴擊傷害！(x${critMult})<br>`;
-        } else { reportEl.innerHTML = `🐾 獵犬撕咬造成 <b style="color:#55ff55">${dmg}</b> 傷害。<br>`; }
-        gameState.currentEnemy.hp -= dmg;
+        reportEl.innerHTML = `>> 獵犬發動攻擊，造成 ${dmgDealt} 點傷害${isCrit ? " <span style='color:var(--zaco-color);'>(暴擊)</span>" : ""}。`;
     }
+    
+    gameState.currentEnemy.hp -= dmgDealt;
 
-    if (gameState.currentEnemy.hp <= 0) {
-        reportEl.innerHTML += `<span style='color:var(--text-color);'>✓ 目標清除！</span><br>`;
-        if (Math.random() < 0.40) { reportEl.innerHTML += `<span style='color:var(--text-color);'>搜刮戰利品中...</span>`; generateLoot(); } 
-        else { reportEl.innerHTML += `<span style='color:#777;'>殘骸中空無一物。</span>`; }
-        gameState.currentEnemy = null; savePlayerState(); return;
-    }
+    // 3. 敵方反擊與秒殺檢定
+    if (gameState.currentEnemy.hp > 0) {
+        if (Math.random() * 100 < currentDodge) { 
+            reportEl.innerHTML += `<br>💨 [幻影] 獵犬靈巧地閃避了敵人的攻擊！`; 
+        } else {
+            let dmgTaken = Math.max(1, gameState.currentEnemy.atk - currentDef);
+            gameState.hound.hp = Math.max(0, gameState.hound.hp - dmgTaken);
+            reportEl.innerHTML += `<br>💥 遭受攻擊，裝甲抵禦後受傷 ${dmgTaken} 點。`;
+            if (gameState.hound.activeSets.includes('abyss_3pc')) {
+                let reflectDmg = Math.floor(dmgTaken * 0.5); 
+                gameState.currentEnemy.hp -= reflectDmg;
+                reportEl.innerHTML += ` <span style="color: #ff3333;">(反彈 ${reflectDmg} 傷害)</span>`;
+            }
+        }
 
-    if (Math.random() * 100 < currentDodge) { reportEl.innerHTML += `💨 [幻影] 獵犬靈巧地閃避了敵人的攻擊！`; } 
-    else {
-        let dmgTaken = Math.max(1, gameState.currentEnemy.atk - currentDef);
-        gameState.hound.hp = Math.max(0, gameState.hound.hp - dmgTaken);
-        reportEl.innerHTML += `💥 遭受攻擊，裝甲抵禦後受傷 ${dmgTaken} 點。`;
-        if (gameState.hound.activeSets.includes('abyss_3pc')) {
-            let reflectDmg = Math.floor(dmgTaken * 0.5); gameState.currentEnemy.hp -= reflectDmg;
-            reportEl.innerHTML += ` <span style="color: #ff3333;">(反彈 ${reflectDmg} 傷害)</span>`;
+        // 裝備檢定：秒殺警告
+        if (gameState.hound.hp <= 0) {
+            reportEl.innerHTML += `<br><b style="color:#ff3333; font-size:1.1rem;">💀 [SYSTEM_WARNING] 承受傷害超過極限，獵犬遭到秒殺！</b><br><span style="color:#ffaa00;">>> 系統提示：請提升【胸背帶】生命值與【頭盔】防禦力，或農出【滅世】級別武裝再進行挑戰。</span>`;
+            if (gameState.isExploring) toggleExplore(); 
+            return;
         }
     }
-	// 秒殺檢定提示
-    if (gameState.hound.hp <= 0) {
-        reportEl.innerHTML += `<br><b style="color:#ff3333; font-size:1.1rem;">💀 [SYSTEM_WARNING] 承受傷害超過極限，獵犬遭到秒殺！</b><br><span style="color:#ffaa00;">>> 系統提示：請提升【胸背帶】生命值與【頭盔】防禦力，或農出【滅世】級別武裝再進行挑戰。</span>`;
-        if (gameState.isExploring) toggleExplore(); // 強制停止探索
-        return;
+
+    // 4. 擊殺結算
+    if (gameState.currentEnemy.hp <= 0) {
+        reportEl.innerHTML += `<br>>> <span class='warning-text'>${gameState.currentEnemy.name}</span> 已被擊敗！`;
+        gameState.currentEnemy = null;
+        let scrapGain = Math.floor(Math.random() * 5) + 1;
+        gameState.resources.scrap += scrapGain;
+        reportEl.innerHTML += `<br>獲得 ${scrapGain} 廢料。`;
+        generateLoot();
     }
 
-    const hpPercent = (gameState.hound.hp / gameState.hound.maxHp) * 100;
-    if (hpPercent <= 75 && gameState.resources.food > 0 && gameState.hound.hp > 0) {
-        gameState.resources.food--; const oldHp = gameState.hound.hp;
-        gameState.hound.hp = Math.min(gameState.hound.hp + 25, gameState.hound.maxHp);
-        reportEl.innerHTML += `<br><span style="color:#55aaff;">⚡ [自動補給] 消耗 1 肉乾，恢復 ${gameState.hound.hp - oldHp} HP！</span>`;
+    // 5. 補血機制
+    if (gameState.hound.hp < gameState.hound.maxHp * 0.3) {
+        if (gameState.resources.food > 0) {
+            gameState.resources.food--;
+            let heal = Math.floor(gameState.hound.maxHp * 0.5);
+            gameState.hound.hp = Math.min(gameState.hound.maxHp, gameState.hound.hp + heal);
+            reportEl.innerHTML += `<br><span style="color:#55ff55;">>> 注射凝膠，恢復 ${heal} HP。</span>`;
+        } else {
+            reportEl.innerHTML += `<br><span style="color:#ff3333;">>> 警告：物資耗盡，獵犬必須撤退！</span>`;
+            if (gameState.isExploring) toggleExplore();
+        }
     }
-    document.getElementById('hound-hp').innerText = gameState.hound.hp;
+    
+    updateUI();
+    savePlayerState();
 }
 
 async function generateLoot() {
