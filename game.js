@@ -235,18 +235,18 @@ function handleExplorationTick() {
         generateLoot();
         if (isBoss) {
             reportEl.innerHTML += `<br><span style="color:#ffcc00;">>> 霸主倒下，噴出了大量的戰利品！</span>`;
-            generateLoot(); 
-            generateLoot(); 
+            generateLoot(true); 
+            generateLoot(true); 
         }
     }
 
-    // 5. 補血機制
-    if (gameState.hound.hp < gameState.hound.maxHp * 0.3) {
+    // 5. 補血機制 (血量低於 75% 觸發)
+    if (gameState.hound.hp < gameState.hound.maxHp * 0.75) {
         if (gameState.resources.food > 0) {
             gameState.resources.food--;
             let heal = Math.floor(gameState.hound.maxHp * 0.5);
             gameState.hound.hp = Math.min(gameState.hound.maxHp, gameState.hound.hp + heal);
-            reportEl.innerHTML += `<br><span style="color:#55ff55;">>> 注射凝膠，恢復 ${heal} HP。</span>`;
+            reportEl.innerHTML += `<br><span style="color:#55ff55;">>> 自動餵食肉乾，恢復 ${heal} HP。</span>`;
         } else {
             reportEl.innerHTML += `<br><span style="color:#ff3333;">>> 警告：物資耗盡，獵犬必須撤退！</span>`;
             if (gameState.isExploring) toggleExplore();
@@ -257,18 +257,31 @@ function handleExplorationTick() {
     savePlayerState();
 }
 
-async function generateLoot() {
-    // 使用百萬分比實現超低長線掉落率
+async function generateLoot(isBossDrop = false) {
     const r = Math.floor(Math.random() * 1000000);
     let rarity = "common", rarityText = "普通", rarityClass = "loot-common", statMult = 1; let isSet = false;
     
-    // 設定機率閾值 (荒野無法掉落紅裝)
-    if (gameState.currentArea !== "wasteland" && r > 999995) { 
-        rarity = "apocalyptic"; rarityText = "滅世"; rarityClass = "loot-apocalyptic"; statMult = 5; // 0.0005%
+    if (isBossDrop) {
+        // 霸主保底機制：95% 傳奇(金)，5% 滅世(紅)
+        if (Math.random() * 100 < 5) { rarity = "apocalyptic"; rarityText = "滅世"; rarityClass = "loot-apocalyptic"; statMult = 5; }
+        else { rarity = "legendary"; rarityText = "傳奇"; rarityClass = "loot-legendary"; statMult = 3; }
+    } else {
+        // 長線掉落率 (假設 1 小時約 720 次擊殺): 
+        // 紅裝~4小時 (機率約 340/1M)
+        if (gameState.currentArea !== "wasteland" && r > 999660) { 
+            rarity = "apocalyptic"; rarityText = "滅世"; rarityClass = "loot-apocalyptic"; statMult = 5;
+        } 
+        // 金裝~0.5小時 (機率約 2700/1M)
+        else if (r > 997300) { rarity = "legendary"; rarityText = "傳奇"; rarityClass = "loot-legendary"; statMult = 3; } 
+        else if (r > 988500) { rarity = "set"; rarityText = "套裝"; rarityClass = "loot-set"; statMult = 2; isSet = true; } 
+        else if (r > 838500) { rarity = "rare"; rarityText = "稀有"; rarityClass = "loot-rare"; statMult = 1.8; }
     }
-    else if (r > 998500) { rarity = "legendary"; rarityText = "傳奇"; rarityClass = "loot-legendary"; statMult = 3; } // ~0.15%
-    else if (r > 988500) { rarity = "set"; rarityText = "套裝"; rarityClass = "loot-set"; statMult = 2; isSet = true; } // ~1%
-    else if (r > 838500) { rarity = "rare"; rarityText = "稀有"; rarityClass = "loot-rare"; statMult = 1.8; } // ~15%
+
+    // 裝備品質浮動機制 (同階級中的素質高低，模擬 2~6 小時的極品獲取)
+    let qualityRoll = Math.random();
+    let qualityMult = 1.0;
+    if (qualityRoll > 0.95) qualityMult = 1.5; // 5% 極品素質 (大約掛幾小時才會出現一次頂值)
+    else if (qualityRoll > 0.80) qualityMult = 1.25; // 15% 優良素質
 
     // 讀取副本專屬的屬性加成倍率 (loot_multiplier)
     let areaMultiplier = 1;
@@ -276,8 +289,9 @@ async function generateLoot() {
         const dungeon = gameConfig.dungeon_database.find(d => d.id === gameState.currentArea);
         if (dungeon && dungeon.loot_multiplier) areaMultiplier = dungeon.loot_multiplier;
     }
-    // 將基礎稀有度倍率 乘上 副本環境倍率
-    statMult *= areaMultiplier;
+    
+    // 將基礎稀有度倍率 * 副本環境倍率 * 品質浮動倍率
+    statMult = statMult * areaMultiplier * qualityMult;
 
     const pool = gameConfig.loot_pool;
     const slotKeys = ["helmet", "collar", "harness"];
@@ -450,6 +464,7 @@ function updateUI() {
     document.getElementById('rate-scrap').innerText = gameState.autoRates.scrap;
     document.getElementById('camp-drones').innerText = gameState.upgrades.drones;
     document.getElementById('hound-hp').innerText = gameState.hound.hp;
+	if(document.getElementById('hound-max-hp')) document.getElementById('hound-max-hp').innerText = gameState.hound.maxHp;
     document.getElementById('btn-upgrade-drone').innerText = `DEPLOY_SCRAP_DRONE [成本: ${gameState.costs.drone} 廢料]`;
     
     document.getElementById('hound-total-atk').innerText = `${gameState.hound.totalAtk} (HP上限: ${gameState.hound.maxHp})`;
@@ -548,6 +563,9 @@ function summonBoss() {
     
     // 自動開啟戰鬥
     toggleExplore();
+	// 確保霸主出現時的日誌不被探索初始化刷掉
+    const reportEl = document.getElementById('combat-report');
+    if (reportEl) reportEl.innerHTML = `>> ⚠️ 探測到巨大生化反應！<br><span class='warning-text'>${gameState.currentEnemy.name}</span> (HP: ${gameState.currentEnemy.hp}) 已被誘出！`;
 }
 
 // 覆寫 updateUI 加入誘餌數量更新 (使用攔截器方式確保安全)

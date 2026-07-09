@@ -50,7 +50,7 @@
         .inv-info { flex: 1; cursor: pointer; }
         .inv-info:hover { background-color: rgba(85, 255, 85, 0.1); }
         .equip-box { border: 1px solid var(--primary-color); padding: 10px; margin-bottom: 10px; background: rgba(255, 136, 0, 0.05); }
-        .log-panel { position: fixed; bottom: 0; left: 0; right: 0; height: 120px; background-color: #050505; border-top: 1px solid var(--text-color); padding: 8px 12px; box-sizing: border-box; font-size: 0.75rem; overflow-y: hidden; z-index: 10; }
+        .log-panel { position: fixed; bottom: 0; left: 0; right: 0; height: 120px; background-color: #050505; border-top: 1px solid var(--text-color); padding: 8px 12px; box-sizing: border-box; font-size: 0.75rem; overflow-y: auto; z-index: 10; }
         .log-container { display: flex; flex-direction: column; gap: 2px; }
         .log-entry { color: #44aa44; } .log-entry.system { color: var(--primary-color); } .log-entry.zaco { color: var(--zaco-color); }
 .modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--panel-color); border: 2px solid var(--primary-color); padding: 15px; z-index: 1000; width: 90%; max-width: 400px; box-shadow: 0 0 20px rgba(255, 136, 0, 0.4); }
@@ -97,7 +97,7 @@
             <div id="set-bonus-text" style="font-size: 0.75rem; color: var(--rarity-set); margin-top: 5px;">[未啟動任何套裝效果]</div>
             
         </div>
-        <p>戰鬥犬生命值: [<span id="hound-hp">100</span>/100] <span id="hound-state" style="color: var(--text-color);">[待命中]</span></p>
+        <p>戰鬥犬生命值: [<span id="hound-hp">100</span>/<span id="hound-max-hp">100</span>] <span id="hound-state" style="color: var(--text-color);">[待命中]</span></p>
         <button class="btn" onclick="healHound()" style="border-color: #55aaff; color: #55aaff;">FEED_JERKY (+25 HP) [消耗: 1 肉乾]</button>
         <hr style="border-style: dashed; border-color: var(--border-color);">
         <h3 class="warning-text">// BASE_CAMP</h3>
