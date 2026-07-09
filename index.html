@@ -128,6 +128,14 @@
                 <option value="wasteland">>> 荒野外圍 (最高掉落鎖定: 傳奇)</option>
                 </select>
         </div>
+		
+		<div style="margin-bottom: 10px; border: 1px solid #aa2222; padding: 10px; background: rgba(50,0,0,0.2);">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="color:#ff5555; font-size:0.9rem; font-weight:bold;">⚠️ [Alpha 誘餌]: <span id="res-baits">0</span> / 5</span>
+                <button class="btn" onclick="summonBoss()" style="width:auto; margin:0; border-color:#ff2222; color:#ff2222; padding: 5px 10px;">>> 誘出區域霸主</button>
+            </div>
+            <div style="font-size:0.75rem; color:#aaa; margin-top:5px;">強制遭遇當前區域的霸主。擊殺將觸發【連續 3 次】高階裝備掉落判定！</div>
+        </div>
         
         <button id="btn-explore" class="btn" onclick="toggleExplore()" style="border-color: var(--primary-color); color: var(--primary-color);">EXECUTE_AUTO_EXPLORE [啟動自動探索]</button>
         

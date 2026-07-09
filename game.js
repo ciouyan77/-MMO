@@ -217,11 +217,27 @@ function handleExplorationTick() {
     // 4. 擊殺結算
     if (gameState.currentEnemy.hp <= 0) {
         reportEl.innerHTML += `<br>>> <span class='warning-text'>${gameState.currentEnemy.name}</span> 已被擊敗！`;
+        
+        let isBoss = gameState.currentEnemy.isBoss; // 紀錄剛才死掉的是不是霸主
         gameState.currentEnemy = null;
+        
         let scrapGain = Math.floor(Math.random() * 5) + 1;
         gameState.resources.scrap += scrapGain;
         reportEl.innerHTML += `<br>獲得 ${scrapGain} 廢料。`;
+        
+        // 誘餌掉落機制 (15% 機率掉落)
+        if (Math.random() * 100 < 15) {
+            gameState.resources.baits = (gameState.resources.baits || 0) + 1;
+            reportEl.innerHTML += `<br><span style="color:#ff5555; font-weight:bold;">>> 發現特殊物資：[Alpha 誘餌] x1！</span>`;
+        }
+        
+        // 戰利品生成 (若是霸主，連續抽 3 次裝備！)
         generateLoot();
+        if (isBoss) {
+            reportEl.innerHTML += `<br><span style="color:#ffcc00;">>> 霸主倒下，噴出了大量的戰利品！</span>`;
+            generateLoot(); 
+            generateLoot(); 
+        }
     }
 
     // 5. 補血機制
@@ -497,3 +513,47 @@ function changeArea() {
         logMessage(`>> 目標區域重新定位：荒野外圍`, "system");
     }
 }
+
+// ====== 霸主召喚系統 ======
+function summonBoss() {
+    if (gameState.isExploring) {
+        logMessage(">> 必須先停止自動探索，才能佈置誘餌！", "system");
+        return;
+    }
+    if ((gameState.resources.baits || 0) < 5) {
+        logMessage(">> [Alpha 誘餌] 數量不足！(需要 5 個)", "system");
+        return;
+    }
+    
+    // 依照當前區域決定霸主種類 (強度從資料庫借用高階怪物)
+    let bossName = "狂暴野熊"; // 荒野預設霸主
+    if (gameState.currentArea === "dungeon_1") bossName = "廢料聚合怪"; 
+    else if (gameState.currentArea === "dungeon_2") bossName = "毒液噴射巨蛾";
+    else if (gameState.currentArea === "dungeon_3") bossName = "舊時代軍用突擊犬";
+    
+    const bossTemplate = gameConfig.enemy_database.find(e => e.name === bossName);
+    if (!bossTemplate) return;
+
+    // 扣除誘餌並設定當前敵人 (血量兩倍、攻擊力 1.5 倍)
+    gameState.resources.baits -= 5;
+    gameState.currentEnemy = { 
+        name: `[霸主] ${bossTemplate.name}`, 
+        hp: bossTemplate.hp * 2, 
+        atk: Math.floor(bossTemplate.atk * 1.5),
+        isBoss: true  // 標記為霸主，死掉時才會爆寶
+    };
+    
+    updateUI();
+    logMessage(`>> ⚠️ 警告：探測到巨大生化反應！【${gameState.currentEnemy.name}】已被誘出！`, "system");
+    
+    // 自動開啟戰鬥
+    toggleExplore();
+}
+
+// 覆寫 updateUI 加入誘餌數量更新 (使用攔截器方式確保安全)
+const originalUpdateUI = updateUI;
+updateUI = function() {
+    originalUpdateUI();
+    const baitsEl = document.getElementById('res-baits');
+    if (baitsEl) baitsEl.innerText = gameState.resources.baits || 0;
+};
