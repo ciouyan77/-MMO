@@ -23,6 +23,7 @@ let baseData = {
 
 // 系統預設參數
 const BASE_SCRAP_CAP = 1000; // 初始廢料儲存上限
+const MAX_FOOD_CAP = 400;    // ⚠️ 新增：初始肉乾儲存上限
 
 // --- 新增：動態計算當前廢料上限 ---
 function getMaxScrap() {
@@ -214,7 +215,15 @@ function gatherResource(type) {
         let maxCap = getMaxScrap();
         if (gameState.resources.scrap >= maxCap) {
             logMessage(`[系統警告] 廢料儲存槽已滿 (${maxCap})。請至 [06_BASE] 升級中央控制室。`, 'warning');
-            return; // 滿了就不給採集
+            return;
+        }
+    }
+    
+    // --- 新增：肉乾上限攔截邏輯 ---
+    if (type === 'food') {
+        if (gameState.resources.food >= MAX_FOOD_CAP) {
+            logMessage(`[系統警告] 肉乾儲存槽已滿 (${MAX_FOOD_CAP})。無法儲存更多乾糧。`, 'warning');
+            return; // 達到 400 份就不給採集
         }
     }
     
@@ -223,6 +232,7 @@ function gatherResource(type) {
     savePlayerState(); 
     logMessage(`回收 1 ${type.toUpperCase()}`); 
 }
+
 function buyDrone() {
     if (gameState.resources.scrap >= gameState.costs.drone) {
         gameState.resources.scrap -= gameState.costs.drone; gameState.upgrades.drones++;
@@ -575,8 +585,17 @@ async function buyShopItem(index) {
     if (gameState.resources.zaco >= item.price) {
         gameState.resources.zaco -= item.price;
         if (item.slot === 'usable' && item.id === 'shop_jerky_bulk') {
-            gameState.resources.food += 200;
-            logMessage(`地下交易完成: 拆開 <span class="${item.class}">${item.name}</span>，獲得 200 份肉乾！`, 'zaco');
+            // 防呆：如果原本就已經滿了，拒絕交易
+            if (gameState.resources.food >= MAX_FOOD_CAP) {
+                logMessage(`[交易失敗] 肉乾儲存槽已滿，黑市商人拒絕將補給包塞進你的背包。`, 'system');
+                gameState.resources.zaco += item.price; // 退回剛剛扣除的 ZaCo
+                updateUI();
+                return;
+            }
+            
+            // 加上 200 份，但最高鎖死在 400
+            gameState.resources.food = Math.min(gameState.resources.food + 200, MAX_FOOD_CAP);
+            logMessage(`地下交易完成: 拆開 <span class="${item.class}">${item.name}</span>，物資入庫。(當前: ${gameState.resources.food}/${MAX_FOOD_CAP})`, 'zaco');
         } else {
             const dbItem = { name: item.name, slot: item.slot, slotText: item.slot === 'collar' ? '項圈' : (item.slot === 'helmet' ? '頭盔' : '胸背帶'), rarity: item.rarity, class: item.class, atk: item.atk, maxHp: item.maxHp, def: item.def||0, is_equipped: 0, is_locked: 0, setId: item.setId||null };
             await db.inventory_items.add(dbItem);
@@ -605,7 +624,8 @@ function logMessage(text, type = 'normal') {
 function updateUI() {
     // 強制 UI 顯示當前廢料與最大上限
     document.getElementById('res-scrap').innerText = `${gameState.resources.scrap} / ${getMaxScrap()}`;
-    document.getElementById('res-food').innerText = gameState.resources.food;
+    // 強制 UI 顯示當前肉乾與最大上限
+    document.getElementById('res-food').innerText = `${gameState.resources.food} / ${MAX_FOOD_CAP}`;
     document.getElementById('res-zaco').innerText = gameState.resources.zaco;
     document.getElementById('rate-scrap').innerText = gameState.autoRates.scrap;
     document.getElementById('camp-drones').innerText = gameState.upgrades.drones;
