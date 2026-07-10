@@ -17,7 +17,10 @@ let gameState = {
 };
 // === 家園與離線系統變數 ===
 let baseData = {
-    ccLevel: 0,             // 中央控制室等級
+    ccLevel: 0,               // 中央控制室等級
+    towerLevel: 0,            // ⚠️ 新增：誘餌廣播塔等級 (0代表未解鎖/建立)
+    towerZombies: 0,          // ⚠️ 新增：當前廣播塔吸引的殭屍數量
+    radioState: false,        // 確保收音機狀態也在內
     lastLoginTime: Date.now() // 最後登入/存檔時間戳記
 };
 
@@ -297,6 +300,14 @@ function upgradeFacility(facility) {
         } else {
             logMessage(`[警告] 資源不足，擴容需要 ${cost} 廢料`, 'zaco');
         }
+    }
+}
+
+function healHound() {
+    if (gameState.hound.hp >= gameState.hound.maxHp) return;
+    if (gameState.resources.food >= 1) {
+        gameState.resources.food--; gameState.hound.hp = Math.min(gameState.hound.hp + 25, gameState.hound.maxHp);
+        updateUI(); savePlayerState(); logMessage(`餵食肉乾，恢復 25 HP。[${gameState.hound.hp}/${gameState.hound.maxHp}]`);
     }
 }
 
@@ -920,6 +931,22 @@ async function calculateOfflineProgress() {
                     gameState.hound.hp = Math.max(1, gameState.hound.hp - dmgTaken);
                     offlineReport += `>> 📻 <span style="color:#ff3333;">[詛咒] 刺耳狂亂的雜音令獵犬精神受創，扣除 ${dmgTaken} HP。</span><br>`;
                 }
+            }
+        }
+		
+		// --- 1.7 誘餌廣播塔 (離線屍潮蓄力) ---
+        if (baseData.towerLevel && baseData.towerLevel > 0) {
+            let towerLv = baseData.towerLevel;
+            let maxHours = 2 + (towerLv * 2);
+            let maxZombies = maxHours * 60 * towerLv; // 蓄力最高上限
+            
+            // 每分鐘累積 [1 * 廣播塔Lv] 隻殭屍
+            let timeDiffMinutes = Math.floor(timeDiffSeconds / 60);
+            let newZombies = timeDiffMinutes * towerLv;
+            
+            if (newZombies > 0) {
+                baseData.towerZombies = Math.min(maxZombies, (baseData.towerZombies || 0) + newZombies);
+                offlineReport += `>> 📡 誘餌廣播塔在黑夜中持續廣播，吸引了新的屍群徘徊。<br>`;
             }
         }
 
