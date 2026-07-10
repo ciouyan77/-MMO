@@ -36,7 +36,6 @@ window.addEventListener("DOMContentLoaded", async () => {
 });
 
 // 資料庫載入
-// 資料庫載入
 async function loadGameData() {
     let savedState = await db.player_state.get(1);
     if (!savedState) {
@@ -45,7 +44,9 @@ async function loadGameData() {
             upgrades: { drones: 0 }, costs: { drone: 10 }, 
             autoRates: { scrap: 0 }, hound_hp: 100, 
             autoSell: { common: false, rare: false },
-            baseData: { ccLevel: 0, lastLoginTime: Date.now() } // 預設家園資料
+            baseData: { ccLevel: 0, lastLoginTime: Date.now() },
+            isExploring: false,
+            currentArea: "wasteland"
         };
         await db.player_state.add(savedState);
     }
@@ -57,6 +58,10 @@ async function loadGameData() {
     gameState.autoRates = savedState.autoRates;
     gameState.hound.hp = savedState.hound_hp;
     gameState.autoSell = savedState.autoSell || { common: false, rare: false };
+
+    // --- 關鍵修復：恢復探索狀態與所在區域的記憶 ---
+    gameState.isExploring = savedState.isExploring || false;
+    gameState.currentArea = savedState.currentArea || "wasteland";
 
     // 載入家園資料 (防止舊存檔報錯)
     if (savedState.baseData) {
@@ -72,11 +77,28 @@ async function loadGameData() {
     gameState.equipped = { helmet: null, collar: null, harness: null };
     equippedItems.forEach(item => { gameState.equipped[item.slot] = item; });
 
-    calculateHoundStats(); updateUI();
+    calculateHoundStats(); 
+    
+    // --- 關鍵修復：同步 UI 按鈕，確保重整網頁時探索按鈕維持在「執行中」 ---
+    if (gameState.isExploring) {
+        const btn = document.getElementById('btn-explore'); 
+        const stateEl = document.getElementById('hound-state');
+        if (btn) { 
+            btn.innerText = "HALT_EXPLORATION [停止探索]"; 
+            btn.style.borderColor = "#ff3333"; 
+            btn.style.color = "#ff3333"; 
+        }
+        if (stateEl) { 
+            stateEl.innerText = "[探索中]"; 
+            stateEl.style.color = "var(--primary-color)"; 
+        }
+    }
+
+    updateUI();
     logMessage(">> 模組化資料庫鏈結成功。", "system");
     
-    // 成功讀取存檔後，啟動離線結算
-    calculateOfflineProgress(); 
+    // 成功讀取存檔後，啟動離線結算 (加上 await 確保模擬完才繼續)
+    await calculateOfflineProgress(); 
 }
 
 async function savePlayerState() {
@@ -91,7 +113,10 @@ async function savePlayerState() {
         autoRates: gameState.autoRates, 
         hound_hp: gameState.hound.hp, 
         autoSell: gameState.autoSell,
-        baseData: baseData // 寫入家園存檔
+        baseData: baseData,
+        // --- 關鍵修復：把探索狀態與區域寫進資料庫 ---
+        isExploring: gameState.isExploring, 
+        currentArea: gameState.currentArea    
     });
 }
 // 計算能力值 (包含套裝遞減效應與文字說明)
