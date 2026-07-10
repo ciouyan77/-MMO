@@ -15,6 +15,14 @@ let gameState = {
     currentEnemy: null,
     autoSell: { common: false, rare: false }
 };
+// === 家園與離線系統變數 ===
+let baseData = {
+    ccLevel: 0,             // 中央控制室等級
+    lastLoginTime: Date.now() // 最後登入/存檔時間戳記
+};
+
+// 系統預設參數
+const BASE_SCRAP_CAP = 1000; // 初始廢料儲存上限
 
 // 啟動初始化
 window.addEventListener("DOMContentLoaded", async () => {
@@ -28,18 +36,34 @@ window.addEventListener("DOMContentLoaded", async () => {
 });
 
 // 資料庫載入
+// 資料庫載入
 async function loadGameData() {
     let savedState = await db.player_state.get(1);
     if (!savedState) {
-        savedState = { id: 1, resources: { scrap: 0, food: 10, zaco: 0 }, upgrades: { drones: 0 }, costs: { drone: 10 }, autoRates: { scrap: 0 }, hound_hp: 100, autoSell: { common: false, rare: false } };
+        savedState = { 
+            id: 1, resources: { scrap: 0, food: 10, zaco: 0 }, 
+            upgrades: { drones: 0 }, costs: { drone: 10 }, 
+            autoRates: { scrap: 0 }, hound_hp: 100, 
+            autoSell: { common: false, rare: false },
+            baseData: { ccLevel: 0, lastLoginTime: Date.now() } // 預設家園資料
+        };
         await db.player_state.add(savedState);
     }
+    
+    // 載入基礎資料
     gameState.resources = savedState.resources;
     gameState.upgrades = savedState.upgrades;
     gameState.costs = savedState.costs;
     gameState.autoRates = savedState.autoRates;
     gameState.hound.hp = savedState.hound_hp;
     gameState.autoSell = savedState.autoSell || { common: false, rare: false };
+
+    // 載入家園資料 (防止舊存檔報錯)
+    if (savedState.baseData) {
+        baseData = savedState.baseData;
+    } else {
+        baseData = { ccLevel: 0, lastLoginTime: Date.now() };
+    }
 
     if(document.getElementById('auto-common')) document.getElementById('auto-common').checked = gameState.autoSell.common;
     if(document.getElementById('auto-rare')) document.getElementById('auto-rare').checked = gameState.autoSell.rare;
@@ -50,16 +74,27 @@ async function loadGameData() {
 
     calculateHoundStats(); updateUI();
     logMessage(">> 模組化資料庫鏈結成功。", "system");
+    
+    // 成功讀取存檔後，啟動離線結算
+    calculateOfflineProgress(); 
 }
 
 async function savePlayerState() {
+    // 存檔時，刷新最後登入時間
+    if (window.baseData) baseData.lastLoginTime = Date.now();
+    
     await db.player_state.put({
-        id: 1, resources: gameState.resources, upgrades: gameState.upgrades,
-        costs: gameState.costs, autoRates: gameState.autoRates, hound_hp: gameState.hound.hp, autoSell: gameState.autoSell
+        id: 1, 
+        resources: gameState.resources, 
+        upgrades: gameState.upgrades,
+        costs: gameState.costs, 
+        autoRates: gameState.autoRates, 
+        hound_hp: gameState.hound.hp, 
+        autoSell: gameState.autoSell,
+        baseData: baseData // 寫入家園存檔
     });
 }
-
-// 計算能力值
+// 計算能力值 (包含套裝遞減效應與文字說明)
 function calculateHoundStats() {
     let bAtk = 0, bHp = 0, bDef = 0, bDodge = 0, bCrit = 0, ohko = 0;
     let setCounts = {};
@@ -74,27 +109,49 @@ function calculateHoundStats() {
         if (item.setId) setCounts[item.setId] = (setCounts[item.setId] || 0) + 1;
     });
 
-    let activeText = []; gameState.hound.activeSets = []; let atkMultiplier = 1;
+    let activeText = []; 
+    gameState.hound.activeSets = []; 
+    let atkMultiplier = 1; 
+
+    // 判斷套裝發動與遞減效應 (Diminishing Returns)
     for (const [setId, count] of Object.entries(setCounts)) {
+        // 抓取套裝中文名稱 (若無則顯示代碼)
+        let setName = gameConfig.loot_pool.sets[setId] ? gameConfig.loot_pool.sets[setId].name : setId;
+
         if (count >= 2) {
             gameState.hound.activeSets.push(`${setId}_2pc`);
-            if (setId === 'scavenger') bAtk += 15; if (setId === 'ninja') bDodge += 10;
-            if (setId === 'thug') bCrit += 15; if (setId === 'zombie') ohko += 5; if (setId === 'abyss') bDef += 10;
-            activeText.push(`[${gameConfig.loot_pool.sets[setId].name}] 2件套啟動`);
+            
+            // 2件套：提供強力基礎數值
+            if (setId === 'scavenger') { bAtk += 20; activeText.push(`[${setName}] 2件套: 基礎攻擊力 +20`); }
+            if (setId === 'ninja') { bDodge += 20; activeText.push(`[${setName}] 2件套: 閃避率 +20%`); }
+            if (setId === 'thug') { bCrit += 40; activeText.push(`[${setName}] 2件套: 暴擊率 +40%`); }
+            if (setId === 'zombie') { ohko += 10; activeText.push(`[${setName}] 2件套: 秒殺機率 +10%`); }
+            if (setId === 'abyss') { bDef += 20; activeText.push(`[${setName}] 2件套: 防禦力 +20`); }
         }
+        
         if (count >= 3) {
             gameState.hound.activeSets.push(`${setId}_3pc`);
-            if (setId === 'scavenger') atkMultiplier = 1.3; if (setId === 'zombie') ohko = 15;
-            activeText.push(`[${gameConfig.loot_pool.sets[setId].name}] 3件套完美共鳴！`);
+            
+            // 3件套：遞減效應，僅追加少量數值
+            if (setId === 'scavenger') { bAtk += 10; activeText.push(`[${setName}] 3件套: 攻擊力再 +10 (總和+30)`); }
+            if (setId === 'ninja') { bDodge += 10; activeText.push(`[${setName}] 3件套: 閃避率再 +10% (總和+30%)`); }
+            if (setId === 'thug') { bCrit += 10; activeText.push(`[${setName}] 3件套: 暴擊率再 +10% (總和+50%)`); }
+            if (setId === 'zombie') { ohko += 5; activeText.push(`[${setName}] 3件套: 秒殺機率再 +5% (總和+15%)`); }
+            if (setId === 'abyss') { bDef += 10; activeText.push(`[${setName}] 3件套: 防禦力再 +10 (總和+30)`); }
         }
     }
 
+    // 結算總能力值
     gameState.hound.totalAtk = Math.floor((gameState.hound.baseAtk + bAtk) * atkMultiplier);
-    gameState.hound.maxHp = 100 + bHp; gameState.hound.totalDef = gameState.hound.baseDef + bDef;
-    gameState.hound.totalDodge = gameState.hound.baseDodge + bDodge; gameState.hound.totalCrit = gameState.hound.baseCrit + bCrit;
+    gameState.hound.maxHp = 100 + bHp; 
+    gameState.hound.totalDef = gameState.hound.baseDef + bDef;
+    gameState.hound.totalDodge = gameState.hound.baseDodge + bDodge; 
+    gameState.hound.totalCrit = gameState.hound.baseCrit + bCrit;
     gameState.hound.ohko = ohko;
+    
     if (gameState.hound.hp > gameState.hound.maxHp) gameState.hound.hp = gameState.hound.maxHp;
     
+    // 更新 UI 上的套裝文字說明
     const setText = document.getElementById('set-bonus-text');
     if (setText) setText.innerHTML = activeText.length > 0 ? activeText.join("<br>") : "<span style='color:#777;'>[未啟動任何套裝效果]</span>";
 }
@@ -123,6 +180,33 @@ function buyDrone() {
         gameState.costs.drone = Math.floor(10 * Math.pow(1.5, gameState.upgrades.drones));
         updateUI(); savePlayerState();
     } else { logMessage(`[SCRAP] 資源不足。`, 'system'); }
+}
+// --- [06_BASE] 家園設施邏輯 ---
+
+// 更新家園分頁的所有 UI 數值
+function updateBaseUI() {
+    let nextCost = 500 * Math.pow(2, baseData.ccLevel); // 成本公式：500, 1000, 2000...
+    document.getElementById('base-cc-level').innerText = baseData.ccLevel;
+    document.getElementById('base-cc-cost').innerText = nextCost;
+    
+    // 這裡預留給後續廣播塔等設施的更新
+}
+
+// 升級設施共用函數
+function upgradeFacility(facility) {
+    if (facility === 'controlCenter') {
+        let cost = 500 * Math.pow(2, baseData.ccLevel);
+        if (gameState.resources.scrap >= cost) {
+            gameState.resources.scrap -= cost;
+            baseData.ccLevel++;
+            logMessage(`[系統] 系統擴容成功。中央控制室升級至 Lv.${baseData.ccLevel}`, 'system');
+            updateBaseUI();
+            updateUI(); // 刷新上方資源列
+            savePlayerState(); // 升級後立刻存檔
+        } else {
+            logMessage(`[警告] 資源不足，擴容需要 ${cost} 廢料`, 'zaco');
+        }
+    }
 }
 
 function healHound() {
@@ -583,7 +667,6 @@ async function bulkSellItems() {
     const allItems = await db.inventory_items.toArray();
     
     // 核心過濾器：只挑選「品質相符」且「未裝備」且「未鎖定」的裝備
-    // (防呆機制：以防 item.is_locked 為 undefined，使用 !item.is_locked 判斷)
     const itemsToSell = allItems.filter(item => 
         item.rarity === rarity && 
         !item.is_equipped && 
@@ -595,28 +678,191 @@ async function bulkSellItems() {
         return;
     }
 
-    // 計算總回收廢料與收集要刪除的 ID
     const idsToDelete = [];
-    let totalScrap = 0;
+    let totalZaco = 0; // 改為計算 ZaCo
     
     itemsToSell.forEach(item => {
         idsToDelete.push(item.id);
-        // 依照品質給予不同廢料
-        if (item.rarity === 'common') totalScrap += 5;
-        else if (item.rarity === 'rare') totalScrap += 15;
-        else if (item.rarity === 'set') totalScrap += 30;
-        else if (item.rarity === 'legendary') totalScrap += 50;
-        else totalScrap += 5;
+        // 依照品質給予不同數量的 ZaCo (對齊單件出售價格)
+        if (item.rarity === 'common') totalZaco += 1;
+        else if (item.rarity === 'rare') totalZaco += 5;
+        else if (item.rarity === 'set') totalZaco += 80;
+        else if (item.rarity === 'legendary') totalZaco += 25;
+        else if (item.rarity === 'apocalyptic') totalZaco += 150;
+        else totalZaco += 1;
     });
 
     // 透過 Dexie.js 的 bulkDelete 一次性刪除，效能最高
     await db.inventory_items.bulkDelete(idsToDelete);
     
-    // 發放廢料並更新介面
-    gameState.resources.scrap += totalScrap;
+    // 發放 ZaCo 並更新介面
+    gameState.resources.zaco += totalZaco;
     savePlayerState();
     updateUI();
     renderInventory();
     
-    logMessage(`>> [批量拆解] 成功銷毀 ${itemsToSell.length} 件武裝，回收 ${totalScrap} 單位廢料。`, "system");
+    logMessage(`>> [批量拆解] 成功銷毀 ${itemsToSell.length} 件武裝，黑市帳戶進帳 ${totalZaco} 枚 ZaCo。`, "zaco");
+}
+
+// ==========================================
+// 🏠 [06_BASE] 家園系統：解鎖與升級邏輯
+// ==========================================
+function unlockHome() {
+    if (gameState.home.unlocked) return;
+    if (gameState.scraps >= 5000 && gameState.zaco_currency >= 1000) {
+        gameState.scraps -= 5000;
+        gameState.zaco_currency -= 1000;
+        gameState.home.unlocked = true;
+        logMessage("🔓 成功存取中央控制室！全局物資上限已擴充。", "success");
+        updateUI();
+        savePlayerState();
+    } else {
+        logMessage("⚠️ 資源不足！解鎖需要 5,000 廢料與 1,000 ZaCo。", "warning");
+    }
+}
+
+function upgradeFacility(facilityType) {
+    if (!gameState.home.unlocked) return;
+    
+    const currentLv = gameState.home.levels[facilityType];
+    if (currentLv === undefined || currentLv >= 5) {
+        logMessage("⚠️ 該設施已達滿級或不存在。", "warning");
+        return;
+    }
+
+    // 設施基礎消耗與幾何增長因子
+    const baseCosts = {
+        radio: { scraps: 3000, zaco: 500, factor: 1.6 },
+        tower: { scraps: 4500, zaco: 800, factor: 1.7 },
+        dispatch: { scraps: 6000, zaco: 1200, factor: 1.8 }
+    };
+
+    const cfg = baseCosts[facilityType];
+    const costScraps = Math.floor(cfg.scraps * Math.pow(cfg.factor, currentLv));
+    const costZaco = Math.floor(cfg.zaco * Math.pow(cfg.factor, currentLv));
+
+    if (gameState.scraps >= costScraps && gameState.zaco_currency >= costZaco) {
+        gameState.scraps -= costScraps;
+        gameState.zaco_currency -= costZaco;
+        gameState.home.levels[facilityType]++;
+        logMessage(`🏗️ 設施 [${facilityType}] 已成功升級至 Lv.${gameState.home.levels[facilityType]}！`, "success");
+        updateUI();
+        savePlayerState();
+    } else {
+        logMessage(`⚠️ 資源不足！升級需 ${costScraps} 廢料與 ${costZaco} ZaCo。`, "warning");
+    }
+}
+
+// ==========================================
+// [06_BASE] 離線進度結算引擎 (Offline Sandbox)
+// ==========================================
+async function calculateOfflineProgress() {
+    let now = Date.now();
+    let timeDiffSeconds = Math.floor((now - baseData.lastLoginTime) / 1000); 
+    
+    // 離線超過 60 秒才進行結算，避免頻繁刷新誤判
+    if (timeDiffSeconds > 60) {
+        let offlineMinutes = (timeDiffSeconds / 60).toFixed(1);
+        let offlineReport = `[系統重連] 離線時間：${offlineMinutes} 分鐘。<br>`;
+
+        // --- 1. 中央控制室：廢料探測器收益 ---
+        let maxCap = BASE_SCRAP_CAP + (baseData.ccLevel * 1000); 
+        let scrapPerSecond = gameState.autoRates.scrap || 0; 
+        let generatedScrap = timeDiffSeconds * scrapPerSecond;
+        
+        if (generatedScrap > 0) {
+            let oldScrap = gameState.resources.scrap;
+            if (gameState.resources.scrap < maxCap) {
+                gameState.resources.scrap = Math.min(gameState.resources.scrap + generatedScrap, maxCap);
+            }
+            let actualGain = gameState.resources.scrap - oldScrap;
+            if (actualGain > 0) {
+                offlineReport += `>> 探測器回收 ${actualGain} 廢料 (當前上限: ${maxCap})。<br>`;
+            } else {
+                offlineReport += `>> <span style="color:#ff3333;">探測廢料儲存槽已達上限 (${maxCap})。</span><br>`;
+            }
+        }
+
+        // --- 2. 副本完全離線掛機模擬 (Combat Sandbox) ---
+        if (gameState.isExploring) {
+            const tickRateSec = 5; // 每 5 秒為一個戰鬥判定週期
+            let ticksToSimulate = Math.floor(timeDiffSeconds / tickRateSec);
+            const maxTicks = 8640; // 手機效能安全閥：最高模擬 12 小時 (12*60*60/5)
+            if (ticksToSimulate > maxTicks) ticksToSimulate = maxTicks;
+
+            let enemiesKilled = 0;
+            let foodConsumed = 0;
+            let combatScrap = 0;
+            let died = false;
+
+            // 粗略估算怪物單次攻擊力 (以防禦力減免)
+            let def = gameState.hound.totalDef || 0;
+            let dmgPerEncounter = Math.max(1, 15 - def); 
+
+            for (let i = 0; i < ticksToSimulate; i++) {
+                // 每 3 個週期 (15秒) 算作擊殺一隻怪，觸發掉寶
+                if (i > 0 && i % 3 === 0) {
+                    enemiesKilled++;
+                    combatScrap += Math.floor(Math.random() * 5) + 1;
+                    
+                    // 呼叫原本的掉落函數 (內建自動拆解 ZaCo 邏輯！)
+                    await generateLoot(false); 
+
+                    // 模擬受傷扣血
+                    gameState.hound.hp -= dmgPerEncounter;
+                }
+
+                // EHP 補血檢定 (血量低於 75% 自動吃肉乾)
+                const healThreshold = gameState.hound.maxHp * 0.75;
+                if (gameState.hound.hp <= healThreshold) {
+                    if (gameState.resources.food > 0) {
+                        gameState.hound.hp = Math.min(gameState.hound.maxHp, gameState.hound.hp + Math.floor(gameState.hound.maxHp * 0.5));
+                        gameState.resources.food--;
+                        foodConsumed++;
+                    } else if (gameState.hound.hp <= 0) {
+                        died = true;
+                        break; // 肉乾耗盡且血量歸零，強制中斷探索
+                    }
+                }
+            }
+
+            // 將戰鬥獲得的廢料匯入
+            gameState.resources.scrap += combatScrap;
+            
+            offlineReport += `>> ⚔️ 探索戰報：擊殺 ${enemiesKilled} 隻怪物，戰鬥回收 ${combatScrap} 廢料。<br>`;
+            offlineReport += `>> 🍖 消耗肉乾：${foodConsumed} 份。<br>`;
+            
+            if (died) {
+                // 處理死亡強制撤退邏輯
+                gameState.isExploring = false;
+                gameState.currentEnemy = null;
+                gameState.hound.hp = 0;
+                
+                // 強制更新 UI 按鈕狀態
+                const btn = document.getElementById('btn-explore');
+                if (btn) {
+                    btn.innerText = "EXECUTE_AUTO_EXPLORE [啟動自動探索]"; 
+                    btn.style.borderColor = "var(--primary-color)"; 
+                    btn.style.color = "var(--primary-color)";
+                }
+                const stateEl = document.getElementById('hound-state');
+                if (stateEl) { 
+                    stateEl.innerText = "[重傷撤退]"; 
+                    stateEl.style.color = "#ff3333"; 
+                }
+                
+                offlineReport += `>> <span style="color:#ff3333;">💀 [警告] 肉乾耗盡，獵犬重傷，已強制撤退！</span><br>`;
+            }
+        }
+
+        // 統一輸出最終戰報
+        logMessage(offlineReport, "system");
+    }
+    
+    // 更新登入時間並存檔
+    baseData.lastLoginTime = now;
+    if (typeof updateBaseUI === "function") updateBaseUI();
+    updateUI();
+    renderInventory(); // 確保背包顯示剛剛打到的新裝備
+    savePlayerState();
 }

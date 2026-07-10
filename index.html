@@ -80,6 +80,7 @@
         <button class="tab-btn" data-tab="battle" onclick="switchTab('battle')">[03_EXPL]</button>
         <button class="tab-btn" data-tab="inv" onclick="switchTab('inv')">[04_INV]</button>
         <button class="tab-btn" data-tab="shop" onclick="switchTab('shop')" style="border-color: var(--zaco-color); color: var(--zaco-color);">[05_SHOP]</button>
+        <button class="tab-btn" data-tab="base" onclick="switchTab('base')" style="border-color: #44aa44; color: #44aa44;">[06_BASE]</button>
     </nav>
 
     <div id="tab-status" class="tab-content active">
@@ -191,6 +192,34 @@
         <h3 class="warning-text" style="color:var(--zaco-color);">// UNDERGROUND_BLACK_MARKET</h3>
         <p style="font-size: 0.85rem;">使用 <span style="color:var(--zaco-color); font-weight:bold;">ZaCo</span> 交易地下改造武裝。購買後裝備將直接送入背包 [INV]：</p>
         <div id="shop-list" class="inv-list"></div>
+    </div>
+
+    <div id="tab-base" class="tab-content">
+        <h3 class="warning-text" style="color: #44aa44;">// BASE_FACILITIES</h3>
+        
+        <div style="margin-bottom: 15px; border: 1px solid #44aa44; padding: 10px; background: rgba(0,255,0,0.05);">
+            <div style="color:#44aa44; font-weight:bold; margin-bottom:5px;">[01] 中央控制室 (系統擴容)</div>
+            <div style="font-size:0.75rem; color:#aaa; margin-bottom:8px;">擴充資源儲存上限。目前等級: <span id="base-cc-level" style="color:#fff;">0</span></div>
+            <button class="btn" onclick="upgradeFacility('controlCenter')" style="margin-bottom:0;">UPGRADE [消耗: <span id="base-cc-cost">500</span> 廢料]</button>
+        </div>
+
+        <div style="margin-bottom: 15px; border: 1px dashed var(--border-color); padding: 10px; background: rgba(0,0,0,0.3);">
+            <div style="color:var(--text-color); font-weight:bold; margin-bottom:5px;">[02] 盲目癡愚的收音機</div>
+            <div style="font-size:0.75rem; color:#aaa; margin-bottom:8px;">聆聽虛空雜訊。離線時將帶來未知的增益或詛咒。</div>
+            <button class="btn" onclick="toggleRadio()" id="btn-radio-state" style="margin-bottom:0; border-color:#888; color:#888;">[目前狀態: 關閉] TURN_ON</button>
+        </div>
+
+        <div style="margin-bottom: 15px; border: 1px solid #aa2222; padding: 10px; background: rgba(50,0,0,0.1);">
+            <div style="color:#ff5555; font-weight:bold; margin-bottom:5px;">[03] 誘餌廣播塔 (離線蓄力)</div>
+            <div style="font-size:0.75rem; color:#aaa; margin-bottom:8px;">離線期間吸引屍群，重新連線時可引爆收割。蓄力值: <span id="base-tower-charge" style="color:#ff3333; font-weight:bold;">0%</span></div>
+            <button class="btn" onclick="detonateTower()" style="margin-bottom:0; border-color:#ff3333; color:#ff3333;">DETONATE_EMP [一鍵引爆]</button>
+        </div>
+
+        <div style="margin-bottom: 15px; border: 1px solid var(--zaco-color); padding: 10px; background: rgba(255, 215, 0, 0.05);">
+            <div style="color:var(--zaco-color); font-weight:bold; margin-bottom:5px;">[04] 倖存者派遣電台</div>
+            <div style="font-size:0.75rem; color:#aaa; margin-bottom:8px;">消耗黑市貨幣派遣犬伴外出，掛機獲取稀有副本文件。</div>
+            <button class="btn" onclick="dispatchSurvivors()" style="margin-bottom:0; border-color:var(--zaco-color); color:var(--zaco-color);">DISPATCH [消耗: 10 ZaCo]</button>
+        </div>
     </div>
 
     <div class="log-panel">
