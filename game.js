@@ -24,6 +24,11 @@ let baseData = {
 // 系統預設參數
 const BASE_SCRAP_CAP = 1000; // 初始廢料儲存上限
 
+// --- 新增：動態計算當前廢料上限 ---
+function getMaxScrap() {
+    if (!window.baseData) return BASE_SCRAP_CAP;
+    return BASE_SCRAP_CAP + (baseData.ccLevel * 1000);
+}
 // 啟動初始化
 window.addEventListener("DOMContentLoaded", async () => {
     try {
@@ -183,7 +188,14 @@ function calculateHoundStats() {
 
 function initGameLoops() {
     setInterval(() => {
-        if (gameState.autoRates.scrap > 0) { gameState.resources.scrap += gameState.autoRates.scrap; updateUI(); }
+        // 線上無人機採集：強制受限於最大容量
+        if (gameState.autoRates.scrap > 0) { 
+            let maxCap = getMaxScrap();
+            if (gameState.resources.scrap < maxCap) {
+                gameState.resources.scrap = Math.min(gameState.resources.scrap + gameState.autoRates.scrap, maxCap);
+                updateUI(); 
+            }
+        }
         if (gameState.isExploring) handleExplorationTick();
     }, 1000);
     setInterval(() => { savePlayerState(); }, 10000);
@@ -197,7 +209,20 @@ function switchTab(tabId) {
     if(tabId === 'inv') renderInventory(); if(tabId === 'shop') renderShop();
 }
 
-function gatherResource(type) { gameState.resources[type]++; updateUI(); savePlayerState(); logMessage(`回收 1 ${type.toUpperCase()}`); }
+function gatherResource(type) { 
+    if (type === 'scrap') {
+        let maxCap = getMaxScrap();
+        if (gameState.resources.scrap >= maxCap) {
+            logMessage(`[系統警告] 廢料儲存槽已滿 (${maxCap})。請至 [06_BASE] 升級中央控制室。`, 'warning');
+            return; // 滿了就不給採集
+        }
+    }
+    
+    gameState.resources[type]++; 
+    updateUI(); 
+    savePlayerState(); 
+    logMessage(`回收 1 ${type.toUpperCase()}`); 
+}
 function buyDrone() {
     if (gameState.resources.scrap >= gameState.costs.drone) {
         gameState.resources.scrap -= gameState.costs.drone; gameState.upgrades.drones++;
@@ -206,6 +231,7 @@ function buyDrone() {
         updateUI(); savePlayerState();
     } else { logMessage(`[SCRAP] 資源不足。`, 'system'); }
 }
+
 // --- [06_BASE] 家園設施邏輯 ---
 
 // 更新家園分頁的所有 UI 數值
@@ -331,8 +357,18 @@ function handleExplorationTick() {
         gameState.currentEnemy = null;
         
         let scrapGain = Math.floor(Math.random() * 5) + 1;
-        gameState.resources.scrap += scrapGain;
-        reportEl.innerHTML += `<br>獲得 ${scrapGain} 廢料。`;
+        let maxCap = getMaxScrap();
+        let oldScrap = gameState.resources.scrap;
+        
+        // 加上戰鬥產出，但不超過上限
+        gameState.resources.scrap = Math.min(gameState.resources.scrap + scrapGain, maxCap);
+        
+        let actualGain = gameState.resources.scrap - oldScrap;
+        if (actualGain > 0) {
+            reportEl.innerHTML += `<br>獲得 ${actualGain} 廢料。`;
+        } else {
+            reportEl.innerHTML += `<br><span style="color:#ff3333;">(廢料儲存已滿，無法回收更多)</span>`;
+        }
         
         // 誘餌掉落機制 (15% 機率掉落)
         if (Math.random() * 100 < 15) {
@@ -567,7 +603,8 @@ function logMessage(text, type = 'normal') {
 }
 
 function updateUI() {
-    document.getElementById('res-scrap').innerText = gameState.resources.scrap;
+    // 強制 UI 顯示當前廢料與最大上限
+    document.getElementById('res-scrap').innerText = `${gameState.resources.scrap} / ${getMaxScrap()}`;
     document.getElementById('res-food').innerText = gameState.resources.food;
     document.getElementById('res-zaco').innerText = gameState.resources.zaco;
     document.getElementById('rate-scrap').innerText = gameState.autoRates.scrap;
