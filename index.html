@@ -80,7 +80,7 @@
         <button class="tab-btn" data-tab="battle" onclick="switchTab('battle')">[03_EXPL]</button>
         <button class="tab-btn" data-tab="inv" onclick="switchTab('inv')">[04_INV]</button>
         <button class="tab-btn" data-tab="shop" onclick="switchTab('shop')" style="border-color: var(--zaco-color); color: var(--zaco-color);">[05_SHOP]</button>
-        <button class="tab-btn" data-tab="base" onclick="switchTab('base')" style="border-color: #44aa44; color: #44aa44;">[06_BASE]</button>
+        <button class="tab-btn" data-tab="base" onclick="switchTab('base')" style="border-color: #55aaff; color: #55aaff;">[06_BASE]</button>
     </nav>
 
     <div id="tab-status" class="tab-content active">
@@ -194,27 +194,38 @@
         <div id="shop-list" class="inv-list"></div>
     </div>
 
+<!-- ===== [06_BASE] 家園系統分頁 ===== -->
     <div id="tab-base" class="tab-content">
-        <h3 class="warning-text" style="color: #44aa44;">// BASE_FACILITIES</h3>
+        <h3 class="warning-text" style="color: #55aaff;">// BASE_FACILITIES</h3>
         
-        <div style="margin-bottom: 15px; border: 1px solid #44aa44; padding: 10px; background: rgba(0,255,0,0.05);">
-            <div style="color:#44aa44; font-weight:bold; margin-bottom:5px;">[01] 中央控制室 (系統擴容)</div>
-            <div style="font-size:0.75rem; color:#aaa; margin-bottom:8px;">擴充資源儲存上限。目前等級: <span id="base-cc-level" style="color:#fff;">0</span></div>
-            <button class="btn" onclick="upgradeFacility('controlCenter')" style="margin-bottom:0;">UPGRADE [消耗: <span id="base-cc-cost">500</span> 廢料]</button>
+        <!-- 新增：家園全域預覽圖位 -->
+        <div id="base-image-container" style="width: 100%; height: 120px; background-color: #050511; border: 1px solid #55aaff; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;">
+            <span id="base-image-text" style="color: #55aaff; font-size: 0.8rem; z-index: 2; text-shadow: none;">[BASE_IMAGE_PLACEHOLDER / 等待影像渲染]</span>
+            <img id="base-image" src="" style="width: 100%; height: 100%; object-fit: cover; position: absolute; opacity: 0.4; display: none;">
         </div>
 
-        <div style="margin-bottom: 15px; border: 1px dashed var(--border-color); padding: 10px; background: rgba(0,0,0,0.3);">
-            <div style="color:var(--text-color); font-weight:bold; margin-bottom:5px;">[02] 盲目癡愚的收音機</div>
-            <div style="font-size:0.75rem; color:#aaa; margin-bottom:8px;">聆聽虛空雜訊。離線時將帶來未知的增益或詛咒。</div>
+        <!-- 設施 1: 中央控制室 -->
+        <div style="margin-bottom: 15px; border: 1px solid #55aaff; padding: 10px; background: rgba(0, 85, 255, 0.05);">
+            <div style="color:#55aaff; font-weight:bold; margin-bottom:5px;">[01] 中央控制室 (系統擴容)</div>
+            <div style="font-size:0.75rem; color:#aaa; margin-bottom:8px;">擴充資源儲存上限。目前等級: <span id="base-cc-level" style="color:#fff;">0</span></div>
+            <button class="btn" onclick="upgradeFacility('controlCenter')" style="margin-bottom:0; border-color:#55aaff; color:#55aaff;">UPGRADE [消耗: <span id="base-cc-cost">500</span> 廢料]</button>
+        </div>
+
+        <!-- 設施 2: 盲目癡愚的收音機 -->
+        <div style="margin-bottom: 15px; border: 1px dashed #55aaff; padding: 10px; background: rgba(0, 85, 255, 0.05);">
+            <div style="color:#55aaff; font-weight:bold; margin-bottom:5px;">[02] 盲目癡愚的收音機</div>
+            <div style="font-size:0.75rem; color:#aaa; margin-bottom:8px;">聆聽虛空雜訊。離線期間可能獲得隨機物資增益，或招致精神耗損（損失肉乾/受傷）。</div>
             <button class="btn" onclick="toggleRadio()" id="btn-radio-state" style="margin-bottom:0; border-color:#888; color:#888;">[目前狀態: 關閉] TURN_ON</button>
         </div>
 
-        <div style="margin-bottom: 15px; border: 1px solid #aa2222; padding: 10px; background: rgba(50,0,0,0.1);">
-            <div style="color:#ff5555; font-weight:bold; margin-bottom:5px;">[03] 誘餌廣播塔 (離線蓄力)</div>
-            <div style="font-size:0.75rem; color:#aaa; margin-bottom:8px;">離線期間吸引屍群，重新連線時可引爆收割。蓄力值: <span id="base-tower-charge" style="color:#ff3333; font-weight:bold;">0%</span></div>
-            <button class="btn" onclick="detonateTower()" style="margin-bottom:0; border-color:#ff3333; color:#ff3333;">DETONATE_EMP [一鍵引爆]</button>
+        <!-- 設施 3: 誘餌廣播塔 (改為危險紫色) -->
+        <div style="margin-bottom: 15px; border: 1px solid #aa55ff; padding: 10px; background: rgba(85, 0, 150, 0.1);">
+            <div style="color:#aa55ff; font-weight:bold; margin-bottom:5px;">[03] 誘餌廣播塔 (離線蓄力)</div>
+            <div style="font-size:0.75rem; color:#aaa; margin-bottom:8px;">離線期間吸引屍群，重新連線時可引爆收割。蓄力值: <span id="base-tower-charge" style="color:#aa55ff; font-weight:bold;">0%</span></div>
+            <button class="btn" onclick="detonateTower()" style="margin-bottom:0; border-color:#aa55ff; color:#aa55ff;">DETONATE_EMP [一鍵引爆]</button>
         </div>
 
+        <!-- 設施 4: 倖存者派遣電台 -->
         <div style="margin-bottom: 15px; border: 1px solid var(--zaco-color); padding: 10px; background: rgba(255, 215, 0, 0.05);">
             <div style="color:var(--zaco-color); font-weight:bold; margin-bottom:5px;">[04] 倖存者派遣電台</div>
             <div style="font-size:0.75rem; color:#aaa; margin-bottom:8px;">消耗黑市貨幣派遣犬伴外出，掛機獲取稀有副本文件。</div>

@@ -246,11 +246,41 @@ function buyDrone() {
 
 // 更新家園分頁的所有 UI 數值
 function updateBaseUI() {
-    let nextCost = 500 * Math.pow(2, baseData.ccLevel); // 成本公式：500, 1000, 2000...
+    let nextCost = 500 * Math.pow(2, baseData.ccLevel); 
     document.getElementById('base-cc-level').innerText = baseData.ccLevel;
     document.getElementById('base-cc-cost').innerText = nextCost;
     
-    // 這裡預留給後續廣播塔等設施的更新
+    // 同步收音機按鈕狀態
+    const radioBtn = document.getElementById('btn-radio-state');
+    if (radioBtn) {
+        // 防止讀取舊存檔時變數不存在
+        if (baseData.radioState === undefined) baseData.radioState = false; 
+        
+        if (baseData.radioState) {
+            radioBtn.innerText = "[目前狀態: 啟動] TURN_OFF";
+            radioBtn.style.borderColor = "#55aaff";
+            radioBtn.style.color = "#55aaff";
+        } else {
+            radioBtn.innerText = "[目前狀態: 關閉] TURN_ON";
+            radioBtn.style.borderColor = "#888";
+            radioBtn.style.color = "#888";
+        }
+    }
+}
+
+// 收音機開關切換邏輯
+function toggleRadio() {
+    if (baseData.radioState === undefined) baseData.radioState = false;
+    baseData.radioState = !baseData.radioState;
+    
+    updateBaseUI();
+    savePlayerState();
+    
+    if (baseData.radioState) {
+        logMessage(`📻 [雜訊] 收音機已開啟。虛空中的低語開始在營地迴盪...`, 'system');
+    } else {
+        logMessage(`📻 [靜音] 切斷收音機電源。空間恢復了令人安心的死寂。`, 'system');
+    }
 }
 
 // 升級設施共用函數
@@ -862,6 +892,34 @@ async function calculateOfflineProgress() {
                 offlineReport += `>> 探測器回收 ${actualGain} 廢料 (當前上限: ${maxCap})。<br>`;
             } else {
                 offlineReport += `>> <span style="color:#ff3333;">探測廢料儲存槽已達上限 (${maxCap})。</span><br>`;
+            }
+        }
+		
+		// --- 1.5 盲目癡愚的收音機 (離線博弈事件) ---
+        // 離線必須超過 5 分鐘 (300秒) 才觸發收音機事件
+        if (baseData.radioState && timeDiffSeconds >= 300) {
+            const rand = Math.random() * 100;
+            if (rand < 40) { 
+                // 40% 機率：獲得 ZaCo
+                let zacoFound = Math.floor(Math.random() * 15) + 5;
+                gameState.resources.zaco += zacoFound;
+                offlineReport += `>> 📻 [啟示] 收音機截獲地下交易頻段，尋獲 ${zacoFound} 枚 ZaCo。<br>`;
+            } else if (rand < 70) { 
+                // 30% 機率：獲得大量廢料
+                let scrapFound = Math.floor(Math.random() * 150) + 50;
+                let maxCap = getMaxScrap();
+                gameState.resources.scrap = Math.min(gameState.resources.scrap + scrapFound, maxCap);
+                offlineReport += `>> 📻 [啟示] 收音機解析出舊商隊路線，發掘 ${scrapFound} 廢料。<br>`;
+            } else { 
+                // 30% 機率：遭遇惡意詛咒 (扣除食物或生命值)
+                if (gameState.resources.food >= 5) {
+                    gameState.resources.food -= 5;
+                    offlineReport += `>> 📻 <span style="color:#ff3333;">[詛咒] 詭異雜訊引發營地鼠患，損失 5 份肉乾。</span><br>`;
+                } else {
+                    let dmgTaken = Math.floor(gameState.hound.maxHp * 0.3);
+                    gameState.hound.hp = Math.max(1, gameState.hound.hp - dmgTaken);
+                    offlineReport += `>> 📻 <span style="color:#ff3333;">[詛咒] 刺耳狂亂的雜音令獵犬精神受創，扣除 ${dmgTaken} HP。</span><br>`;
+                }
             }
         }
 
