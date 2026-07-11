@@ -57,65 +57,6 @@
         .modal-backdrop { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 999; }
         .filter-bar { display: flex; gap: 5px; margin-bottom: 10px; }
         .filter-bar input, .filter-bar select { flex: 1; background: #222; color: var(--text-color); border: 1px solid var(--border-color); padding: 8px; font-family: inherit; font-size: 0.8rem; }
-		.lore-modal-content {
-    background-color: #f0f4f8; /* 冷白色基底 */
-    color: #1a202c; /* 深灰色易讀內文 */
-    border: 2px solid #cbd5e0;
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
-    max-height: 85vh;
-    overflow-y: auto;
-    padding: 20px;
-    border-radius: 4px;
-}
-.lore-modal-content h2 {
-    color: #d69e2e; /* 璀璨金色標題 */
-    border-bottom: 2px solid #a0aec0;
-    padding-bottom: 8px;
-    margin-top: 0;
-    font-family: monospace;
-}
-.lore-category-title {
-    color: #2b6cb0; /* 科技深藍小分類 */
-    font-size: 1.1em;
-    margin-top: 15px;
-    margin-bottom: 5px;
-    font-weight: bold;
-}
-.lore-item-btn {
-    background: #e2e8f0;
-    border: 1px solid #cbd5e0;
-    color: #4a5568;
-    padding: 8px 12px;
-    margin: 4px 0;
-    width: 100%;
-    text-align: left;
-    cursor: pointer;
-    border-radius: 4px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.lore-item-btn.unlocked {
-    background: #ffffff;
-    color: #2d3748;
-    border-left: 4px solid #d69e2e; /* 金色解鎖標示 */
-    font-weight: bold;
-}
-.lore-item-btn.unlocked:hover {
-    background: #edf2f7;
-}
-.lore-detail-header {
-    font-size: 0.85em;
-    color: #718096; /* 冷灰資訊列 */
-    margin-bottom: 15px;
-    padding-bottom: 5px;
-    border-bottom: 1px dashed #cbd5e0;
-}
-.lore-detail-body {
-    line-height: 1.6;
-    font-size: 0.95em;
-    white-space: pre-wrap;
-}
     </style>
 
     <!-- 🌐 按順序載入驅動與自訂邏輯模組 -->
@@ -139,7 +80,7 @@
         <button class="tab-btn" data-tab="battle" onclick="switchTab('battle')">[03_EXPL]</button>
         <button class="tab-btn" data-tab="inv" onclick="switchTab('inv')">[04_INV]</button>
         <button class="tab-btn" data-tab="shop" onclick="switchTab('shop')" style="border-color: var(--zaco-color); color: var(--zaco-color);">[05_SHOP]</button>
-        <button class="tab-btn" data-tab="base" onclick="switchTab('base')" style="border-color: #55aaff; color: #55aaff;">[06_BASE]</button>
+        <button class="tab-btn" data-tab="base" onclick="switchTab('base')" style="border-color: #44aa44; color: #44aa44;">[06_BASE]</button>
     </nav>
 
     <div id="tab-status" class="tab-content active">
@@ -253,81 +194,38 @@
         <div id="shop-list" class="inv-list"></div>
     </div>
 
-<!-- ===== [06_BASE] 家園系統分頁 ===== -->
     <div id="tab-base" class="tab-content">
-        <h3 class="warning-text" style="color: #55aaff;">// BASE_FACILITIES</h3>
+        <h3 class="warning-text" style="color: #44aa44;">// BASE_FACILITIES</h3>
         
-        <!-- 新增：家園全域預覽圖位 -->
-        <div id="base-image-container" style="width: 100%; height: 120px; background-color: #050511; border: 1px solid #55aaff; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;">
-            <span id="base-image-text" style="color: #55aaff; font-size: 0.8rem; z-index: 2; text-shadow: none;">[BASE_IMAGE_PLACEHOLDER / 等待影像渲染]</span>
-            <img id="base-image" src="" style="width: 100%; height: 100%; object-fit: cover; position: absolute; opacity: 0.4; display: none;">
-        </div>
-
-        <!-- 設施 1: 中央控制室 -->
-        <div style="margin-bottom: 15px; border: 1px solid #55aaff; padding: 10px; background: rgba(0, 85, 255, 0.05);">
-            <div style="color:#55aaff; font-weight:bold; margin-bottom:5px;">[01] 中央控制室 (系統擴容)</div>
+        <div style="margin-bottom: 15px; border: 1px solid #44aa44; padding: 10px; background: rgba(0,255,0,0.05);">
+            <div style="color:#44aa44; font-weight:bold; margin-bottom:5px;">[01] 中央控制室 (系統擴容)</div>
             <div style="font-size:0.75rem; color:#aaa; margin-bottom:8px;">擴充資源儲存上限。目前等級: <span id="base-cc-level" style="color:#fff;">0</span></div>
-            <button class="btn" onclick="upgradeFacility('controlCenter')" style="margin-bottom:0; border-color:#55aaff; color:#55aaff;">UPGRADE [消耗: <span id="base-cc-cost">500</span> 廢料]</button>
+            <button class="btn" onclick="upgradeFacility('controlCenter')" style="margin-bottom:0;">UPGRADE [消耗: <span id="base-cc-cost">500</span> 廢料]</button>
         </div>
 
-        <!-- 設施 2: 盲目癡愚的收音機 -->
-        <div style="margin-bottom: 15px; border: 1px dashed #55aaff; padding: 10px; background: rgba(0, 85, 255, 0.05);">
-            <div style="color:#55aaff; font-weight:bold; margin-bottom:5px;">[02] 盲目癡愚的收音機</div>
-            <div style="font-size:0.75rem; color:#aaa; margin-bottom:8px;">聆聽虛空雜訊。離線期間可能獲得隨機物資增益，或招致精神耗損（損失肉乾/受傷）。</div>
+        <div style="margin-bottom: 15px; border: 1px dashed var(--border-color); padding: 10px; background: rgba(0,0,0,0.3);">
+            <div style="color:var(--text-color); font-weight:bold; margin-bottom:5px;">[02] 盲目癡愚的收音機</div>
+            <div style="font-size:0.75rem; color:#aaa; margin-bottom:8px;">聆聽虛空雜訊。離線時將帶來未知的增益或詛咒。</div>
             <button class="btn" onclick="toggleRadio()" id="btn-radio-state" style="margin-bottom:0; border-color:#888; color:#888;">[目前狀態: 關閉] TURN_ON</button>
         </div>
 
-        <!-- 設施 3: 誘餌廣播塔 (改為危險紫色) -->
-        <div style="margin-bottom: 15px; border: 1px solid #aa55ff; padding: 10px; background: rgba(85, 0, 150, 0.1);">
-            <div style="color:#aa55ff; font-weight:bold; margin-bottom:5px;">[03] 誘餌廣播塔 (離線蓄力)</div>
-            <div style="font-size:0.75rem; color:#aaa; margin-bottom:8px;">離線期間吸引屍群，重新連線時可引爆收割。蓄力值: <span id="base-tower-charge" style="color:#aa55ff; font-weight:bold;">0%</span></div>
-            <button class="btn" onclick="detonateTower()" style="border-color:#aa55ff; color:#aa55ff; margin-bottom:8px;">DETONATE_EMP [一鍵引爆收割]</button>
-            <button class="btn" onclick="upgradeFacility('tower')" style="margin-bottom:0; border-color:#aa55ff; color:#aa55ff; font-size:0.75rem; padding:6px;">BUILD / UPGRADE FACILITY [建立/升級廣播塔]</button>
+        <div style="margin-bottom: 15px; border: 1px solid #aa2222; padding: 10px; background: rgba(50,0,0,0.1);">
+            <div style="color:#ff5555; font-weight:bold; margin-bottom:5px;">[03] 誘餌廣播塔 (離線蓄力)</div>
+            <div style="font-size:0.75rem; color:#aaa; margin-bottom:8px;">離線期間吸引屍群，重新連線時可引爆收割。蓄力值: <span id="base-tower-charge" style="color:#ff3333; font-weight:bold;">0%</span></div>
+            <button class="btn" onclick="detonateTower()" style="margin-bottom:0; border-color:#ff3333; color:#ff3333;">DETONATE_EMP [一鍵引爆]</button>
         </div>
 
-        <!-- 設施 4: 倖存者派遣電台 -->
-        <div class="facility-card" style="border: 1px solid var(--primary-color); padding: 10px; margin-top: 10px;">
-            <h3>📡 [04] 倖存者派遣電台 (DISPATCH) <span style="font-size:0.8em; color:var(--primary-color);">[Lv.<span id="base-dispatch-level">0</span>]</span></h3>
-            <p style="font-size: 0.85em; color: var(--text-color);">消耗 ZaCo 與多餘武裝派遣倖存者搜刮廢料，並有高機率帶回珍貴的【副本文件】。</p>
-            <div style="margin: 8px 0; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px;">
-                <div>任務狀態：<span id="dispatch-status-text" style="color:#ffae00;">[待命/未派遣]</span></div>
-                <div>預期回報：800~1200 廢料 | 📜 15% 尋獲文件</div>
-            </div>
-            <div style="display: flex; gap: 8px;">
-                <button id="btn-upgrade-dispatch" class="btn" onclick="upgradeFacility('dispatch')">升級電台 [成本: <span id="base-dispatch-cost">6000</span> 廢料]</button>
-                <button id="btn-start-dispatch" class="btn" style="border-color: #ffae00; color: #ffae00;" onclick="startDispatchMission()">派遣探索 (-200 ZaCo)</button>
-            </div>
-            <button class="btn" style="margin-top: 10px; border-color: #63b3ed; color: #63b3ed; width: 100%; font-weight: bold;" onclick="openLoreModal()">
-                📖 開啟終端機資料庫 (檢視已收集文件)
-            </button>
+        <div style="margin-bottom: 15px; border: 1px solid var(--zaco-color); padding: 10px; background: rgba(255, 215, 0, 0.05);">
+            <div style="color:var(--zaco-color); font-weight:bold; margin-bottom:5px;">[04] 倖存者派遣電台</div>
+            <div style="font-size:0.75rem; color:#aaa; margin-bottom:8px;">消耗黑市貨幣派遣犬伴外出，掛機獲取稀有副本文件。</div>
+            <button class="btn" onclick="dispatchSurvivors()" style="margin-bottom:0; border-color:var(--zaco-color); color:var(--zaco-color);">DISPATCH [消耗: 10 ZaCo]</button>
         </div>
     </div>
 
-    </div> <div class="log-panel">
+    <div class="log-panel">
         <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 3px; margin-bottom: 5px; color: var(--text-color); font-weight: bold;">[SYSTEM_LOG_STREAM]</div>
         <div id="log-container" class="log-container">
             <div class="log-entry system">>> 系統核心模組載入中...</div>
-        </div>
-    </div>
-
-    <div id="lore-backdrop" class="modal-backdrop" style="display: none;" onclick="closeLoreModal()"></div>
-    <div id="lore-modal" class="modal" style="display: none; z-index: 9999; top: 5%; width: 92%; left: 4%; max-height: 90vh;">
-        <div class="lore-modal-content">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h2 id="lore-modal-title">📖 終端機資料庫 (ARCHIVES)</h2>
-                <button class="btn" onclick="closeLoreModal()" style="width: auto; background: #e53e3e; color: white; padding: 4px 10px;">[關閉 X]</button>
-            </div>
-            <div id="lore-list-view">
-                <div id="lore-list-container"></div>
-            </div>
-            <div id="lore-detail-view" style="display: none;">
-                <button class="btn" onclick="showLoreList()" style="width: auto; margin-bottom: 10px; background: #4a5568; color: white;">&larr; 返回列表</button>
-                <h2 id="lore-read-title" style="color: #d69e2e; font-size: 1.3em;"></h2>
-                <div class="lore-detail-header">
-                    📍 發現地點：<span id="lore-read-location"></span> | 🕒 紀錄日期：<span id="lore-read-date"></span>
-                </div>
-                <div id="lore-read-body" class="lore-detail-body"></div>
-            </div>
         </div>
     </div>
 </body>
