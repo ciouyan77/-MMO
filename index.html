@@ -303,31 +303,32 @@
         </div>
     </div>
 
-    <div class="log-panel">
+    </div> <div class="log-panel">
         <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 3px; margin-bottom: 5px; color: var(--text-color); font-weight: bold;">[SYSTEM_LOG_STREAM]</div>
         <div id="log-container" class="log-container">
             <div class="log-entry system">>> 系統核心模組載入中...</div>
         </div>
     </div>
-	<div id="lore-backdrop" class="modal-backdrop" style="display: none;" onclick="closeLoreModal()"></div>
-<div id="lore-modal" class="modal" style="display: none; z-index: 1001; top: 5%; width: 92%; left: 4%;">
-    <div class="lore-modal-content">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h2 id="lore-modal-title">📖 終端機資料庫 (ARCHIVES)</h2>
-            <button class="btn" onclick="closeLoreModal()" style="width: auto; background: #e53e3e; color: white; padding: 4px 10px;">[關閉 X]</button>
-        </div>
-        <div id="lore-list-view">
-            <div id="lore-list-container"></div>
-        </div>
-        <div id="lore-detail-view" style="display: none;">
-            <button class="btn" onclick="showLoreList()" style="width: auto; margin-bottom: 10px; background: #4a5568; color: white;">&larr; 返回列表</button>
-            <h2 id="lore-read-title" style="color: #d69e2e; font-size: 1.3em;"></h2>
-            <div class="lore-detail-header">
-                📍 發現地點：<span id="lore-read-location"></span> | 🕒 紀錄日期：<span id="lore-read-date"></span>
+
+    <div id="lore-backdrop" class="modal-backdrop" style="display: none;" onclick="closeLoreModal()"></div>
+    <div id="lore-modal" class="modal" style="display: none; z-index: 9999; top: 5%; width: 92%; left: 4%; max-height: 90vh;">
+        <div class="lore-modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2 id="lore-modal-title">📖 終端機資料庫 (ARCHIVES)</h2>
+                <button class="btn" onclick="closeLoreModal()" style="width: auto; background: #e53e3e; color: white; padding: 4px 10px;">[關閉 X]</button>
             </div>
-            <div id="lore-read-body" class="lore-detail-body"></div>
+            <div id="lore-list-view">
+                <div id="lore-list-container"></div>
+            </div>
+            <div id="lore-detail-view" style="display: none;">
+                <button class="btn" onclick="showLoreList()" style="width: auto; margin-bottom: 10px; background: #4a5568; color: white;">&larr; 返回列表</button>
+                <h2 id="lore-read-title" style="color: #d69e2e; font-size: 1.3em;"></h2>
+                <div class="lore-detail-header">
+                    📍 發現地點：<span id="lore-read-location"></span> | 🕒 紀錄日期：<span id="lore-read-date"></span>
+                </div>
+                <div id="lore-read-body" class="lore-detail-body"></div>
+            </div>
         </div>
     </div>
-</div>
 </body>
 </html>
