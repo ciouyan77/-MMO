@@ -558,7 +558,8 @@ async function generateLoot(isBossDrop = false) {
         } 
         // 金裝~0.5小時 (機率約 2700/1M)
         else if (r > 997300) { rarity = "legendary"; rarityText = "傳奇"; rarityClass = "loot-legendary"; statMult = 3; } 
-        else if (r > 988500) { rarity = "set"; rarityText = "套裝"; rarityClass = "loot-set"; statMult = 2; isSet = true; } 
+        // 🚀 強化 1：綠裝(套裝)倍率由 2 提升至 2.4，完美界於稀有(1.8)與傳奇(3)正中間！
+        else if (r > 988500) { rarity = "set"; rarityText = "套裝"; rarityClass = "loot-set"; statMult = 2.4; isSet = true; } 
         else if (r > 838500) { rarity = "rare"; rarityText = "稀有"; rarityClass = "loot-rare"; statMult = 1.8; }
     }
 
@@ -589,7 +590,10 @@ async function generateLoot(isBossDrop = false) {
     if (isSet) {
         const setKeys = Object.keys(pool.sets); const setId = setKeys[Math.floor(Math.random() * setKeys.length)];
         item.name = `[套裝] ${pool.sets[setId].name}・${baseName}`; item.setId = setId;
-        if (slot === 'collar') item.atk = Math.floor(4 * statMult); else if (slot === 'harness') item.maxHp = Math.floor(20 * statMult); else if (slot === 'helmet') item.def = Math.floor(3 * statMult);
+        // 🚀 強化 2：綠裝基礎數值大幅調高，並強制附加 1.5 倍補正，彌補無隨機詞條的劣勢！
+        if (slot === 'collar') item.atk = Math.floor(6 * statMult * 1.5); 
+        else if (slot === 'harness') item.maxHp = Math.floor(30 * statMult * 1.5); 
+        else if (slot === 'helmet') item.def = Math.floor(5 * statMult * 1.5);
     } else {
         const affix = pool.affixes[Math.floor(Math.random() * pool.affixes.length)];
         item.name = `[${rarityText}] ${affix.name}${baseName}`;
@@ -694,15 +698,36 @@ async function renderInventory() {
     items.forEach((item) => {
         const el = document.createElement('div'); el.className = 'inv-item';
         let price = 1; if(item.rarity==='rare') price=5; if(item.rarity==='set') price=80; if(item.rarity==='legendary') price=25; if(item.rarity==='apocalyptic') price=150;
-        let descArr = []; if (item.atk) descArr.push(`ATK +${item.atk}`); if (item.maxHp) descArr.push(`HP +${item.maxHp}`); if (item.def) descArr.push(`DEF +${item.def}`); if (item.crit) descArr.push(`暴擊 +${item.crit}%`); if (item.dodge) descArr.push(`閃避 +${item.dodge}%`); if (item.setId) descArr.push(`套裝: ${gameConfig.loot_pool.sets[item.setId].name}`);
+        
+        let descArr = []; 
+        if (item.atk) descArr.push(`ATK +${item.atk}`); 
+        if (item.maxHp) descArr.push(`HP +${item.maxHp}`); 
+        if (item.def) descArr.push(`DEF +${item.def}`); 
+        if (item.crit) descArr.push(`暴擊 +${item.crit}%`); 
+        if (item.dodge) descArr.push(`閃避 +${item.dodge}%`); 
+        
+        // 🚀 新增：攔截套裝屬性並生成共鳴說明 UI (背包版)
+        let setBonusHtml = "";
+        if (item.rarity === 'set' && item.setId && gameConfig.loot_pool.sets[item.setId]) {
+            const setInfo = gameConfig.loot_pool.sets[item.setId];
+            descArr.push(`套裝: ${setInfo.name}`);
+            setBonusHtml = `
+            <div style="font-size:0.75rem; color:#00ff66; margin-top:5px; padding-top:5px; border-top:1px dashed #333;">
+                <span style="display:block;">[2件套] ${setInfo['2pc']}</span>
+                <span style="display:block;">[3件套] ${setInfo['3pc']}</span>
+            </div>`;
+        } else if (item.setId && gameConfig.loot_pool.sets[item.setId]) {
+             descArr.push(`套裝: ${gameConfig.loot_pool.sets[item.setId].name}`);
+        }
         
         const lockIcon = item.is_locked ? "🔒" : "🔓"; const lockColor = item.is_locked ? "var(--primary-color)" : "#555";
         el.innerHTML = `
             <div class="inv-info" onclick="showCompare(${item.id})">
                 <span class="${item.class}">${item.name}</span><br>
                 <span style="color:#888; font-size:0.75rem;">[${item.slotText}] ${descArr.length > 0 ? descArr.join(" | ") : "無附加"}</span>
+                ${setBonusHtml}
             </div>
-            <div style="display:flex; gap:5px;">
+            <div style="display:flex; gap:5px; align-items: flex-start;">
                 <button class="btn" style="width: auto; padding: 5px; margin: 0; border-color: ${lockColor}; color: ${lockColor};" onclick="toggleLock(event, ${item.id})">${lockIcon}</button>
                 <button class="btn" style="width: auto; padding: 5px 10px; margin: 0; border-color: var(--zaco-color); color: var(--zaco-color);" onclick="sellItem(event, ${item.id})" ${item.is_locked ? 'disabled' : ''}>出售 ($${price})</button>
             </div>`;
@@ -760,7 +785,7 @@ function updateUI() {
     document.getElementById('rate-scrap').innerText = gameState.autoRates.scrap;
     document.getElementById('camp-drones').innerText = gameState.upgrades.drones;
     document.getElementById('hound-hp').innerText = gameState.hound.hp;
-	if(document.getElementById('hound-max-hp')) document.getElementById('hound-max-hp').innerText = gameState.hound.maxHp;
+    if(document.getElementById('hound-max-hp')) document.getElementById('hound-max-hp').innerText = gameState.hound.maxHp;
     document.getElementById('btn-upgrade-drone').innerText = `DEPLOY_SCRAP_DRONE [成本: ${gameState.costs.drone} 廢料]`;
     
     document.getElementById('hound-total-atk').innerText = `${gameState.hound.totalAtk} (HP上限: ${gameState.hound.maxHp})`;
@@ -773,11 +798,27 @@ function updateUI() {
     let eqText = [];
     const buildEqLine = (slot, item) => {
         if(!item) return "";
-        return `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px; border-bottom:1px dashed #333; padding-bottom:5px;">
-            <span class="${item.class}">[${item.slotText}] ${item.name}</span>
-            <button class="btn" style="width:auto; padding:3px 8px; margin:0; font-size:0.75rem; border-color:#ff3333; color:#ff3333;" onclick="unequipSlot('${slot}')">卸下</button>
+        
+        // 🚀 新增：攔截套裝屬性並生成共鳴說明 UI
+        let setBonusHtml = "";
+        if (item.rarity === 'set' && item.setId && gameConfig.loot_pool.sets[item.setId]) {
+            const setInfo = gameConfig.loot_pool.sets[item.setId];
+            setBonusHtml = `
+            <div style="font-size:0.75rem; color:#00ff66; margin-top:3px; padding-left:5px; border-left:2px solid #00ff66;">
+                <span style="display:block;">[2件套] ${setInfo['2pc']}</span>
+                <span style="display:block;">[3件套] ${setInfo['3pc']}</span>
+            </div>`;
+        }
+
+        return `<div style="display:flex; flex-direction:column; margin-bottom:5px; border-bottom:1px dashed #333; padding-bottom:5px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="${item.class}">[${item.slotText}] ${item.name}</span>
+                <button class="btn" style="width:auto; padding:3px 8px; margin:0; font-size:0.75rem; border-color:#ff3333; color:#ff3333;" onclick="unequipSlot('${slot}')">卸下</button>
+            </div>
+            ${setBonusHtml}
         </div>`;
     };
+
     if (gameState.equipped.helmet) eqText.push(buildEqLine('helmet', gameState.equipped.helmet));
     if (gameState.equipped.collar) eqText.push(buildEqLine('collar', gameState.equipped.collar));
     if (gameState.equipped.harness) eqText.push(buildEqLine('harness', gameState.equipped.harness));
