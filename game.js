@@ -227,11 +227,22 @@ function initGameLoops() {
 }
 
 function switchTab(tabId) {
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-    document.getElementById(`tab-${tabId}`).classList.add('active');
-    document.querySelector(`.tab-btn[data-tab="${tabId}"]`).classList.add('active');
-    if(tabId === 'inv') renderInventory(); if(tabId === 'shop') renderShop();
+    try {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        
+        const targetTab = document.getElementById(`tab-${tabId}`);
+        const targetBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+        
+        if (targetTab) targetTab.classList.add('active');
+        if (targetBtn) targetBtn.classList.add('active');
+        
+        if (tabId === 'inv' && typeof renderInventory === "function") renderInventory();
+        if (tabId === 'shop' && typeof renderShop === "function") renderShop();
+        if (tabId === 'base' && typeof updateBaseUI === "function") updateBaseUI();
+    } catch (e) {
+        console.error("切換分頁失敗:", e);
+    }
 }
 
 function gatherResource(type) { 
@@ -997,34 +1008,35 @@ async function calculateOfflineProgress() {
 
         // --- 2. 副本完全離線掛機模擬 (Combat Sandbox) ---
         if (gameState.isExploring) {
-            const tickRateSec = 5; // 每 5 秒為一個戰鬥判定週期
+            const tickRateSec = 5;
             let ticksToSimulate = Math.floor(timeDiffSeconds / tickRateSec);
-            const maxTicks = 8640; // 手機效能安全閥：最高模擬 12 小時 (12*60*60/5)
+            const maxTicks = 8640; 
             if (ticksToSimulate > maxTicks) ticksToSimulate = maxTicks;
-
+            
             let enemiesKilled = 0;
             let foodConsumed = 0;
             let combatScrap = 0;
             let died = false;
-
-            // 粗略估算怪物單次攻擊力 (以防禦力減免)
             let def = gameState.hound.totalDef || 0;
             let dmgPerEncounter = Math.max(1, 15 - def); 
 
+            // ⚠️ 新增：手機效能安全閥！限制離線掉寶最多 15 次，避免 Dexie 連續交易卡死主執行緒
+            let maxOfflineLoot = 15;
+            let lootCount = 0;
+
             for (let i = 0; i < ticksToSimulate; i++) {
-                // 每 3 個週期 (15秒) 算作擊殺一隻怪，觸發掉寶
                 if (i > 0 && i % 3 === 0) {
                     enemiesKilled++;
                     combatScrap += Math.floor(Math.random() * 5) + 1;
                     
-                    // 呼叫原本的掉落函數 (內建自動拆解 ZaCo 邏輯！)
-                    await generateLoot(false); 
-
-                    // 模擬受傷扣血
+                    // 只有在上限內才執行非同步資料庫寫入
+                    if (lootCount < maxOfflineLoot) {
+                        await generateLoot(false);
+                        lootCount++;
+                    }
                     gameState.hound.hp -= dmgPerEncounter;
                 }
 
-                // EHP 補血檢定 (血量低於 75% 自動吃肉乾)
                 const healThreshold = gameState.hound.maxHp * 0.75;
                 if (gameState.hound.hp <= healThreshold) {
                     if (gameState.resources.food > 0) {
@@ -1033,36 +1045,23 @@ async function calculateOfflineProgress() {
                         foodConsumed++;
                     } else if (gameState.hound.hp <= 0) {
                         died = true;
-                        break; // 肉乾耗盡且血量歸零，強制中斷探索
+                        break; 
                     }
                 }
             }
 
-            // 將戰鬥獲得的廢料匯入
             gameState.resources.scrap += combatScrap;
-            
             offlineReport += `>> ⚔️ 探索戰報：擊殺 ${enemiesKilled} 隻怪物，戰鬥回收 ${combatScrap} 廢料。<br>`;
+            if (lootCount >= maxOfflineLoot) offlineReport += `>> 🎒 [效能保護] 離線戰利品已達回收上限 (${maxOfflineLoot}件)，防止記憶體過載。<br>`;
             offlineReport += `>> 🍖 消耗肉乾：${foodConsumed} 份。<br>`;
-            
             if (died) {
-                // 處理死亡強制撤退邏輯
                 gameState.isExploring = false;
                 gameState.currentEnemy = null;
                 gameState.hound.hp = 0;
-                
-                // 強制更新 UI 按鈕狀態
                 const btn = document.getElementById('btn-explore');
-                if (btn) {
-                    btn.innerText = "EXECUTE_AUTO_EXPLORE [啟動自動探索]"; 
-                    btn.style.borderColor = "var(--primary-color)"; 
-                    btn.style.color = "var(--primary-color)";
-                }
+                if (btn) { btn.innerText = "EXECUTE_AUTO_EXPLORE [啟動自動探索]"; btn.style.borderColor = "var(--primary-color)"; btn.style.color = "var(--primary-color)"; }
                 const stateEl = document.getElementById('hound-state');
-                if (stateEl) { 
-                    stateEl.innerText = "[重傷撤退]"; 
-                    stateEl.style.color = "#ff3333"; 
-                }
-                
+                if (stateEl) { stateEl.innerText = "[重傷撤退]"; stateEl.style.color = "#ff3333"; }
                 offlineReport += `>> <span style="color:#ff3333;">💀 [警告] 肉乾耗盡，獵犬重傷，已強制撤退！</span><br>`;
             }
         }
