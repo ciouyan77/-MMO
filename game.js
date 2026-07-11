@@ -3,7 +3,7 @@ let gameConfig = null;
 let gameState = {
     resources: { scrap: 0, food: 10, zaco: 0 },
     upgrades: { drones: 0 }, costs: { drone: 10 }, autoRates: { scrap: 0 },
-    isExploring: false,currentArea: "wasteland",
+    isExploring: false, currentArea: "wasteland",
     hound: { 
         hp: 100, maxHp: 100, baseAtk: 12, totalAtk: 12, 
         baseDef: 0, totalDef: 0, 
@@ -13,8 +13,7 @@ let gameState = {
     },
     equipped: { helmet: null, collar: null, harness: null },
     currentEnemy: null,
-    autoSell: { common: false, rare: false }
-	autoSell: { common: false, rare: false },
+    autoSell: { common: false, rare: false },
     // --- ⚠️ 新增：📜 副本文件與派遣電台系統狀態 ---
     unlockedLore: [], // 儲存已解鎖的文件 ID
     dispatch: {
