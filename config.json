@@ -31,6 +31,49 @@
     { "id": "dungeon_2", "name": "[副本] 事件爆發的醫院", "req_atk": 40, "enemies": ["狂暴野熊", "暴走護理機器人", "嗜血雙頭犬", "醫院重症喪屍"], "loot_multiplier": 1.6, "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_9273.png", "desc": "充滿變異生物的感染源，掉落物素質更佳。" },
     { "id": "dungeon_3", "name": "[副本] 失控安保工廠", "req_atk": 80, "enemies": ["廢料聚合怪", "賽博改造暴徒", "失控安保機甲", "毒液噴射巨蛾"], "loot_multiplier": 2.2, "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_9275.png", "desc": "高度危險的舊時代軍工廠。" }
   ],
+  "lore_database": {
+    "categories": [
+      {
+        "id": "zombie_origins",
+        "name": "【殭屍起源】",
+        "subcategories": [
+          {
+            "id": "hydrophobia",
+            "name": "一、 [恐水] - 零號病患與狂犬病徵",
+            "items": [
+              { "id": "lore_01_01", "title": "01-01：極端咬傷與前驅恐水", "sourceType": "combat", "sourceTarget": "dungeon_1", "location": "廢棄醫院・急診室", "date": "大崩潰前 Day -14", "content": "" },
+              { "id": "lore_01_02", "title": "01-02：黑色矩形瞳孔與肌痙攣", "sourceType": "combat", "sourceTarget": "dungeon_1", "location": "重症監護室 B 區", "date": "大崩潰前 Day -12", "content": "" },
+              { "id": "lore_01_03", "title": "01-03：無法遏制的嗜血與撕咬攻擊", "sourceType": "combat", "sourceTarget": "dungeon_1", "location": "醫院地下隔離房", "date": "大崩潰前 Day -10", "content": "" },
+              { "id": "lore_01_04", "title": "01-04：中樞神經液化與多重器官衰竭", "sourceType": "dispatch", "sourceTarget": "all", "location": "首席病理學家終端", "date": "大崩潰前 Day -08", "content": "" },
+              { "id": "lore_01_05", "title": "01-05：死亡判定…她又站起來了", "sourceType": "dispatch", "sourceTarget": "all", "location": "地下太平間", "date": "大崩潰前 Day -07", "content": "" }
+            ]
+          },
+          {
+            "id": "spread",
+            "name": "二、 [蔓延] - 唾液酶與百分百傳染",
+            "items": [
+              { "id": "lore_02_01", "title": "02-01：一號男性感染者的口腔拭子", "sourceType": "combat", "sourceTarget": "dungeon_2", "location": "舊城區・黑市小巷", "date": "大崩潰前 Day -05", "content": "" },
+              { "id": "lore_02_02", "title": "02-02：濫用合成毒品導致的唾液酶突變", "sourceType": "combat", "sourceTarget": "dungeon_2", "location": "警察局拘留所", "date": "大崩潰前 Day -04", "content": "" },
+              { "id": "lore_02_03", "title": "02-03：100% 致命感染率的生物力學", "sourceType": "dispatch", "sourceTarget": "all", "location": "疾病控制中心數據備份", "date": "大崩潰前 Day -03", "content": "" },
+              { "id": "lore_02_04", "title": "02-04：封鎖線崩潰與群體撕咬示威", "sourceType": "dispatch", "sourceTarget": "all", "location": "第四防線檢查站", "date": "大崩潰前 Day -01", "content": "" },
+              { "id": "lore_02_05", "title": "02-05：城市通訊網的最後一片雪花", "sourceType": "dispatch", "sourceTarget": "all", "location": "中央廣播塔塔頂", "date": "大崩潰 Day 00", "content": "" }
+            ]
+          },
+          {
+            "id": "hell_closed",
+            "name": "三、 [地獄關門] - 復活儀式與冥河拒收",
+            "items": [
+              { "id": "lore_03_01", "title": "03-01：悲痛的兒子與深淵的低語", "sourceType": "combat", "sourceTarget": "dungeon_3", "location": "下水道深處・地下祭壇", "date": "大崩潰後 Year 01", "content": "" },
+              { "id": "lore_03_02", "title": "03-02：無以名狀的多目的與犬齒之神", "sourceType": "combat", "sourceTarget": "dungeon_3", "location": "古老狂信徒手札", "date": "大崩潰後 Year 01", "content": "" },
+              { "id": "lore_03_03", "title": "03-03：將黑水倒入死者的喉腔", "sourceType": "dispatch", "sourceTarget": "all", "location": "祭壇觀測記錄", "date": "大崩潰後 Year 01", "content": "" },
+              { "id": "lore_03_04", "title": "03-04：神經束增生與空洞的黑眼", "sourceType": "dispatch", "sourceTarget": "all", "location": "倖存者派遣隊目擊紀錄", "date": "大崩潰後 Year 02", "content": "" },
+              { "id": "lore_03_05", "title": "03-05：地獄已滿，死者將行走於荒土", "sourceType": "dispatch", "sourceTarget": "all", "location": "荒廢修道院石碑", "date": "大崩潰後 Year 03", "content": "" }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   "loot_pool": {
     "affixes": [
       { "name": "嗜血", "type": "atk", "desc": "攻擊力增強" },

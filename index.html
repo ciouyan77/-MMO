@@ -57,6 +57,65 @@
         .modal-backdrop { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 999; }
         .filter-bar { display: flex; gap: 5px; margin-bottom: 10px; }
         .filter-bar input, .filter-bar select { flex: 1; background: #222; color: var(--text-color); border: 1px solid var(--border-color); padding: 8px; font-family: inherit; font-size: 0.8rem; }
+		.lore-modal-content {
+    background-color: #f0f4f8; /* 冷白色基底 */
+    color: #1a202c; /* 深灰色易讀內文 */
+    border: 2px solid #cbd5e0;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 20px;
+    border-radius: 4px;
+}
+.lore-modal-content h2 {
+    color: #d69e2e; /* 璀璨金色標題 */
+    border-bottom: 2px solid #a0aec0;
+    padding-bottom: 8px;
+    margin-top: 0;
+    font-family: monospace;
+}
+.lore-category-title {
+    color: #2b6cb0; /* 科技深藍小分類 */
+    font-size: 1.1em;
+    margin-top: 15px;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+.lore-item-btn {
+    background: #e2e8f0;
+    border: 1px solid #cbd5e0;
+    color: #4a5568;
+    padding: 8px 12px;
+    margin: 4px 0;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.lore-item-btn.unlocked {
+    background: #ffffff;
+    color: #2d3748;
+    border-left: 4px solid #d69e2e; /* 金色解鎖標示 */
+    font-weight: bold;
+}
+.lore-item-btn.unlocked:hover {
+    background: #edf2f7;
+}
+.lore-detail-header {
+    font-size: 0.85em;
+    color: #718096; /* 冷灰資訊列 */
+    margin-bottom: 15px;
+    padding-bottom: 5px;
+    border-bottom: 1px dashed #cbd5e0;
+}
+.lore-detail-body {
+    line-height: 1.6;
+    font-size: 0.95em;
+    white-space: pre-wrap;
+}
     </style>
 
     <!-- 🌐 按順序載入驅動與自訂邏輯模組 -->
@@ -227,10 +286,20 @@
         </div>
 
         <!-- 設施 4: 倖存者派遣電台 -->
-        <div style="margin-bottom: 15px; border: 1px solid var(--zaco-color); padding: 10px; background: rgba(255, 215, 0, 0.05);">
-            <div style="color:var(--zaco-color); font-weight:bold; margin-bottom:5px;">[04] 倖存者派遣電台</div>
-            <div style="font-size:0.75rem; color:#aaa; margin-bottom:8px;">消耗黑市貨幣派遣犬伴外出，掛機獲取稀有副本文件。</div>
-            <button class="btn" onclick="dispatchSurvivors()" style="margin-bottom:0; border-color:var(--zaco-color); color:var(--zaco-color);">DISPATCH [消耗: 10 ZaCo]</button>
+        <div class="facility-card" style="border: 1px solid var(--primary-color); padding: 10px; margin-top: 10px;">
+            <h3>📡 [04] 倖存者派遣電台 (DISPATCH) <span style="font-size:0.8em; color:var(--primary-color);">[Lv.<span id="base-dispatch-level">0</span>]</span></h3>
+            <p style="font-size: 0.85em; color: var(--text-color);">消耗 ZaCo 與多餘武裝派遣倖存者搜刮廢料，並有高機率帶回珍貴的【副本文件】。</p>
+            <div style="margin: 8px 0; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px;">
+                <div>任務狀態：<span id="dispatch-status-text" style="color:#ffae00;">[待命/未派遣]</span></div>
+                <div>預期回報：800~1200 廢料 | 📜 15% 尋獲文件</div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button id="btn-upgrade-dispatch" class="btn" onclick="upgradeFacility('dispatch')">升級電台 [成本: <span id="base-dispatch-cost">6000</span> 廢料]</button>
+                <button id="btn-start-dispatch" class="btn" style="border-color: #ffae00; color: #ffae00;" onclick="startDispatchMission()">派遣探索 (-200 ZaCo)</button>
+            </div>
+            <button class="btn" style="margin-top: 10px; border-color: #63b3ed; color: #63b3ed; width: 100%; font-weight: bold;" onclick="openLoreModal()">
+                📖 開啟終端機資料庫 (檢視已收集文件)
+            </button>
         </div>
     </div>
 
@@ -240,5 +309,25 @@
             <div class="log-entry system">>> 系統核心模組載入中...</div>
         </div>
     </div>
+	<div id="lore-backdrop" class="modal-backdrop" style="display: none;" onclick="closeLoreModal()"></div>
+<div id="lore-modal" class="modal" style="display: none; z-index: 1001; top: 5%; width: 92%; left: 4%;">
+    <div class="lore-modal-content">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2 id="lore-modal-title">📖 終端機資料庫 (ARCHIVES)</h2>
+            <button class="btn" onclick="closeLoreModal()" style="width: auto; background: #e53e3e; color: white; padding: 4px 10px;">[關閉 X]</button>
+        </div>
+        <div id="lore-list-view">
+            <div id="lore-list-container"></div>
+        </div>
+        <div id="lore-detail-view" style="display: none;">
+            <button class="btn" onclick="showLoreList()" style="width: auto; margin-bottom: 10px; background: #4a5568; color: white;">&larr; 返回列表</button>
+            <h2 id="lore-read-title" style="color: #d69e2e; font-size: 1.3em;"></h2>
+            <div class="lore-detail-header">
+                📍 發現地點：<span id="lore-read-location"></span> | 🕒 紀錄日期：<span id="lore-read-date"></span>
+            </div>
+            <div id="lore-read-body" class="lore-detail-body"></div>
+        </div>
+    </div>
+</div>
 </body>
 </html>
