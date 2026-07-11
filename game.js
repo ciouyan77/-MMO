@@ -90,10 +90,12 @@ async function loadGameData() {
 
     // 載入家園資料 (防止舊存檔報錯)
     if (savedState.baseData) {
-        baseData = savedState.baseData;
-    } else {
-        baseData = { ccLevel: 0, lastLoginTime: Date.now() };
-    }
+        baseData = savedState.baseData || { ccLevel: 0, lastLoginTime: Date.now() };
+    if (baseData.ccLevel === undefined) baseData.ccLevel = 0;
+    if (baseData.towerLevel === undefined) baseData.towerLevel = 0;
+    if (baseData.dispatchLevel === undefined) baseData.dispatchLevel = 0;
+    if (baseData.towerZombies === undefined) baseData.towerZombies = 0;
+    if (baseData.radioState === undefined) baseData.radioState = false;
 
     if(document.getElementById('auto-common')) document.getElementById('auto-common').checked = gameState.autoSell.common;
     if(document.getElementById('auto-rare')) document.getElementById('auto-rare').checked = gameState.autoSell.rare;
@@ -268,28 +270,53 @@ function buyDrone() {
 
 // 更新家園分頁的所有 UI 數值
 function updateBaseUI() {
-    let nextCost = 500 * Math.pow(2, baseData.ccLevel); 
-    document.getElementById('base-cc-level').innerText = baseData.ccLevel;
-    document.getElementById('base-cc-cost').innerText = nextCost;
+    // 1. 中央控制室
+    let ccCost = 500 * Math.pow(2, baseData.ccLevel || 0);
+    if(document.getElementById('base-cc-level')) document.getElementById('base-cc-level').innerText = baseData.ccLevel || 0;
+    if(document.getElementById('base-cc-cost')) document.getElementById('base-cc-cost').innerText = ccCost;
     
-    // 同步收音機按鈕狀態
+    // 2. 收音機狀態
     const radioBtn = document.getElementById('btn-radio-state');
     if (radioBtn) {
-        // 防止讀取舊存檔時變數不存在
-        if (baseData.radioState === undefined) baseData.radioState = false; 
-        
         if (baseData.radioState) {
             radioBtn.innerText = "[目前狀態: 啟動] TURN_OFF";
-            radioBtn.style.borderColor = "#55aaff";
-            radioBtn.style.color = "#55aaff";
+            radioBtn.style.borderColor = "#55aaff"; radioBtn.style.color = "#55aaff";
         } else {
             radioBtn.innerText = "[目前狀態: 關閉] TURN_ON";
-            radioBtn.style.borderColor = "#888";
-            radioBtn.style.color = "#888";
+            radioBtn.style.borderColor = "#888"; radioBtn.style.color = "#888";
         }
-		if (typeof updateDispatchUI === "function") updateDispatchUI();
-		}
     }
+
+    // 3. 誘餌廣播塔
+    let towerLv = baseData.towerLevel || 0;
+    let maxZombies = (2 + (towerLv * 2)) * 60 * towerLv;
+    let chargePct = maxZombies > 0 ? Math.min(100, Math.floor(((baseData.towerZombies || 0) / maxZombies) * 100)) : 0;
+    if(document.getElementById('base-tower-charge')) document.getElementById('base-tower-charge').innerText = `${chargePct}% (${baseData.towerZombies || 0}隻)`;
+
+    // 4. 派遣電台
+    let dispatchCost = Math.floor(6000 * Math.pow(1.8, baseData.dispatchLevel || 0));
+    if(document.getElementById('base-dispatch-level')) document.getElementById('base-dispatch-level').innerText = baseData.dispatchLevel || 0;
+    if(document.getElementById('base-dispatch-cost')) document.getElementById('base-dispatch-cost').innerText = dispatchCost;
+
+    if (typeof updateDispatchUI === "function") updateDispatchUI();
+}
+
+// ⚠️ 新增：一鍵引爆廣播塔收割殭屍
+function detonateTower() {
+    if (!baseData.towerLevel || baseData.towerLevel === 0) {
+        logMessage("⚠️ 尚未建立誘餌廣播塔，請先升級建立！", "warning"); return;
+    }
+    if (!baseData.towerZombies || baseData.towerZombies <= 0) {
+        logMessage("⚠️ 廣播塔附近目前沒有徘徊的屍群，請等待離線蓄力。", "warning"); return;
+    }
+    let killed = baseData.towerZombies;
+    let scrapGain = killed * (Math.floor(Math.random() * 3) + 2);
+    let maxCap = getMaxScrap();
+    gameState.resources.scrap = Math.min(gameState.resources.scrap + scrapGain, maxCap);
+    baseData.towerZombies = 0;
+    
+    updateBaseUI(); updateUI(); savePlayerState();
+    logMessage(`💥 [EMP引爆] 成功清剿廣播塔周圍 ${killed} 隻殭屍，回收 +${scrapGain} 廢料！`, "success");
 }
 
 // 收音機開關切換邏輯
@@ -310,16 +337,34 @@ function toggleRadio() {
 // 升級設施共用函數
 function upgradeFacility(facility) {
     if (facility === 'controlCenter') {
-        let cost = 500 * Math.pow(2, baseData.ccLevel);
+        let cost = 500 * Math.pow(2, baseData.ccLevel || 0);
         if (gameState.resources.scrap >= cost) {
             gameState.resources.scrap -= cost;
-            baseData.ccLevel++;
+            baseData.ccLevel = (baseData.ccLevel || 0) + 1;
             logMessage(`[系統] 系統擴容成功。中央控制室升級至 Lv.${baseData.ccLevel}`, 'system');
-            updateBaseUI();
-            updateUI(); // 刷新上方資源列
-            savePlayerState(); // 升級後立刻存檔
+            updateBaseUI(); updateUI(); savePlayerState();
         } else {
-            logMessage(`[警告] 資源不足，擴容需要 ${cost} 廢料`, 'zaco');
+            logMessage(`[警告] 廢料不足，擴容需要 ${cost} 廢料`, 'zaco');
+        }
+    } else if (facility === 'tower') {
+        let cost = Math.floor(4500 * Math.pow(1.7, baseData.towerLevel || 0));
+        if (gameState.resources.scrap >= cost) {
+            gameState.resources.scrap -= cost;
+            baseData.towerLevel = (baseData.towerLevel || 0) + 1;
+            logMessage(`[系統] 廣播塔增幅成功！升級至 Lv.${baseData.towerLevel}`, 'system');
+            updateBaseUI(); updateUI(); savePlayerState();
+        } else {
+            logMessage(`[警告] 廢料不足，升級廣播塔需要 ${cost} 廢料`, 'zaco');
+        }
+    } else if (facility === 'dispatch') {
+        let cost = Math.floor(6000 * Math.pow(1.8, baseData.dispatchLevel || 0));
+        if (gameState.resources.scrap >= cost) {
+            gameState.resources.scrap -= cost;
+            baseData.dispatchLevel = (baseData.dispatchLevel || 0) + 1;
+            logMessage(`[系統] 派遣電台功率提升！升級至 Lv.${baseData.dispatchLevel}`, 'system');
+            updateBaseUI(); updateUI(); savePlayerState();
+        } else {
+            logMessage(`[警告] 廢料不足，升級電台需要 ${cost} 廢料`, 'zaco');
         }
     }
 }
@@ -845,22 +890,7 @@ async function bulkSellItems() {
 // ==========================================
 // 🏠 [06_BASE] 家園系統：解鎖與升級邏輯
 // ==========================================
-function unlockHome() {
-    if (gameState.home.unlocked) return;
-    if (gameState.scraps >= 5000 && gameState.zaco_currency >= 1000) {
-        gameState.scraps -= 5000;
-        gameState.zaco_currency -= 1000;
-        gameState.home.unlocked = true;
-        logMessage("🔓 成功存取中央控制室！全局物資上限已擴充。", "success");
-        updateUI();
-        savePlayerState();
-    } else {
-        logMessage("⚠️ 資源不足！解鎖需要 5,000 廢料與 1,000 ZaCo。", "warning");
-    }
-}
 
-function upgradeFacility(facilityType) {
-    if (!gameState.home.unlocked) return;
     
     const currentLv = gameState.home.levels[facilityType];
     if (currentLv === undefined || currentLv >= 5) {
