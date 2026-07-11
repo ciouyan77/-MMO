@@ -1033,7 +1033,7 @@ async function calculateOfflineProgress() {
             }
         }
 
-        // --- 2. 副本完全離線掛機模擬 (Combat Sandbox) ---
+                // --- 2. 副本完全離線掛機模擬 (Combat Sandbox - 效能與修復版) ---
         if (gameState.isExploring) {
             const tickRateSec = 5;
             let ticksToSimulate = Math.floor(timeDiffSeconds / tickRateSec);
@@ -1046,9 +1046,7 @@ async function calculateOfflineProgress() {
             let died = false;
             let def = gameState.hound.totalDef || 0;
             let dmgPerEncounter = Math.max(1, 15 - def); 
-
-            // ⚠️ 新增：手機效能安全閥！限制離線掉寶最多 15 次，避免 Dexie 連續交易卡死主執行緒
-            let maxOfflineLoot = 15;
+            
             let lootCount = 0;
 
             for (let i = 0; i < ticksToSimulate; i++) {
@@ -1056,12 +1054,10 @@ async function calculateOfflineProgress() {
                     enemiesKilled++;
                     combatScrap += Math.floor(Math.random() * 5) + 1;
                     
-                    // 只有在上限內才執行非同步資料庫寫入
-                    if (lootCount < maxOfflineLoot) {
-                        await generateLoot(false);
-                        lootCount++;
-                    }
-                    gameState.hound.hp -= dmgPerEncounter;
+                    // 🚀 解除 15 件封印！直接呼叫你原有的 generateLoot，
+                    // 它內部本來就會把白藍裝變 ZaCo，只有金綠紅裝會寫入資料庫，效能絕不卡死！
+                    await generateLoot(false);
+                    lootCount++;
                 }
 
                 const healThreshold = gameState.hound.maxHp * 0.75;
@@ -1078,18 +1074,15 @@ async function calculateOfflineProgress() {
             }
 
             gameState.resources.scrap += combatScrap;
-            offlineReport += `>> ⚔️ 探索戰報：擊殺 ${enemiesKilled} 隻怪物，戰鬥回收 ${combatScrap} 廢料。<br>`;
-            if (lootCount >= maxOfflineLoot) offlineReport += `>> 🎒 [效能保護] 離線戰利品已達回收上限 (${maxOfflineLoot}件)，防止記憶體過載。<br>`;
+            offlineReport += `>> ⚔️ 探索戰報：擊殺 ${enemiesKilled} 隻怪物，回收 ${combatScrap} 廢料。<br>`;
+            if (lootCount > 0) offlineReport += `>> 🎒 戰鬥掉落：共計 ${lootCount} 件裝備 (垃圾裝已自動拆解)。<br>`;
             offlineReport += `>> 🍖 消耗肉乾：${foodConsumed} 份。<br>`;
+
             if (died) {
                 gameState.isExploring = false;
                 gameState.currentEnemy = null;
                 gameState.hound.hp = 0;
-                const btn = document.getElementById('btn-explore');
-                if (btn) { btn.innerText = "EXECUTE_AUTO_EXPLORE [啟動自動探索]"; btn.style.borderColor = "var(--primary-color)"; btn.style.color = "var(--primary-color)"; }
-                const stateEl = document.getElementById('hound-state');
-                if (stateEl) { stateEl.innerText = "[重傷撤退]"; stateEl.style.color = "#ff3333"; }
-                offlineReport += `>> <span style="color:#ff3333;">💀 [警告] 肉乾耗盡，獵犬重傷，已強制撤退！</span><br>`;
+                offlineReport += `>> <span style="color:#ff3333;">💀 [警告] 獵犬重傷，已強制撤退！</span><br>`;
             }
         }
 
@@ -1097,13 +1090,16 @@ async function calculateOfflineProgress() {
         logMessage(offlineReport, "system");
     }
     
-    // 更新登入時間並存檔
+    // 更新 UI 與存檔
     baseData.lastLoginTime = now;
     if (typeof updateBaseUI === "function") updateBaseUI();
     updateUI();
-    renderInventory(); // 確保背包顯示剛剛打到的新裝備
+    renderInventory(); 
     savePlayerState();
 }
+
+
+
 
 // ==========================================
 // 🐕 [04] 倖存者派遣電台 & 📜 副本文件系統
