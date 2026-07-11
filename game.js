@@ -14,6 +14,16 @@ let gameState = {
     equipped: { helmet: null, collar: null, harness: null },
     currentEnemy: null,
     autoSell: { common: false, rare: false }
+	autoSell: { common: false, rare: false },
+    // --- ⚠️ 新增：📜 副本文件與派遣電台系統狀態 ---
+    unlockedLore: [], // 儲存已解鎖的文件 ID
+    dispatch: {
+        status: "idle", // "idle" (待命), "running" (派遣中)
+        houndName: "未招募", 
+        endTime: 0,     // 任務結束 Timestamp
+        // 傭兵犬專屬裝備槽 (解雇時會退回玩家 inventory)
+        houndGear: { head: null, collar: null, harness: null }
+    }
 };
 // === 家園與離線系統變數 ===
 let baseData = {
@@ -67,6 +77,14 @@ async function loadGameData() {
     gameState.autoRates = savedState.autoRates;
     gameState.hound.hp = savedState.hound_hp;
     gameState.autoSell = savedState.autoSell || { common: false, rare: false };
+	// --- ⚠️ 新增：讀取舊存檔時的防呆初始化 ---
+    gameState.unlockedLore = savedState.unlockedLore || [];
+    gameState.dispatch = savedState.dispatch || {
+        status: "idle",
+        houndName: "未招募",
+        endTime: 0,
+        houndGear: { head: null, collar: null, harness: null }
+    };
 
     // --- 關鍵修復：恢復探索狀態與所在區域的記憶 ---
     gameState.isExploring = savedState.isExploring || false;
@@ -125,7 +143,10 @@ async function savePlayerState() {
         baseData: baseData,
         // --- 關鍵修復：把探索狀態與區域寫進資料庫 ---
         isExploring: gameState.isExploring, 
-        currentArea: gameState.currentArea    
+        currentArea: gameState.currentArea,
+        // --- ⚠️ 新增：將文件與派遣狀態寫入資料庫快照 ---
+        unlockedLore: gameState.unlockedLore,
+        dispatch: gameState.dispatch    
     });
 }
 // 計算能力值 (包含套裝遞減效應與文字說明)
@@ -268,6 +289,8 @@ function updateBaseUI() {
             radioBtn.style.borderColor = "#888";
             radioBtn.style.color = "#888";
         }
+		if (typeof updateDispatchUI === "function") updateDispatchUI();
+		}
     }
 }
 
@@ -1032,4 +1055,250 @@ async function calculateOfflineProgress() {
     updateUI();
     renderInventory(); // 確保背包顯示剛剛打到的新裝備
     savePlayerState();
+}
+
+// ==========================================
+// 🐕 [04] 倖存者派遣電台 & 📜 副本文件系統
+// ==========================================
+
+const HOUND_PREFIXES = ["鏽斑", "高壓", "狂暴", "霓虹", "輻射", "合金", "暗影", "血吻", "拾荒", "鐵顎"];
+const HOUND_NAMES = ["巴迪", "芬里爾", "雷克斯", "齒輪", "三筒", "阿努比斯", "斯巴達", "狗蛋", "破片", "羅盤"];
+
+// 產生隨機賽博廢土犬名
+function generateHoundName() {
+    const prefix = HOUND_PREFIXES[Math.floor(Math.random() * HOUND_PREFIXES.length)];
+    const name = HOUND_NAMES[Math.floor(Math.random() * HOUND_NAMES.length)];
+    return `[${prefix}] ${name}`;
+}
+
+// 招募派遣犬伴
+function recruitDispatchHound() {
+    if (gameState.dispatch.status === "running") {
+        logMessage("⚠️ 該犬隻正在執行廢土探索，無法重新招募！", "warning");
+        return;
+    }
+    dismissDispatchHound(false); // 若原本有狗，先安全解雇並歸還裝備
+    
+    gameState.dispatch.houndName = generateHoundName();
+    updateDispatchUI();
+    savePlayerState();
+    logMessage(`🐶 招募成功！新犬伴 ${gameState.dispatch.houndName} 已就位待命！`, "success");
+}
+
+// 解雇傭兵犬（防呆：自動退還裝備至玩家背包）
+function dismissDispatchHound(showMsg = true) {
+    let returnedCount = 0;
+    const gearSlots = ["head", "collar", "harness"];
+    
+    gearSlots.forEach(slot => {
+        const item = gameState.dispatch.houndGear[slot];
+        if (item !== null) {
+            // 由於你的背包是 IndexedDB 結構，需非同步寫回資料庫
+            db.inventory_items.add(item);
+            gameState.dispatch.houndGear[slot] = null;
+            returnedCount++;
+        }
+    });
+
+    gameState.dispatch.houndName = "未招募";
+    updateDispatchUI();
+    savePlayerState();
+    
+    if (showMsg && returnedCount > 0) {
+        logMessage(`♻️ 已解雇傭兵犬！身上裝備共 ${returnedCount} 件已自動退還至你的背包。`, "system");
+        if (typeof renderInventory === "function") renderInventory();
+    } else if (showMsg) {
+        logMessage("👋 已解雇傭兵犬。", "system");
+    }
+}
+
+// 開始派遣任務 (耗時 4 小時 / 消耗 200 ZaCo)
+function startDispatchMission() {
+    if (gameState.dispatch.houndName === "未招募") {
+        logMessage("⚠️ 請先點擊招募一隻廢土犬伴才能進行派遣！", "warning");
+        return;
+    }
+    if (gameState.dispatch.status === "running") {
+        logMessage("⚠️ 犬伴已經在廢土探索中！", "warning");
+        return;
+    }
+    if (gameState.resources.zaco < 200) {
+        logMessage("⚠️ 黑市貨幣 (ZaCo) 不足，需要 200 ZaCo 購買探索補給！", "warning");
+        return;
+    }
+
+    gameState.resources.zaco -= 200;
+    gameState.dispatch.status = "running";
+    gameState.dispatch.endTime = Date.now() + (4 * 60 * 60 * 1000); // 4 小時後完成
+    
+    updateUI();
+    updateDispatchUI();
+    savePlayerState();
+    logMessage(`📡 ${gameState.dispatch.houndName} 已出發前往廢土深處！預計 4 小時後歸來。`, "system");
+}
+
+// 領取派遣獎勵與掉落結算
+function claimDispatchReward() {
+    if (gameState.dispatch.status !== "running" || Date.now() < gameState.dispatch.endTime) {
+        logMessage("⏳ 探索尚未完成，犬伴還在廢土中奔波...", "warning");
+        return;
+    }
+
+    // 1. 基礎獎勵：廢料 (受限於當前儲存上限)
+    const scrapReward = Math.floor(Math.random() * 401) + 800; // 800~1200 廢料
+    let maxCap = typeof getMaxScrap === "function" ? getMaxScrap() : 1000;
+    let oldScrap = gameState.resources.scrap;
+    gameState.resources.scrap = Math.min(gameState.resources.scrap + scrapReward, maxCap);
+    let actualScrap = gameState.resources.scrap - oldScrap;
+
+    let msg = `🎉 ${gameState.dispatch.houndName} 探索歸來！獲得：+${actualScrap} 廢料`;
+
+    // 2. 刷寶判定：15% 機率尋獲文件 (Lore)
+    if (Math.random() <= 0.15) {
+        const newLore = rollForLore("dispatch");
+        if (newLore) {
+            gameState.unlockedLore.push(newLore.id);
+            msg += ` | 📜 尋獲機密文件：《${newLore.title}》！`;
+        }
+    }
+
+    gameState.dispatch.status = "idle";
+    updateUI();
+    updateDispatchUI();
+    savePlayerState();
+    logMessage(msg, "success");
+}
+
+// 從 JSON 資料庫抽取「尚未解鎖」的文件
+function rollForLore(sourceType) {
+    if (!gameConfig || !gameConfig.lore_database) return null;
+    
+    let availableLores = [];
+    gameConfig.lore_database.categories.forEach(cat => {
+        cat.subcategories.forEach(sub => {
+            sub.items.forEach(item => {
+                if ((item.sourceType === sourceType || item.sourceType === "all") && 
+                    !gameState.unlockedLore.includes(item.id)) {
+                    availableLores.push(item);
+                }
+            });
+        });
+    });
+
+    if (availableLores.length === 0) return null;
+    return availableLores[Math.floor(Math.random() * availableLores.length)];
+}
+
+// 更新家園派遣卡片的 UI 顯示
+function updateDispatchUI() {
+    const statusEl = document.getElementById("dispatch-status-text");
+    const startBtn = document.getElementById("btn-start-dispatch");
+    if (!statusEl || !startBtn) return;
+
+    if (gameState.dispatch.houndName === "未招募") {
+        statusEl.innerHTML = `<span style="color:#a0aec0;">[尚未招募犬伴]</span>`;
+        startBtn.innerText = "招募派遣犬伴 (免費)";
+        startBtn.onclick = recruitDispatchHound;
+        startBtn.style.borderColor = "#48bb78";
+        startBtn.style.color = "#48bb78";
+    } else if (gameState.dispatch.status === "running") {
+        if (Date.now() >= gameState.dispatch.endTime) {
+            statusEl.innerHTML = `<span style="color:#48bb78; font-weight:bold;">[探索完成！等待召回]</span>`;
+            startBtn.innerText = "領取探索物資 & 文件";
+            startBtn.onclick = claimDispatchReward;
+            startBtn.style.borderColor = "#48bb78";
+            startBtn.style.color = "#48bb78";
+        } else {
+            let remainMin = Math.ceil((gameState.dispatch.endTime - Date.now()) / 60000);
+            statusEl.innerHTML = `<span style="color:#63b3ed;">[${gameState.dispatch.houndName} 探索中... 剩餘約 ${remainMin} 分]</span>`;
+            startBtn.innerText = "探索進行中...";
+            startBtn.onclick = () => logMessage("⏳ 犬伴還在危險的廢土中，請耐心等待。", "warning");
+            startBtn.style.borderColor = "#a0aec0";
+            startBtn.style.color = "#a0aec0";
+        }
+    } else {
+        statusEl.innerHTML = `<span style="color:#ffae00;">[待命 - ${gameState.dispatch.houndName}]</span>`;
+        startBtn.innerText = "派遣探索 (-200 ZaCo)";
+        startBtn.onclick = startDispatchMission;
+        startBtn.style.borderColor = "#ffae00";
+        startBtn.style.color = "#ffae00";
+    }
+}
+
+// --- 📖 終端機資料庫 (Lore Modal) UI 渲染 ---
+
+function openLoreModal() {
+    const backdrop = document.getElementById("lore-backdrop");
+    const modal = document.getElementById("lore-modal");
+    if (backdrop && modal) {
+        backdrop.style.display = "block";
+        modal.style.display = "block";
+        showLoreList();
+    }
+}
+
+function closeLoreModal() {
+    const backdrop = document.getElementById("lore-backdrop");
+    const modal = document.getElementById("lore-modal");
+    if (backdrop && modal) {
+        backdrop.style.display = "none";
+        modal.style.display = "none";
+    }
+}
+
+function showLoreList() {
+    const listView = document.getElementById("lore-list-view");
+    const detailView = document.getElementById("lore-detail-view");
+    const container = document.getElementById("lore-list-container");
+    if (!listView || !detailView || !container || !gameConfig || !gameConfig.lore_database) return;
+
+    listView.style.display = "block";
+    detailView.style.display = "none";
+    container.innerHTML = "";
+
+    gameConfig.lore_database.categories.forEach(cat => {
+        let catHtml = `<div class="lore-category-title" style="color:#d69e2e; font-size:1.1em; margin-top:12px; border-bottom:1px solid #cbd5e0; padding-bottom:4px;">📂 ${cat.name}</div>`;
+        
+        cat.subcategories.forEach(sub => {
+            catHtml += `<div class="lore-category-title" style="margin-left:8px; font-size:0.95em; color:#2b6cb0;">└ 📁 ${sub.name}</div>`;
+            
+            sub.items.forEach(item => {
+                const isUnlocked = gameState.unlockedLore.includes(item.id);
+                const titleText = isUnlocked ? item.title : "？？？ (機密檔案加密中)";
+                const btnClass = isUnlocked ? "lore-item-btn unlocked" : "lore-item-btn";
+                const clickAction = isUnlocked ? `onclick="readLore('${item.id}')"` : `onclick="alert('🔒 此文件尚未解密！請透過派遣電台或挑戰對應副本取得。')"`;
+                
+                catHtml += `
+                    <button class="${btnClass}" style="margin-left:16px; width:calc(100% - 16px);" ${clickAction}>
+                        <span>${isUnlocked ? "📜" : "🔒"} ${titleText}</span>
+                        <span style="font-size:0.75em; color:#718096;">[${item.sourceType === 'dispatch' ? '派遣' : '副本'}]</span>
+                    </button>
+                `;
+            });
+        });
+        container.innerHTML += catHtml;
+    });
+}
+
+function readLore(loreId) {
+    let targetLore = null;
+    if (!gameConfig || !gameConfig.lore_database) return;
+
+    gameConfig.lore_database.categories.forEach(cat => {
+        cat.subcategories.forEach(sub => {
+            sub.items.forEach(item => {
+                if (item.id === loreId) targetLore = item;
+            });
+        });
+    });
+
+    if (!targetLore) return;
+
+    document.getElementById("lore-list-view").style.display = "none";
+    document.getElementById("lore-detail-view").style.display = "block";
+    
+    document.getElementById("lore-read-title").innerText = `📜 ${targetLore.title}`;
+    document.getElementById("lore-read-location").innerText = targetLore.location || "未知區域";
+    document.getElementById("lore-read-date").innerText = targetLore.date || "大崩潰紀錄";
+    document.getElementById("lore-read-body").innerText = targetLore.content || "（檔案內容嚴重損毀或資料載入中... 倖存者，請在 JSON 中補完這段歷史。）";
 }
