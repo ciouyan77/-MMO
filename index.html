@@ -310,25 +310,28 @@
         </div>
     </div>
 
-    <div id="lore-backdrop" class="modal-backdrop" style="display: none;" onclick="closeLoreModal()"></div>
-    <div id="lore-modal" class="modal" style="display: none; z-index: 9999; top: 5%; width: 92%; left: 4%; max-height: 90vh;">
-        <div class="lore-modal-content">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h2 id="lore-modal-title">📖 終端機資料庫 (ARCHIVES)</h2>
-                <button class="btn" onclick="closeLoreModal()" style="width: auto; background: #e53e3e; color: white; padding: 4px 10px;">[關閉 X]</button>
+    <div id="lore-backdrop" style="display: none;"></div>
+<div id="lore-modal" style="display: none; position: fixed; z-index: 99999; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #0c0c0c; overflow-y: auto; padding: 16px; box-sizing: border-box; border-top: 4px solid #ff8800; color: #55ff55; font-family: 'Courier New', Courier, monospace, 'SF Pro Text';">
+    <div class="lore-modal-content" style="width: 100%; height: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #224422; padding-bottom: 10px;">
+            <h2 id="lore-modal-title" style="color: #ff8800; margin: 0; font-size: 1.2rem; text-shadow: 0 0 5px rgba(255,136,0,0.4);">📖 終端機資料庫 (ARCHIVES)</h2>
+            <button class="btn" onclick="closeLoreModal()" style="width: auto; background: #e53e3e; color: white; padding: 6px 12px; border: none; font-weight: bold; cursor: pointer;">[關閉視窗 X]</button>
+        </div>
+        
+        <div id="lore-list-view">
+            <div id="lore-list-container"></div>
+        </div>
+        
+        <div id="lore-detail-view" style="display: none;">
+            <button class="btn" onclick="showLoreList()" style="width: auto; margin-bottom: 15px; background: #4a5568; color: white; border: none; padding: 6px 12px;">&larr; 返回列表</button>
+            <h2 id="lore-read-title" style="color: #d69e2e; font-size: 1.3em; margin: 10px 0;"></h2>
+            <div style="font-size: 0.9em; color: #a0aec0; margin: 5px 0;">
+                <span id="lore-read-location" style="margin-right: 15px;"></span>
+                <span id="lore-read-date"></span>
             </div>
-            <div id="lore-list-view">
-                <div id="lore-list-container"></div>
-            </div>
-            <div id="lore-detail-view" style="display: none;">
-                <button class="btn" onclick="showLoreList()" style="width: auto; margin-bottom: 10px; background: #4a5568; color: white;">&larr; 返回列表</button>
-                <h2 id="lore-read-title" style="color: #d69e2e; font-size: 1.3em;"></h2>
-                <div class="lore-detail-header">
-                    📍 發現地點：<span id="lore-read-location"></span> | 🕒 紀錄日期：<span id="lore-read-date"></span>
-                </div>
-                <div id="lore-read-body" class="lore-detail-body"></div>
-            </div>
+            <div id="lore-read-body" style="margin-top: 15px; border-top: 1px dashed #444; padding-top: 15px; color: #e2e8f0;"></div>
         </div>
     </div>
+</div>
 </body>
 </html>
