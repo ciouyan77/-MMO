@@ -14,13 +14,12 @@ let gameState = {
     equipped: { helmet: null, collar: null, harness: null },
     currentEnemy: null,
     autoSell: { common: false, rare: false },
-    // --- ⚠️ 新增：📜 副本文件與派遣電台系統狀態 ---
-    unlockedLore: [], // 儲存已解鎖的文件 ID
+    // --- 📜 副本文件與派遣電台系統狀態 ---
+    unlockedLore: [], 
     dispatch: {
-        status: "idle", // "idle" (待命), "running" (派遣中)
+        status: "idle",
         houndName: "未招募", 
-        endTime: 0,     // 任務結束 Timestamp
-        // 傭兵犬專屬裝備槽 (解雇時會退回玩家 inventory)
+        endTime: 0,
         houndGear: { head: null, collar: null, harness: null }
     }
 };
@@ -333,13 +332,7 @@ function healHound() {
     }
 }
 
-function healHound() {
-    if (gameState.hound.hp >= gameState.hound.maxHp) return;
-    if (gameState.resources.food >= 1) {
-        gameState.resources.food--; gameState.hound.hp = Math.min(gameState.hound.hp + 25, gameState.hound.maxHp);
-        updateUI(); savePlayerState(); logMessage(`餵食肉乾，恢復 25 HP。[${gameState.hound.hp}/${gameState.hound.maxHp}]`);
-    }
-}
+
 
 function toggleExplore() {
     if (gameState.hound.hp <= 0 && !gameState.isExploring) { logMessage("獵犬處於重傷休克狀態，請餵食肉乾。", "system"); return; }
