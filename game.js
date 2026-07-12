@@ -151,7 +151,6 @@ async function savePlayerState() {
     });
 }
 // 計算能力值 (包含套裝遞減效應與文字說明)
-// 計算能力值 (包含套裝遞減效應與文字說明)
 function calculateHoundStats() {
     let bAtk = 0, bHp = 0, bDef = 0, bDodge = 0, bCrit = 0, ohko = 0;
     let setCounts = {};
@@ -379,10 +378,17 @@ function upgradeFacility(facility) {
 function healHound() {
     if (gameState.hound.hp >= gameState.hound.maxHp) return;
     if (gameState.resources.food >= 1) {
-        gameState.resources.food--; gameState.hound.hp = Math.min(gameState.hound.hp + 25, gameState.hound.maxHp);
-        updateUI(); savePlayerState(); logMessage(`餵食肉乾，恢復 25 HP。[${gameState.hound.hp}/${gameState.hound.maxHp}]`);
+        gameState.resources.food--;
+        // 🚀 微創優化：改為計算總血量的 25% (無條件捨去小數點)
+        let healAmount = Math.floor(gameState.hound.maxHp * 0.25);
+        gameState.hound.hp = Math.min(gameState.hound.hp + healAmount, gameState.hound.maxHp);
+        
+        updateUI(); 
+        savePlayerState(); 
+        logMessage(`餵食肉乾，恢復 ${healAmount} HP (25%)。[${gameState.hound.hp}/${gameState.hound.maxHp}]`);
     }
 }
+
 
 
 
@@ -1086,7 +1092,7 @@ async function calculateOfflineProgress() {
             }
         }
 
-                // --- 2. 副本完全離線掛機模擬 (Combat Sandbox - 效能與修復版) ---
+        // --- 2. 副本完全離線掛機模擬 (Combat Sandbox - 效能與修復版) ---
         if (gameState.isExploring) {
             const tickRateSec = 5;
             let ticksToSimulate = Math.floor(timeDiffSeconds / tickRateSec);
@@ -1103,26 +1109,28 @@ async function calculateOfflineProgress() {
             let lootCount = 0;
 
             for (let i = 0; i < ticksToSimulate; i++) {
+                // 🚀 微創修復 1：每迴圈真正執行扣血檢定！
+                gameState.hound.hp = Math.max(0, gameState.hound.hp - dmgPerEncounter);
+
                 if (i > 0 && i % 3 === 0) {
                     enemiesKilled++;
                     combatScrap += Math.floor(Math.random() * 5) + 1;
-                    
-                    // 🚀 解除 15 件封印！直接呼叫你原有的 generateLoot，
-                    // 它內部本來就會把白藍裝變 ZaCo，只有金綠紅裝會寫入資料庫，效能絕不卡死！
                     await generateLoot(false);
                     lootCount++;
                 }
 
-                const healThreshold = gameState.hound.maxHp * 0.75;
-                if (gameState.hound.hp <= healThreshold) {
-                    if (gameState.resources.food > 0) {
-                        gameState.hound.hp = Math.min(gameState.hound.maxHp, gameState.hound.hp + Math.floor(gameState.hound.maxHp * 0.5));
-                        gameState.resources.food--;
-                        foodConsumed++;
-                    } else if (gameState.hound.hp <= 0) {
-                        died = true;
-                        break; 
-                    }
+                // 🚀 微創修復 2：血量不滿即自動吃肉乾，並嚴格對齊「線上 25% 動態回血」設定
+                if (gameState.hound.hp < gameState.hound.maxHp && gameState.resources.food > 0) {
+                    let healAmount = Math.floor(gameState.hound.maxHp * 0.25);
+                    gameState.hound.hp = Math.min(gameState.hound.maxHp, gameState.hound.hp + healAmount);
+                    gameState.resources.food--;
+                    foodConsumed++;
+                } 
+                
+                // 🚀 微創修復 3：若沒肉乾且血量歸零，立刻終止掛機！
+                if (gameState.hound.hp <= 0) {
+                    died = true;
+                    break; 
                 }
             }
 
@@ -1138,6 +1146,7 @@ async function calculateOfflineProgress() {
                 offlineReport += `>> <span style="color:#ff3333;">💀 [警告] 獵犬重傷，已強制撤退！</span><br>`;
             }
         }
+
 
         // 統一輸出最終戰報
         logMessage(offlineReport, "system");
