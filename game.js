@@ -1,6 +1,7 @@
 // 全域記憶體快照
 let gameConfig = null;
 let gameState = {
+	playerName: "倖存者", houndName: "廢土獵犬", playerAvatar: null,
     resources: { scrap: 0, food: 10, zaco: 0 },
     upgrades: { drones: 0 }, costs: { drone: 10 }, autoRates: { scrap: 0 },
     isExploring: false, currentArea: "wasteland",
@@ -97,6 +98,12 @@ async function loadGameData() {
     if (baseData.dispatchLevel === undefined) baseData.dispatchLevel = 0;
     if (baseData.towerZombies === undefined) baseData.towerZombies = 0;
     if (baseData.radioState === undefined) baseData.radioState = false;
+
+if (savedState.playerName) gameState.playerName = savedState.playerName;
+if (savedState.houndName) gameState.houndName = savedState.houndName;
+if (savedState.playerAvatar) gameState.playerAvatar = savedState.playerAvatar;
+renderProfileAvatar(); // 讀檔後順便將大頭照與姓名寫入 UI
+
 
     if(document.getElementById('auto-common')) document.getElementById('auto-common').checked = gameState.autoSell.common;
     if(document.getElementById('auto-rare')) document.getElementById('auto-rare').checked = gameState.autoSell.rare;
@@ -220,6 +227,75 @@ function initGameLoops() {
     }, 1000);
     setInterval(() => { savePlayerState(); }, 10000);
 }
+
+// 🚀 新增：營地雙視窗切換控制器 (Sub-view Routing)
+function toggleCampView(viewName) {
+    const mainView = document.getElementById('camp-main-view');
+    const houndView = document.getElementById('camp-hound-view');
+    const profileView = document.getElementById('camp-profile-view');
+    
+    if (mainView) mainView.style.display = (viewName === 'main') ? 'block' : 'none';
+    if (houndView) houndView.style.display = (viewName === 'hound') ? 'block' : 'none';
+    if (profileView) profileView.style.display = (viewName === 'profile') ? 'block' : 'none';
+    
+    // 切換時順便刷新數值
+    if (viewName === 'hound') updateUI();
+}
+
+// 🚀 新增：保存玩家與狗狗姓名
+function saveProfileNames() {
+    const pName = document.getElementById('input-player-name');
+    const hName = document.getElementById('input-hound-name');
+    if (pName && hName) {
+        gameState.playerName = pName.value || "倖存者";
+        gameState.houndName = hName.value || "廢土獵犬";
+        // 同步修改派遣狀態中記載的狗狗名字
+        if (gameState.dispatch) gameState.dispatch.houndName = gameState.houndName;
+        savePlayerState();
+        logMessage(`>> 身分識別資料已更新：${gameState.playerName} & ${gameState.houndName}`, "system");
+    }
+}
+
+// 🚀 新增：手機端 Base64 圖片壓縮上傳 (自動壓至 150x150 防止存檔膨脹)
+function handleAvatarUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 150; canvas.height = 150; // 固定壓縮小尺寸
+            ctx.drawImage(img, 0, 0, 150, 150);
+            const base64Data = canvas.toDataURL('image/jpeg', 0.7);
+            
+            gameState.playerAvatar = base64Data;
+            savePlayerState();
+            renderProfileAvatar();
+            logMessage(">> 大頭照識別證已同步寫入存檔！", "system");
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+function renderProfileAvatar() {
+    const imgEl = document.getElementById('profile-avatar-img');
+    const placeholder = document.getElementById('profile-avatar-placeholder');
+    const pName = document.getElementById('input-player-name');
+    const hName = document.getElementById('input-hound-name');
+    
+    if (pName && gameState.playerName) pName.value = gameState.playerName;
+    if (hName && gameState.houndName) hName.value = gameState.houndName;
+    
+    if (imgEl && placeholder && gameState.playerAvatar) {
+        imgEl.src = gameState.playerAvatar;
+        imgEl.style.display = 'block';
+        placeholder.style.display = 'none';
+    }
+}
+
 
 function switchTab(tabId) {
     try {
@@ -836,7 +912,7 @@ function logMessage(text, type = 'normal') {
 }
 
 function updateUI() {
-    // 強制 UI 顯示當前廢料與最大上限
+    // 強制 UI 顯示當前廢料與最大上限 (已修復：清除了夾在中間的幽靈字串！)
     document.getElementById('res-scrap').innerText = `${gameState.resources.scrap} / ${getMaxScrap()}`;
     // 強制 UI 顯示當前肉乾與最大上限
     document.getElementById('res-food').innerText = `${gameState.resources.food} / ${MAX_FOOD_CAP}`;
@@ -855,34 +931,32 @@ function updateUI() {
 
     const equipDiv = document.getElementById('camp-equipped'); 
     let eqText = [];
-    const buildEqLine = (slot, item) => {
+        const buildEqLine = (slot, item) => {
         if(!item) return "";
         
-        // 🚀 新增：攔截套裝屬性並生成共鳴說明 UI
-        let setBonusHtml = "";
-        if (item.rarity === 'set' && item.setId && gameConfig.loot_pool.sets[item.setId]) {
-            const setInfo = gameConfig.loot_pool.sets[item.setId];
-            setBonusHtml = `
-            <div style="font-size:0.75rem; color:#00ff66; margin-top:3px; padding-left:5px; border-left:2px solid #00ff66;">
-                <span style="display:block;">[2件套] ${setInfo['2pc']}</span>
-                <span style="display:block;">[3件套] ${setInfo['3pc']}</span>
-            </div>`;
-        }
-
-        return `<div style="display:flex; flex-direction:column; margin-bottom:5px; border-bottom:1px dashed #333; padding-bottom:5px;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span class="${item.class}">[${item.slotText}] ${item.name}</span>
-                <button class="btn" style="width:auto; padding:3px 8px; margin:0; font-size:0.75rem; border-color:#ff3333; color:#ff3333;" onclick="unequipSlot('${slot}')">卸下</button>
-            </div>
-            ${setBonusHtml}
+        // 🚀 微創手術：
+        // 1. 徹底移除原本冗長的 setBonusHtml（綠色文字區塊）。
+        // 2. 在裝備名稱加上 onclick="showCompare(${item.id})" 與底線提示，點擊即可彈出詳情比對視窗！
+        return `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; border-bottom:1px dashed #333; padding-bottom:6px;">
+            <span class="${item.class}" onclick="showCompare(${item.id})" style="cursor:pointer; text-decoration:underline dotted; flex:1; line-height:1.4;">[${item.slotText}] ${item.name}</span>
+            <button class="btn" style="width:auto; padding:4px 12px; margin:0; font-size:0.75rem; border-color:#ff3333; color:#ff3333;" onclick="unequipSlot('${slot}')">卸下</button>
         </div>`;
     };
+
 
     if (gameState.equipped.helmet) eqText.push(buildEqLine('helmet', gameState.equipped.helmet));
     if (gameState.equipped.collar) eqText.push(buildEqLine('collar', gameState.equipped.collar));
     if (gameState.equipped.harness) eqText.push(buildEqLine('harness', gameState.equipped.harness));
     equipDiv.innerHTML = eqText.length > 0 ? eqText.join("") : `<span style="color:#777;">[無裝備]</span>`;
+
+    // 🚀 正確歸位：每秒 DPS 期望值計算公式 (獨立在 HTML 生成之後，正確執行！)
+    let critBonus = gameState.hound.activeSets && gameState.hound.activeSets.includes('thug_2pc') ? 2 : 1;
+    let expectedDps = ((gameState.hound.totalAtk * (1 + (gameState.hound.totalCrit / 100) * critBonus)) + ((gameState.hound.ohko || 0) * 50)) / 5;
+    if (document.getElementById('hound-dps-val')) {
+        document.getElementById('hound-dps-val').innerText = expectedDps.toFixed(2);
+    }
 }
+
 
 function saveGame() { savePlayerState(); logMessage(">> 資料庫快照備份完成。", "system"); }
 function resetGame() { if (confirm("確定格式化系統？這會永久抹除所有資料庫紀錄！")) { db.delete().then(() => { location.reload(); }); } }
