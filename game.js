@@ -151,6 +151,7 @@ async function savePlayerState() {
     });
 }
 // 計算能力值 (包含套裝遞減效應與文字說明)
+// 計算能力值 (包含套裝遞減效應與文字說明)
 function calculateHoundStats() {
     let bAtk = 0, bHp = 0, bDef = 0, bDodge = 0, bCrit = 0, ohko = 0;
     let setCounts = {};
@@ -169,35 +170,29 @@ function calculateHoundStats() {
     gameState.hound.activeSets = []; 
     let atkMultiplier = 1; 
 
-    // 判斷套裝發動與遞減效應 (Diminishing Returns)
+    // 判斷套裝發動與遞減效應 (2PC 核心爆發 / 3PC 數值點綴)
     for (const [setId, count] of Object.entries(setCounts)) {
-        // 抓取套裝中文名稱 (若無則顯示代碼)
         let setName = gameConfig.loot_pool.sets[setId] ? gameConfig.loot_pool.sets[setId].name : setId;
 
         if (count >= 2) {
             gameState.hound.activeSets.push(`${setId}_2pc`);
-            
-            // 2件套：提供強力基礎數值
-            if (setId === 'scavenger') { bAtk += 20; activeText.push(`[${setName}] 2件套: 基礎攻擊力 +20`); }
-            if (setId === 'ninja') { bDodge += 20; activeText.push(`[${setName}] 2件套: 閃避率 +20%`); }
-            if (setId === 'thug') { bCrit += 40; activeText.push(`[${setName}] 2件套: 暴擊率 +40%`); }
-            if (setId === 'zombie') { ohko += 10; activeText.push(`[${setName}] 2件套: 秒殺機率 +10%`); }
-            if (setId === 'abyss') { bDef += 20; activeText.push(`[${setName}] 2件套: 防禦力 +20`); }
+            if (setId === 'scavenger') { bAtk += 30; activeText.push(`[${setName}] 2件套: 攻擊力 +30`); }
+            if (setId === 'ninja') { bDodge += 30; activeText.push(`[${setName}] 2件套: 閃避率 +30% | 閃避後必爆`); }
+            if (setId === 'thug') { bCrit += 30; activeText.push(`[${setName}] 2件套: 暴擊率 +30% | 暴傷 3 倍`); }
+            if (setId === 'zombie') { ohko += 12; activeText.push(`[${setName}] 2件套: 秒殺機率 +12%`); }
+            if (setId === 'abyss') { bDef += 30; activeText.push(`[${setName}] 2件套: 防禦力 +30 | 反彈 50% 傷害`); }
         }
         
         if (count >= 3) {
             gameState.hound.activeSets.push(`${setId}_3pc`);
-            
-            // 3件套：遞減效應，僅追加少量數值
-            if (setId === 'scavenger') { bAtk += 10; activeText.push(`[${setName}] 3件套: 攻擊力再 +10 (總和+30)`); }
-            if (setId === 'ninja') { bDodge += 10; activeText.push(`[${setName}] 3件套: 閃避率再 +10% (總和+30%)`); }
-            if (setId === 'thug') { bCrit += 10; activeText.push(`[${setName}] 3件套: 暴擊率再 +10% (總和+50%)`); }
-            if (setId === 'zombie') { ohko += 5; activeText.push(`[${setName}] 3件套: 秒殺機率再 +5% (總和+15%)`); }
-            if (setId === 'abyss') { bDef += 10; activeText.push(`[${setName}] 3件套: 防禦力再 +10 (總和+30)`); }
+            if (setId === 'scavenger') { bAtk += 15; activeText.push(`[${setName}] 3件套: 攻擊力再 +15 (總和+45)`); }
+            if (setId === 'ninja') { bDodge += 10; activeText.push(`[${setName}] 3件套: 閃避率再 +10% (總和+40%)`); }
+            if (setId === 'thug') { bCrit += 15; activeText.push(`[${setName}] 3件套: 暴擊率再 +15% (總和+45%)`); }
+            if (setId === 'zombie') { ohko += 5; activeText.push(`[${setName}] 3件套: 秒殺機率再 +5% (總和+17%)`); }
+            if (setId === 'abyss') { bDef += 15; activeText.push(`[${setName}] 3件套: 防禦力再 +15 (總和+45)`); }
         }
     }
 
-    // 結算總能力值
     gameState.hound.totalAtk = Math.floor((gameState.hound.baseAtk + bAtk) * atkMultiplier);
     gameState.hound.maxHp = 100 + bHp; 
     gameState.hound.totalDef = gameState.hound.baseDef + bDef;
@@ -207,10 +202,10 @@ function calculateHoundStats() {
     
     if (gameState.hound.hp > gameState.hound.maxHp) gameState.hound.hp = gameState.hound.maxHp;
     
-    // 更新 UI 上的套裝文字說明
     const setText = document.getElementById('set-bonus-text');
     if (setText) setText.innerHTML = activeText.length > 0 ? activeText.join("<br>") : "<span style='color:#777;'>[未啟動任何套裝效果]</span>";
 }
+
 
 function initGameLoops() {
     setInterval(() => {
@@ -428,23 +423,33 @@ function handleExplorationTick() {
         return;
     }
 
-    // 2. 戰鬥傷害邏輯
+        // 2. 戰鬥傷害邏輯
     let currentAtk = gameState.hound.totalAtk;
     let currentDef = gameState.hound.totalDef;
     let currentDodge = gameState.hound.totalDodge;
     let currentCrit = gameState.hound.totalCrit;
     
-    let isCrit = Math.random() * 100 < currentCrit;
+    // 🚀 微創實裝：判定上一回合是否觸發「忍術殘影必爆」，或是常規暴擊
+    let isGuaranteedCrit = gameState.hound.guaranteedCrit === true;
+    let isCrit = isGuaranteedCrit || (Math.random() * 100 < currentCrit);
+
+    // 觸發後立刻消耗掉必爆旗標
+    if (isGuaranteedCrit) {
+        gameState.hound.guaranteedCrit = false;
+    }
+
     let dmgDealt = isCrit ? currentAtk * 2 : currentAtk;
 
-    if (isCrit && gameState.hound.activeSets.includes('thug_3pc')) dmgDealt = currentAtk * 3;
+    // 🚀 微創對齊：暴擊傷害 3 倍移至 thug_2pc 觸發
+    if (isCrit && gameState.hound.activeSets.includes('thug_2pc')) dmgDealt = currentAtk * 3;
 
     let ohkoChance = gameState.hound.ohko || 0;
     if (Math.random() * 100 < ohkoChance) {
         dmgDealt = 999999;
         reportEl.innerHTML = `<span style="color:#ff2222;">>> [致命一擊] 觸發殭屍骰效果，直接秒殺！</span>`;
     } else {
-        reportEl.innerHTML = `>> 獵犬發動攻擊，造成 ${dmgDealt} 點傷害${isCrit ? " <span style='color:var(--zaco-color);'>(暴擊)</span>" : ""}。`;
+        let critTag = isGuaranteedCrit ? " <span style='color:#00ff66;'>[忍術必爆!]</span>" : (isCrit ? " <span style='color:var(--zaco-color);'>(暴擊)</span>" : "");
+        reportEl.innerHTML = `>> 獵犬發動攻擊，造成 ${dmgDealt} 點傷害${critTag}。`;
     }
     
     gameState.currentEnemy.hp -= dmgDealt;
@@ -453,11 +458,18 @@ function handleExplorationTick() {
     if (gameState.currentEnemy.hp > 0) {
         if (Math.random() * 100 < currentDodge) { 
             reportEl.innerHTML += `<br>💨 [幻影] 獵犬靈巧地閃避了敵人的攻擊！`; 
+            // 🚀 微創實裝：著裝都市忍者 2件套且閃避成功時，賦予下回合必爆旗標
+            if (gameState.hound.activeSets.includes('ninja_2pc')) {
+                gameState.hound.guaranteedCrit = true;
+                reportEl.innerHTML += ` <span style="color:#00ff66;">[忍術殘影：下擊必定暴擊！]</span>`;
+            }
         } else {
             let dmgTaken = Math.max(1, gameState.currentEnemy.atk - currentDef);
             gameState.hound.hp = Math.max(0, gameState.hound.hp - dmgTaken);
             reportEl.innerHTML += `<br>💥 遭受攻擊，裝甲抵禦後受傷 ${dmgTaken} 點。`;
-            if (gameState.hound.activeSets.includes('abyss_3pc')) {
+            
+            // 🚀 微創對齊：深淵琉璃反傷移至 abyss_2pc 觸發
+            if (gameState.hound.activeSets.includes('abyss_2pc')) {
                 let reflectDmg = Math.floor(dmgTaken * 0.5); 
                 gameState.currentEnemy.hp -= reflectDmg;
                 reportEl.innerHTML += ` <span style="color: #ff3333;">(反彈 ${reflectDmg} 傷害)</span>`;
@@ -471,6 +483,7 @@ function handleExplorationTick() {
             return;
         }
     }
+
 
     // 4. 擊殺結算
     if (gameState.currentEnemy.hp <= 0) {
@@ -655,17 +668,30 @@ async function showCompare(id) {
     
     const buildStatsHTML = (eqItem, title) => {
         if(!eqItem) return `<div style="border:1px dashed #555; padding:8px;"><div style="color:#888; margin-bottom:5px;">[${title}]</div><span style="color:#555;">(無裝備)</span></div>`;
+        
+        // 🚀 微創新增：在比較彈窗中顯示套裝共鳴說明
+        let setHtml = "";
+        if (eqItem.setId && gameConfig.loot_pool.sets[eqItem.setId]) {
+            const s = gameConfig.loot_pool.sets[eqItem.setId];
+            setHtml = `<div style="margin-top:6px; padding-top:4px; border-top:1px dotted #444; font-size:0.75rem; color:#00ff66;">
+                <div>[2PC] ${s['2pc']}</div>
+                <div>[3PC] ${s['3pc']}</div>
+            </div>`;
+        }
+
         return `<div style="border:1px dashed ${eqItem.is_equipped ? 'var(--text-color)' : 'var(--primary-color)'}; padding:8px;">
             <div style="color:#888; margin-bottom:5px;">[${title}]</div>
             <div class="${eqItem.class}" style="margin-bottom:5px; font-weight:bold;">${eqItem.name}</div>
             ${eqItem.atk ? `<div>ATK: ${eqItem.atk}</div>` : ''} ${eqItem.maxHp ? `<div>HP: ${eqItem.maxHp}</div>` : ''}
             ${eqItem.def ? `<div>DEF: ${eqItem.def}</div>` : ''} ${eqItem.crit ? `<div>CRIT: ${eqItem.crit}%</div>` : ''}
             ${eqItem.dodge ? `<div>DODGE: ${eqItem.dodge}%</div>` : ''}
+            ${setHtml}
         </div>`;
     };
     document.getElementById('compare-content').innerHTML = buildStatsHTML(currentEquip, "當前著裝") + buildStatsHTML(item, "準備換上");
     pendingEquipId = id; document.getElementById('compare-backdrop').style.display = 'block'; document.getElementById('compare-modal').style.display = 'block';
 }
+
 
 function closeCompare() { pendingEquipId = null; document.getElementById('compare-backdrop').style.display = 'none'; document.getElementById('compare-modal').style.display = 'none'; }
 async function confirmEquip() { if(pendingEquipId) await equipItem(pendingEquipId); closeCompare(); }
@@ -706,17 +732,8 @@ async function renderInventory() {
         if (item.crit) descArr.push(`暴擊 +${item.crit}%`); 
         if (item.dodge) descArr.push(`閃避 +${item.dodge}%`); 
         
-        // 🚀 新增：攔截套裝屬性並生成共鳴說明 UI (背包版)
-        let setBonusHtml = "";
-        if (item.rarity === 'set' && item.setId && gameConfig.loot_pool.sets[item.setId]) {
-            const setInfo = gameConfig.loot_pool.sets[item.setId];
-            descArr.push(`套裝: ${setInfo.name}`);
-            setBonusHtml = `
-            <div style="font-size:0.75rem; color:#00ff66; margin-top:5px; padding-top:5px; border-top:1px dashed #333;">
-                <span style="display:block;">[2件套] ${setInfo['2pc']}</span>
-                <span style="display:block;">[3件套] ${setInfo['3pc']}</span>
-            </div>`;
-        } else if (item.setId && gameConfig.loot_pool.sets[item.setId]) {
+        // 🚀 微創修改：移除冗長的 setBonusHtml，僅保留輕量標籤，維持手機畫面乾淨
+        if (item.setId && gameConfig.loot_pool.sets[item.setId]) {
              descArr.push(`套裝: ${gameConfig.loot_pool.sets[item.setId].name}`);
         }
         
@@ -725,7 +742,6 @@ async function renderInventory() {
             <div class="inv-info" onclick="showCompare(${item.id})">
                 <span class="${item.class}">${item.name}</span><br>
                 <span style="color:#888; font-size:0.75rem;">[${item.slotText}] ${descArr.length > 0 ? descArr.join(" | ") : "無附加"}</span>
-                ${setBonusHtml}
             </div>
             <div style="display:flex; gap:5px; align-items: flex-start;">
                 <button class="btn" style="width: auto; padding: 5px; margin: 0; border-color: ${lockColor}; color: ${lockColor};" onclick="toggleLock(event, ${item.id})">${lockIcon}</button>
@@ -734,6 +750,7 @@ async function renderInventory() {
         list.appendChild(el);
     });
 }
+
 
 async function buyShopItem(index) {
     const item = gameConfig.shop_database[index];
