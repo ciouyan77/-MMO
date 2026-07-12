@@ -220,6 +220,13 @@
             </div>
             <div style="font-size:0.75rem; color:#aaa; margin-top:5px;">⚠️ 警告：系統將銷毀所有未裝備且「未鎖定」的選定品質裝備。</div>
         </div>
+        <div id="inv-subtabs" style="display:flex; gap:6px; overflow-x:auto; white-space:nowrap; margin-bottom:8px; padding-bottom:4px;">
+            <button class="btn subtab-btn active-subtab" onclick="switchInvTab('all', this)" style="margin:0; padding:4px 10px; font-size:0.8rem; border-color:var(--text-color, #ffffff); color:var(--text-color, #ffffff);">全部</button>
+            <button class="btn subtab-btn" onclick="switchInvTab('head', this)" style="margin:0; padding:4px 10px; font-size:0.8rem; border-color:#555; color:#888;">頭盔</button>
+            <button class="btn subtab-btn" onclick="switchInvTab('neck', this)" style="margin:0; padding:4px 10px; font-size:0.8rem; border-color:#555; color:#888;">項圈</button>
+            <button class="btn subtab-btn" onclick="switchInvTab('body', this)" style="margin:0; padding:4px 10px; font-size:0.8rem; border-color:#555; color:#888;">胸背帶</button>
+        </div>
+
         <div class="filter-bar">
             <input type="text" id="inv-search" placeholder="輸入關鍵字..." oninput="renderInventory()">
             <select id="inv-sort" onchange="renderInventory()">

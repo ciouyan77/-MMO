@@ -696,10 +696,45 @@ async function showCompare(id) {
 function closeCompare() { pendingEquipId = null; document.getElementById('compare-backdrop').style.display = 'none'; document.getElementById('compare-modal').style.display = 'none'; }
 async function confirmEquip() { if(pendingEquipId) await equipItem(pendingEquipId); closeCompare(); }
 
+// 🚀 新增：背包當前分頁狀態與模組化切換函式
+let currentInvTab = 'all';
+
+function switchInvTab(tabId, btnEl) {
+    currentInvTab = tabId;
+    // 1. 移除所有按鈕的高亮發光狀態
+    document.querySelectorAll('.subtab-btn').forEach(btn => {
+        btn.style.borderColor = '#555';
+        btn.style.color = '#888';
+        btn.classList.remove('active-subtab');
+    });
+    // 2. 點亮玩家當前點選的按鈕 (繼承 Cyberpunk 主題色)
+    btnEl.style.borderColor = 'var(--text-color, #ffffff)';
+    btnEl.style.color = 'var(--text-color, #ffffff)';
+    btnEl.classList.add('active-subtab');
+    
+    // 3. 重新渲染列表
+    renderInventory();
+}
+
+
 async function renderInventory() {
     const list = document.getElementById('inventory-list');
     let items = await db.inventory_items.where("is_equipped").equals(0).toArray();
     
+    // 🚀 微創植入：模組化擴充過濾模組 (Extensible Filter Map)
+    // 為了做到絕對防錯，我們同時比對英文 slot 與中文 slotText，確保零幻覺命中！
+    // 未來擴充新功能時，只需在這裡多加一行，例如： 'doc': i => i.type === 'lore'
+    const tabFilters = {
+        'all': () => true,
+        'head': i => i.slot === 'head' || i.slotText === '頭盔',
+        'neck': i => i.slot === 'neck' || i.slot === 'collar' || i.slotText === '項圈',
+        'body': i => i.slot === 'body' || i.slot === 'harness' || i.slot === 'chest' || i.slotText === '胸背帶'
+    };
+    
+    if (tabFilters[currentInvTab]) {
+        items = items.filter(tabFilters[currentInvTab]);
+    }
+
     const searchEl = document.getElementById('inv-search');
     if(searchEl && searchEl.value) {
         const searchQ = searchEl.value.toLowerCase();
@@ -718,6 +753,7 @@ async function renderInventory() {
             return 0;
         });
     }
+
 
     if (items.length === 0) { list.innerHTML = "<span style='color:#777;'>[數據空載 / 無符合條件的裝備]</span>"; return; }
     list.innerHTML = "";
