@@ -1220,12 +1220,18 @@ function rollForLore(sourceType) {
     let availableLores = [];
     gameConfig.lore_database.categories.forEach(cat => {
         cat.subcategories.forEach(sub => {
-            sub.items.forEach(item => {
-                if ((item.sourceType === sourceType || item.sourceType === "all") && 
-                    !gameState.unlockedLore.includes(item.id)) {
+                        sub.items.forEach(item => {
+                // 🚀 修正：自動兼容 "dungeon" 與 "combat" 命名，並保留 "all" 通用掉落
+                const isSourceMatch = item.sourceType === sourceType || 
+                                      item.sourceType === "all" || 
+                                      (sourceType === "dungeon" && item.sourceType === "combat") ||
+                                      (sourceType === "combat" && item.sourceType === "dungeon");
+
+                if (isSourceMatch && !gameState.unlockedLore.includes(item.id)) {
                     availableLores.push(item);
                 }
             });
+
         });
     });
 
@@ -1272,16 +1278,26 @@ function updateDispatchUI() {
 // --- 📖 終端機資料庫 (Lore Modal) UI 渲染 ---
 
 function openLoreModal() {
+    // 🚀 關鍵新增：每次點擊開啟終端機時，強制檢查。如果沒這篇 README，就直接塞進去！
+    if (!gameState.unlockedLore || !Array.isArray(gameState.unlockedLore)) {
+        gameState.unlockedLore = [];
+    }
+    if (!gameState.unlockedLore.includes("lore_00_00")) {
+        gameState.unlockedLore.push("lore_00_00");
+    }
+
     const modal = document.getElementById("lore-modal");
     const backdrop = document.getElementById("lore-backdrop");
     
-    if (backdrop) backdrop.style.display = "none"; // 徹底棄用半透明背景
+    if (backdrop) backdrop.style.display = "none"; 
     if (modal) {
         modal.style.display = "block";
-        modal.scrollTop = 0; // 確保每次開啟終端機時，畫面絕對在最頂端
+        modal.scrollTop = 0; 
     }
-    renderLoreList();
+    showLoreList();
 }
+
+
 
 function closeLoreModal() {
     const modal = document.getElementById("lore-modal");
@@ -1292,25 +1308,43 @@ function showLoreList() {
     const listView = document.getElementById("lore-list-view");
     const detailView = document.getElementById("lore-detail-view");
     const container = document.getElementById("lore-list-container");
-    if (!listView || !detailView || !container || !gameConfig || !gameConfig.lore_database) return;
+    const modal = document.getElementById("lore-modal");
+    if (!listView || !detailView || !container) return;
 
     listView.style.display = "block";
     detailView.style.display = "none";
+    if (modal) modal.scrollTop = 0;
     container.innerHTML = "";
 
+    // 🚀 防禦 1：避免舊存檔相容性當機
+    if (!gameState.unlockedLore || !Array.isArray(gameState.unlockedLore)) {
+        gameState.unlockedLore = [];
+    }
+
+    // 🚀 防禦 2：如果 JSON 語法壞掉或沒讀到，直接在手機螢幕上跳出紅色大警告
+    if (!gameConfig || !gameConfig.lore_database || !gameConfig.lore_database.categories) {
+        container.innerHTML = `
+            <div style="color: #ff5555; border: 1px dashed #ff5555; padding: 15px; text-align: center; background: rgba(255,0,0,0.15); font-family: monospace; font-size: 0.9em;">
+                ⚠️ <b>[TERMINAL_ERROR: CONFIG_CRASH]</b><br>
+                資料庫異常！未偵測到正確的 config.json 資料。<br>
+                原因通常是：JSON 語法內逗號或括號錯置。
+            </div>`;
+        return;
+    }
+
+    // 正常渲染
     gameConfig.lore_database.categories.forEach(cat => {
-        let catHtml = `<div class="lore-category-title" style="color:#d69e2e; font-size:1.1em; margin-top:12px; border-bottom:1px solid #cbd5e0; padding-bottom:4px;">📂 ${cat.name}</div>`;
+        let catHtml = `<div class="lore-category-title" style="color:#d69e2e; font-size:1.1em; margin-top:12px; border-bottom:1px solid #cbd5e0; padding-bottom:4px;">📂 ${cat.name || '未命名'}</div>`;
         
-        cat.subcategories.forEach(sub => {
-            catHtml += `<div class="lore-category-title" style="margin-left:8px; font-size:0.95em; color:#2b6cb0;">└ 📁 ${sub.name}</div>`;
+        (cat.subcategories || []).forEach(sub => {
+            catHtml += `<div class="lore-category-title" style="margin-left:8px; font-size:0.95em; color:#2b6cb0;">└ 📁 ${sub.name || '未命名'}</div>`;
             
-            sub.items.forEach(item => {
+            (sub.items || []).forEach(item => {
                 const isUnlocked = gameState.unlockedLore.includes(item.id);
                 const titleText = isUnlocked ? item.title : "？？？ (機密檔案加密中)";
                 const btnClass = isUnlocked ? "lore-item-btn unlocked" : "lore-item-btn";
                 const clickAction = isUnlocked ? `onclick="readLore('${item.id}')"` : `onclick="alert('🔒 此文件尚未解密！請透過派遣電台或挑戰對應副本取得。')"`;
                 
-                // ⚠️ 修正：加上 margin-bottom 與 display:flex 兩端對齊，讓手機觸控按鈕整齊又美觀
                 catHtml += `
                     <button class="${btnClass}" style="margin-left:16px; margin-bottom:8px; width:calc(100% - 16px); display:flex; justify-content:space-between; align-items:center; padding:10px 12px; text-align:left;" ${clickAction}>
                         <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:75%;">${isUnlocked ? "📜" : "🔒"} ${titleText}</span>
@@ -1323,12 +1357,22 @@ function showLoreList() {
     });
 }
 
+
 // ==========================================
 // 📜 終端機文件系統：核心檢索與視窗網格控制（全螢幕優化版）
 // ==========================================
-// ✨ 精準替換 game.js 中的 readLore 函式
+// ✨ 精準替換 game.js 中的 readLore 函式（賽博黑底螢光白邊優化版）
 function readLore(loreId) {
-    const targetLore = gameConfig.lore_database.find(l => l.id === loreId);
+    let targetLore = null;
+    if (gameConfig && gameConfig.lore_database && gameConfig.lore_database.categories) {
+        for (const cat of gameConfig.lore_database.categories) {
+            for (const sub of cat.subcategories) {
+                targetLore = sub.items.find(item => item.id === loreId);
+                if (targetLore) break;
+            }
+            if (targetLore) break;
+        }
+    }
     if (!targetLore) return;
 
     const listView = document.getElementById("lore-list-view");
@@ -1337,49 +1381,55 @@ function readLore(loreId) {
     const locationEl = document.getElementById("lore-read-location");
     const dateEl = document.getElementById("lore-read-date");
     const bodyEl = document.getElementById("lore-read-body");
-    const modal = document.getElementById("lore-modal"); // 抓取母彈窗實體
+    const modal = document.getElementById("lore-modal");
 
     if (!listView || !detailView) return;
 
-    // 🚀 關鍵修復 1：切換進閱讀模式時，強制將全螢幕視窗滾動條置頂
     if (modal) modal.scrollTop = 0;
 
-    // 3. 視圖切換：隱藏列表，顯示詳情
     listView.style.display = "none";
     detailView.style.display = "block";
     
-    // 🚀 關鍵修復 2：利用全螢幕優勢，左右拉寬到 14px 舒適排版，底部一口氣空出 80px 絕對不被手機瀏覽器工具欄遮擋！
-    detailView.style.padding = "10px 14px 80px 14px"; 
+    // 🚀 視覺大升級：將閱讀容器打造為「黑底 + 螢光白邊」的末日機密螢幕！
+    detailView.style.backgroundColor = "#080808"; // 深邃純黑底色
+    detailView.style.border = "1px solid #ffffff"; // 實線高對比白邊
+    detailView.style.boxShadow = "0 0 14px rgba(255, 255, 255, 0.7)"; // 螢光白邊發光特效 (Cyberpunk Glow)
+    detailView.style.borderRadius = "8px"; // 科技感圓角
+    detailView.style.padding = "20px 16px 80px 16px"; // 舒適內邊距，底部空出 80px 絕對防工具欄遮擋
+    detailView.style.margin = "10px 4px"; // 與四周保留些微空隙，讓發光外框完美呈現
     detailView.style.boxSizing = "border-box";
 
-    // 4. 安全填入文本
-    if (titleEl) titleEl.innerText = `📜 ${targetLore.title}`;
-    if (locationEl) locationEl.innerText = `📍 來源: ${targetLore.location || "未知區域"}`;
-    if (dateEl) dateEl.innerText = `⏳ 時間: ${targetLore.date || "大崩潰紀錄"}`;
+    // 4. 安全填入文本與色彩配置
+    if (titleEl) {
+        titleEl.innerText = `📜 ${targetLore.title}`;
+        titleEl.style.color = "#ffd700"; // 標題改為醒目的賽博亮金黃色
+        titleEl.style.textShadow = "0 0 6px rgba(255, 215, 0, 0.5)";
+    }
+    if (locationEl) {
+        locationEl.innerText = `📍 來源: ${targetLore.location || "未知區域"}`;
+        locationEl.style.color = "#a0aec0";
+    }
+    if (dateEl) {
+        dateEl.innerText = `⏳ 時間: ${targetLore.date || "大崩潰紀錄"}`;
+        dateEl.style.color = "#a0aec0";
+    }
     
     if (bodyEl) {
-        bodyEl.style.lineHeight = "1.75"; // 微調行高，讓字體更易閱讀
+        bodyEl.style.lineHeight = "1.85"; // 增加行距，讓長時間手機閱讀眼睛不疲勞
         bodyEl.style.whiteSpace = "pre-wrap";
         bodyEl.style.textAlign = "justify";
-        bodyEl.style.marginTop = "15px";
-        bodyEl.style.paddingBottom = "40px"; // 內文最末端加強緩衝
-        bodyEl.style.color = "#e2e8f0";
+        bodyEl.style.marginTop = "20px";
+        bodyEl.style.paddingTop = "15px";
+        bodyEl.style.borderTop = "1px dashed #444444"; // 深色質感分隔線
+        bodyEl.style.paddingBottom = "40px";
+        bodyEl.style.color = "#ffffff"; // 🚀 關鍵修復：改為方便舒服、高清晰的純白色
+        bodyEl.style.fontSize = "1.02rem"; // 微調為最適合手機閱覽的字級
+        bodyEl.style.textShadow = "0 0 2px rgba(255, 255, 255, 0.3)"; // 淡淡的螢光字體感，增添 CRT 螢幕氛圍
         bodyEl.innerHTML = targetLore.content || "（檔案內容嚴重損毀...）";
     }
 }
 
-// ✨ 精準替換 game.js 中的 showLoreList 函式
-function showLoreList() {
-    const detailView = document.getElementById("lore-detail-view");
-    const listView = document.getElementById("lore-list-view");
-    const modal = document.getElementById("lore-modal"); // 抓取母彈窗實體
 
-    if (detailView) detailView.style.display = "none";
-    if (listView) listView.style.display = "block";
-    
-    // 🚀 關鍵修復：返回列表頁面時，同步將滾動條歸零置頂，確保列表第一項清晰可見
-    if (modal) modal.scrollTop = 0;
-}
 
 // ✨ 精準對接 index.html 第 434 與 435 行：負責關閉整個檔案面板與背景遮罩
 function closeLoreModal() {
