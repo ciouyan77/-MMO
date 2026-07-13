@@ -1,7 +1,7 @@
 // 全域記憶體快照
 let gameConfig = null;
 let gameState = {
-	playerName: "倖存者", houndName: "廢土獵犬", playerAvatar: null,
+    playerName: "倖存者", houndName: "廢土獵犬", playerAvatar: null,
     resources: { scrap: 0, food: 10, zaco: 0 },
     upgrades: { drones: 0 }, costs: { drone: 10 }, autoRates: { scrap: 0 },
     isExploring: false, currentArea: "wasteland",
@@ -15,45 +15,61 @@ let gameState = {
     equipped: { helmet: null, collar: null, harness: null },
     currentEnemy: null,
     autoSell: { common: false, rare: false },
-    // --- 📜 副本文件與派遣電台系統狀態 ---
     unlockedLore: [], 
     dispatch: {
-        status: "idle",
-        houndName: "未招募", 
-        endTime: 0,
+        status: "idle", houndName: "未招募", endTime: 0,
         houndGear: { head: null, collar: null, harness: null }
     }
 };
+
 // === 家園與離線系統變數 ===
 let baseData = {
-    ccLevel: 0,               // 中央控制室等級
-    towerLevel: 0,            // ⚠️ 新增：誘餌廣播塔等級 (0代表未解鎖/建立)
-    towerZombies: 0,          // ⚠️ 新增：當前廣播塔吸引的殭屍數量
-    radioState: false,        // 確保收音機狀態也在內
-    lastLoginTime: Date.now() // 最後登入/存檔時間戳記
+    ccLevel: 0, towerLevel: 0, towerZombies: 0,          
+    radioState: false, lastLoginTime: Date.now() 
 };
 
 // 系統預設參數
-const BASE_SCRAP_CAP = 1000; // 初始廢料儲存上限
-const MAX_FOOD_CAP = 400;    // ⚠️ 新增：初始肉乾儲存上限
+const BASE_SCRAP_CAP = 1000; 
+const MAX_FOOD_CAP = 400;    
 
-// --- 新增：動態計算當前廢料上限 ---
+// --- 動態計算資源上限 (防彈級作用域安全) ---
 function getMaxScrap() {
-    if (!window.baseData) return BASE_SCRAP_CAP;
-    return BASE_SCRAP_CAP + (baseData.ccLevel * 1000);
+    if (typeof baseData === 'undefined' || !baseData) {
+        return typeof BASE_SCRAP_CAP !== 'undefined' ? BASE_SCRAP_CAP : 1000;
+    }
+    let level = Math.min(baseData.ccLevel || 0, 9);
+    return 1000 + (level * 1000);
 }
-// 啟動初始化
+
+function getMaxFood() {
+    if (typeof baseData === 'undefined' || !baseData) {
+        return typeof MAX_FOOD_CAP !== 'undefined' ? MAX_FOOD_CAP : 400;
+    }
+    let level = Math.min(baseData.ccLevel || 0, 9);
+    return 400 + (level * 400);
+}
+
+// 啟動初始化 (新增：強制顯影報錯機制)
 window.addEventListener("DOMContentLoaded", async () => {
     try {
         const response = await fetch('./config.json');
         gameConfig = await response.json();
         await loadGameData();
         initGameLoops();
-		renderDungeonList();
-    } catch (e) { console.error("系統初始化失敗:", e); }
+        if (typeof renderDungeonList === "function") renderDungeonList();
+    } catch (e) { 
+        // ⚠️ 關鍵防護：如果初始化失敗，強制在手機畫面上彈出警告並顯示病因！
+        alert("🚨 系統初始化崩潰：\n" + e.message);
+        const log = document.getElementById('log-container');
+        if (log) log.innerHTML = `<div style="color:#ff3333; font-weight:bold;">[致命錯誤] 檔案解析失敗: ${e.message}</div>`;
+    }
 });
 
-// 資料庫載入
+// ==========================================
+// async function loadGameData() { 
+// (請確保這行以下的代碼都保留不動！)
+// ==========================================
+
 async function loadGameData() {
     let savedState = await db.player_state.get(1);
     if (!savedState) {
@@ -325,13 +341,15 @@ function gatherResource(type) {
         }
     }
     
-    // --- 新增：肉乾上限攔截邏輯 ---
+        // --- 修改：肉乾動態上限攔截邏輯 ---
     if (type === 'food') {
-        if (gameState.resources.food >= MAX_FOOD_CAP) {
-            logMessage(`[系統警告] 肉乾儲存槽已滿 (${MAX_FOOD_CAP})。無法儲存更多乾糧。`, 'warning');
-            return; // 達到 400 份就不給採集
+        let maxFoodCap = getMaxFood();
+        if (gameState.resources.food >= maxFoodCap) {
+            logMessage(`[系統警告] 肉乾儲存槽已滿 (${maxFoodCap})。請至 [06_BASE] 升級中央控制室。`, 'warning');
+            return; // 達到當前上限就不給採集
         }
     }
+
     
     gameState.resources[type]++; 
     updateUI(); 
@@ -418,17 +436,23 @@ function toggleRadio() {
 
 // 升級設施共用函數
 function upgradeFacility(facility) {
-    if (facility === 'controlCenter') {
+        if (facility === 'controlCenter') {
+        // 新增：滿等 10 級限制
+        if ((baseData.ccLevel || 0) >= 9) {
+            logMessage(`[系統] 中央控制室已達最高擴容等級 (Lv.10)。`, 'warning');
+            return;
+        }
         let cost = 500 * Math.pow(2, baseData.ccLevel || 0);
         if (gameState.resources.scrap >= cost) {
             gameState.resources.scrap -= cost;
             baseData.ccLevel = (baseData.ccLevel || 0) + 1;
-            logMessage(`[系統] 系統擴容成功。中央控制室升級至 Lv.${baseData.ccLevel}`, 'system');
+            logMessage(`[系統] 系統擴容成功。中央控制室升級至 Lv.${(baseData.ccLevel || 0) + 1} (廢料上限: ${getMaxScrap()} / 肉乾上限: ${getMaxFood()})`, 'system');
             updateBaseUI(); updateUI(); savePlayerState();
         } else {
             logMessage(`[警告] 廢料不足，擴容需要 ${cost} 廢料`, 'zaco');
         }
     } else if (facility === 'tower') {
+
         let cost = Math.floor(4500 * Math.pow(1.7, baseData.towerLevel || 0));
         if (gameState.resources.scrap >= cost) {
             gameState.resources.scrap -= cost;
@@ -708,7 +732,18 @@ async function generateLoot(isBossDrop = false) {
     logMessage(`獲得戰利品: <span class="${item.class}">${item.name}</span>`);
 }
 
-function toggleAutoSell(type) { gameState.autoSell[type] = document.getElementById(`auto-${type}`).checked; savePlayerState(); }
+// --- 升級版：自動拆解切換 (防呆防空指針當機) ---
+function toggleAutoSell(type) { 
+    const checkbox = document.getElementById(`auto-${type}`);
+    // 防呆檢查：確保畫面上真的有這個勾選框，且 autoSell 物件已初始化
+    if (!checkbox) return;
+    if (!gameState.autoSell) gameState.autoSell = { common: false, rare: false };
+    
+    gameState.autoSell[type] = checkbox.checked; 
+    savePlayerState(); 
+    logMessage(`>> [自動拆解] 已${checkbox.checked ? '啟用' : '關閉'} ${type === 'common' ? '普通' : '稀有'}品質自動拆解。`, 'system');
+}
+
 
 async function equipItem(id) {
     const item = await db.inventory_items.get(id); if (!item) return;
@@ -874,23 +909,21 @@ async function buyShopItem(index) {
     const item = gameConfig.shop_database[index];
     if (gameState.resources.zaco >= item.price) {
         gameState.resources.zaco -= item.price;
-        if (item.slot === 'usable' && item.id === 'shop_jerky_bulk') {
-            // 防呆：如果原本就已經滿了，拒絕交易
-            if (gameState.resources.food >= MAX_FOOD_CAP) {
+                if (item.slot === 'usable' && item.id === 'shop_jerky_bulk') {
+            let maxFoodCap = getMaxFood();
+            // 防呆：受限於中央控制室當前動態上限
+            if (gameState.resources.food >= maxFoodCap) {
                 logMessage(`[交易失敗] 肉乾儲存槽已滿，黑市商人拒絕將補給包塞進你的背包。`, 'system');
                 gameState.resources.zaco += item.price; // 退回剛剛扣除的 ZaCo
                 updateUI();
                 return;
             }
             
-            // 加上 200 份，但最高鎖死在 400
-            gameState.resources.food = Math.min(gameState.resources.food + 200, MAX_FOOD_CAP);
-            logMessage(`地下交易完成: 拆開 <span class="${item.class}">${item.name}</span>，物資入庫。(當前: ${gameState.resources.food}/${MAX_FOOD_CAP})`, 'zaco');
-        } else {
-            const dbItem = { name: item.name, slot: item.slot, slotText: item.slot === 'collar' ? '項圈' : (item.slot === 'helmet' ? '頭盔' : '胸背帶'), rarity: item.rarity, class: item.class, atk: item.atk, maxHp: item.maxHp, def: item.def||0, is_equipped: 0, is_locked: 0, setId: item.setId||null };
-            await db.inventory_items.add(dbItem);
-            logMessage(`地下交易完成: 獲得 <span class="${item.class}">${item.name}</span>`, 'zaco');
+            // 加上 200 份，但受限於當前動態上限
+            gameState.resources.food = Math.min(gameState.resources.food + 200, maxFoodCap);
+            logMessage(`地下交易完成: 拆開 <span class="${item.class}">${item.name}</span>，物資入庫。(當前: ${gameState.resources.food}/${maxFoodCap})`, 'zaco');
         }
+
         updateUI(); savePlayerState();
     } else { logMessage(`[ZACO_ERROR] 帳戶餘額不足以支付黑市交易。`, 'system'); }
 }
@@ -912,10 +945,10 @@ function logMessage(text, type = 'normal') {
 }
 
 function updateUI() {
-    // 強制 UI 顯示當前廢料與最大上限 (已修復：清除了夾在中間的幽靈字串！)
+        // 修正：分別正確顯示當前廢料與肉乾的動態上限
     document.getElementById('res-scrap').innerText = `${gameState.resources.scrap} / ${getMaxScrap()}`;
-    // 強制 UI 顯示當前肉乾與最大上限
-    document.getElementById('res-food').innerText = `${gameState.resources.food} / ${MAX_FOOD_CAP}`;
+    document.getElementById('res-food').innerText = `${gameState.resources.food} / ${getMaxFood()}`;
+
     document.getElementById('res-zaco').innerText = gameState.resources.zaco;
     document.getElementById('rate-scrap').innerText = gameState.autoRates.scrap;
     document.getElementById('camp-drones').innerText = gameState.upgrades.drones;
@@ -959,7 +992,26 @@ function updateUI() {
 
 
 function saveGame() { savePlayerState(); logMessage(">> 資料庫快照備份完成。", "system"); }
-function resetGame() { if (confirm("確定格式化系統？這會永久抹除所有資料庫紀錄！")) { db.delete().then(() => { location.reload(); }); } }
+
+// --- 升級版：安全格式化系統 (防止手機 IndexedDB 死鎖) ---
+async function resetGame() { 
+    if (confirm("確定格式化系統？這會永久抹除所有資料庫紀錄！")) { 
+        try {
+            // 1. 先切斷當前的資料庫連線，避免死鎖
+            db.close(); 
+            // 2. 徹底抹除 IndexedDB 資料庫
+            await Dexie.delete("WastelandHoundDB"); 
+            // 3. 清除可能殘留的本地暫存
+            localStorage.clear();
+            sessionStorage.clear();
+            // 4. 強制重新載入頁面
+            location.reload(); 
+        } catch (e) {
+            alert("格式化失敗，請手動在瀏覽器設定中清除網頁暫存：" + e.message);
+        }
+    } 
+}
+
 
 function renderDungeonList() {
     const selectEl = document.getElementById('area-select');
@@ -1104,8 +1156,9 @@ async function calculateOfflineProgress() {
         let offlineMinutes = (timeDiffSeconds / 60).toFixed(1);
         let offlineReport = `[系統重連] 離線時間：${offlineMinutes} 分鐘。<br>`;
 
-        // --- 1. 中央控制室：廢料探測器收益 ---
-        let maxCap = BASE_SCRAP_CAP + (baseData.ccLevel * 1000); 
+                // --- 1. 中央控制室：廢料探測器收益 ---
+        let maxCap = getMaxScrap(); 
+ 
         let scrapPerSecond = gameState.autoRates.scrap || 0; 
         let generatedScrap = timeDiffSeconds * scrapPerSecond;
         
