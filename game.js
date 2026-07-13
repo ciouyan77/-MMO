@@ -371,7 +371,9 @@ function buyDrone() {
 // 更新家園分頁的所有 UI 數值
 function updateBaseUI() {
     // 1. 中央控制室
-    let ccCost = 500 * Math.pow(2, baseData.ccLevel || 0);
+        // 修正：同步 UI 顯示的平滑成本公式
+    let ccCost = Math.floor(500 * Math.pow(1.35, baseData.ccLevel || 0));
+
     if(document.getElementById('base-cc-level')) document.getElementById('base-cc-level').innerText = baseData.ccLevel || 0;
     if(document.getElementById('base-cc-cost')) document.getElementById('base-cc-cost').innerText = ccCost;
     
@@ -442,7 +444,9 @@ function upgradeFacility(facility) {
             logMessage(`[系統] 中央控制室已達最高擴容等級 (Lv.10)。`, 'warning');
             return;
         }
-        let cost = 500 * Math.pow(2, baseData.ccLevel || 0);
+                // 修正：將 2 倍暴增改為 1.35 倍平滑成長，並以 Math.floor 取整數，防止數值死鎖！
+        let cost = Math.floor(500 * Math.pow(1.35, baseData.ccLevel || 0));
+
         if (gameState.resources.scrap >= cost) {
             gameState.resources.scrap -= cost;
             baseData.ccLevel = (baseData.ccLevel || 0) + 1;
