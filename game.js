@@ -2,7 +2,9 @@
 let gameConfig = null;
 let gameState = {
     playerName: "倖存者", houndName: "廢土獵犬", playerAvatar: null,
-    resources: { scrap: 0, food: 10, zaco: 0 },
+
+resources: { scrap: 0, food: 10, zaco: 0, biometal: 0, coating: 0 },
+
     upgrades: { drones: 0 }, costs: { drone: 10 }, autoRates: { scrap: 0 },
     isExploring: false, currentArea: "wasteland",
     hound: { 
@@ -173,18 +175,21 @@ async function savePlayerState() {
         dispatch: gameState.dispatch    
     });
 }
-// 計算能力值 (包含套裝遞減效應與文字說明)
+// 計算能力值 (包含 +1~+9 強化倍率與套裝遞減效應)
 function calculateHoundStats() {
     let bAtk = 0, bHp = 0, bDef = 0, bDodge = 0, bCrit = 0, ohko = 0;
     let setCounts = {};
 
     Object.values(gameState.equipped).forEach(item => {
         if (!item) return;
-        if (item.atk) bAtk += item.atk;
-        if (item.maxHp) bHp += item.maxHp;
-        if (item.def) bDef += item.def;
-        if (item.dodge) bDodge += item.dodge;
-        if (item.crit) bCrit += item.crit;
+        // 🚀 微創手術：實裝 +1~+9 強化屬性成長 (每階提升 10%)
+        let lvlMult = 1 + (item.level || 0) * 0.1;
+        
+        if (item.atk) bAtk += Math.floor(item.atk * lvlMult);
+        if (item.maxHp) bHp += Math.floor(item.maxHp * lvlMult);
+        if (item.def) bDef += Math.floor(item.def * lvlMult);
+        if (item.dodge) bDodge += Math.floor(item.dodge * lvlMult);
+        if (item.crit) bCrit += Math.floor(item.crit * lvlMult);
         if (item.setId) setCounts[item.setId] = (setCounts[item.setId] || 0) + 1;
     });
 
@@ -192,7 +197,6 @@ function calculateHoundStats() {
     gameState.hound.activeSets = []; 
     let atkMultiplier = 1; 
 
-    // 判斷套裝發動與遞減效應 (2PC 核心爆發 / 3PC 數值點綴)
     for (const [setId, count] of Object.entries(setCounts)) {
         let setName = gameConfig.loot_pool.sets[setId] ? gameConfig.loot_pool.sets[setId].name : setId;
 
@@ -227,6 +231,7 @@ function calculateHoundStats() {
     const setText = document.getElementById('set-bonus-text');
     if (setText) setText.innerHTML = activeText.length > 0 ? activeText.join("<br>") : "<span style='color:#777;'>[未啟動任何套裝效果]</span>";
 }
+
 
 
 function initGameLoops() {
@@ -772,10 +777,20 @@ async function unequipSlot(slot) {
 async function sellItem(event, id) {
     event.stopPropagation(); const item = await db.inventory_items.get(id); if (!item || item.is_locked) return;
     let val = 1; if(item.rarity==='rare') val=5; if(item.rarity==='set') val=80; if(item.rarity==='legendary') val=25; if(item.rarity==='apocalyptic') val=150;
-    gameState.resources.zaco += val; await db.inventory_items.delete(id);
-    logMessage(`出售 ${item.name}，獲得 <span style="color:var(--zaco-color)">+${val} ZaCo</span>`, 'zaco');
+    gameState.resources.zaco += val; 
+    
+    // ✨ 新增：黑水鍍膜抽取邏輯 (出售滅世紅裝時額外獲得 1 個)
+    let extraMsg = "";
+    if (item.rarity === 'apocalyptic') {
+        gameState.resources.coating = (gameState.resources.coating || 0) + 1;
+        extraMsg = ` 與 <span style="color:#00ffcc; font-weight:bold;">1 瓶黑水鍍膜</span>`;
+    }
+    
+    await db.inventory_items.delete(id);
+    logMessage(`出售 ${item.name}，獲得 <span style="color:var(--zaco-color)">+${val} ZaCo</span>${extraMsg}`, 'zaco');
     updateUI(); renderInventory();
 }
+
 
 async function toggleLock(event, id) {
     event.stopPropagation(); const item = await db.inventory_items.get(id); if (!item) return;
@@ -783,6 +798,7 @@ async function toggleLock(event, id) {
 }
 
 let pendingEquipId = null;
+
 async function showCompare(id) {
     const item = await db.inventory_items.get(id); if (!item) return;
     const currentEquip = gameState.equipped[item.slot];
@@ -790,7 +806,19 @@ async function showCompare(id) {
     const buildStatsHTML = (eqItem, title) => {
         if(!eqItem) return `<div style="border:1px dashed #555; padding:8px;"><div style="color:#888; margin-bottom:5px;">[${title}]</div><span style="color:#555;">(無裝備)</span></div>`;
         
-        // 🚀 微創新增：在比較彈窗中顯示套裝共鳴說明
+        let lvlMult = 1 + (eqItem.level || 0) * 0.1;
+        let lvlStr = eqItem.level ? ` <span style="color:#00ffcc; font-weight:bold;">+${eqItem.level}</span>` : "";
+
+        // 🚀 微創手術：新增數值分離顯示 DIV 輔助函數
+        const getStatDiv = (label, baseVal, isPct = false) => {
+            if (!baseVal) return '';
+            let total = Math.floor(baseVal * lvlMult);
+            let bonus = total - baseVal;
+            let pct = isPct ? "%" : "";
+            let bonusStr = bonus > 0 ? ` <span style="color:#00ffcc; font-weight:bold;">(+${bonus}${pct})</span>` : "";
+            return `<div>${label}: ${baseVal}${pct}${bonusStr}</div>`;
+        };
+
         let setHtml = "";
         if (eqItem.setId && gameConfig.loot_pool.sets[eqItem.setId]) {
             const s = gameConfig.loot_pool.sets[eqItem.setId];
@@ -802,16 +830,21 @@ async function showCompare(id) {
 
         return `<div style="border:1px dashed ${eqItem.is_equipped ? 'var(--text-color)' : 'var(--primary-color)'}; padding:8px;">
             <div style="color:#888; margin-bottom:5px;">[${title}]</div>
-            <div class="${eqItem.class}" style="margin-bottom:5px; font-weight:bold;">${eqItem.name}</div>
-            ${eqItem.atk ? `<div>ATK: ${eqItem.atk}</div>` : ''} ${eqItem.maxHp ? `<div>HP: ${eqItem.maxHp}</div>` : ''}
-            ${eqItem.def ? `<div>DEF: ${eqItem.def}</div>` : ''} ${eqItem.crit ? `<div>CRIT: ${eqItem.crit}%</div>` : ''}
-            ${eqItem.dodge ? `<div>DODGE: ${eqItem.dodge}%</div>` : ''}
+            <div class="${eqItem.class}" style="margin-bottom:5px; font-weight:bold;">${eqItem.name}${lvlStr}</div>
+            ${getStatDiv('ATK', eqItem.atk)} 
+            ${getStatDiv('HP', eqItem.maxHp)}
+            ${getStatDiv('DEF', eqItem.def)} 
+            ${getStatDiv('CRIT', eqItem.crit, true)}
+            ${getStatDiv('DODGE', eqItem.dodge, true)}
             ${setHtml}
         </div>`;
     };
+    
     document.getElementById('compare-content').innerHTML = buildStatsHTML(currentEquip, "當前著裝") + buildStatsHTML(item, "準備換上");
     pendingEquipId = id; document.getElementById('compare-backdrop').style.display = 'block'; document.getElementById('compare-modal').style.display = 'block';
 }
+
+
 
 
 function closeCompare() { pendingEquipId = null; document.getElementById('compare-backdrop').style.display = 'none'; document.getElementById('compare-modal').style.display = 'none'; }
@@ -878,18 +911,29 @@ async function renderInventory() {
 
     if (items.length === 0) { list.innerHTML = "<span style='color:#777;'>[數據空載 / 無符合條件的裝備]</span>"; return; }
     list.innerHTML = "";
-    items.forEach((item) => {
+            items.forEach((item) => {
         const el = document.createElement('div'); el.className = 'inv-item';
         let price = 1; if(item.rarity==='rare') price=5; if(item.rarity==='set') price=80; if(item.rarity==='legendary') price=25; if(item.rarity==='apocalyptic') price=150;
         
-        let descArr = []; 
-        if (item.atk) descArr.push(`ATK +${item.atk}`); 
-        if (item.maxHp) descArr.push(`HP +${item.maxHp}`); 
-        if (item.def) descArr.push(`DEF +${item.def}`); 
-        if (item.crit) descArr.push(`暴擊 +${item.crit}%`); 
-        if (item.dodge) descArr.push(`閃避 +${item.dodge}%`); 
+        let lvlMult = 1 + (item.level || 0) * 0.1;
+        let lvlStr = item.level ? ` <span style="color:#00ffcc; font-weight:bold;">+${item.level}</span>` : "";
         
-        // 🚀 微創修改：移除冗長的 setBonusHtml，僅保留輕量標籤，維持手機畫面乾淨
+        let descArr = []; 
+        // 🚀 微創手術：新增數值分離顯示輔助函數
+        const pushStat = (label, baseVal, isPct = false) => {
+            let total = Math.floor(baseVal * lvlMult);
+            let bonus = total - baseVal;
+            let pct = isPct ? "%" : "";
+            let bonusStr = bonus > 0 ? `<span style="color:#00ffcc;">(+${bonus}${pct})</span>` : "";
+            descArr.push(`${label} +${baseVal}${pct}${bonusStr}`);
+        };
+
+        if (item.atk) pushStat('ATK', item.atk); 
+        if (item.maxHp) pushStat('HP', item.maxHp); 
+        if (item.def) pushStat('DEF', item.def); 
+        if (item.crit) pushStat('暴擊', item.crit, true); 
+        if (item.dodge) pushStat('閃避', item.dodge, true); 
+        
         if (item.setId && gameConfig.loot_pool.sets[item.setId]) {
              descArr.push(`套裝: ${gameConfig.loot_pool.sets[item.setId].name}`);
         }
@@ -897,7 +941,7 @@ async function renderInventory() {
         const lockIcon = item.is_locked ? "🔒" : "🔓"; const lockColor = item.is_locked ? "var(--primary-color)" : "#555";
         el.innerHTML = `
             <div class="inv-info" onclick="showCompare(${item.id})">
-                <span class="${item.class}">${item.name}</span><br>
+                <span class="${item.class}">${item.name}${lvlStr}</span><br>
                 <span style="color:#888; font-size:0.75rem;">[${item.slotText}] ${descArr.length > 0 ? descArr.join(" | ") : "無附加"}</span>
             </div>
             <div style="display:flex; gap:5px; align-items: flex-start;">
@@ -907,6 +951,8 @@ async function renderInventory() {
         list.appendChild(el);
     });
 }
+
+
 
 
 async function buyShopItem(index) {
@@ -968,17 +1014,17 @@ function updateUI() {
 
     const equipDiv = document.getElementById('camp-equipped'); 
     let eqText = [];
-        const buildEqLine = (slot, item) => {
+            const buildEqLine = (slot, item) => {
         if(!item) return "";
+        // 🚀 微創手術：若有 level 屬性，在名字後方顯示螢光綠色的 +N 階級
+        const lvlStr = item.level ? ` <span style="color:#00ffcc; font-weight:bold;">+${item.level}</span>` : "";
         
-        // 🚀 微創手術：
-        // 1. 徹底移除原本冗長的 setBonusHtml（綠色文字區塊）。
-        // 2. 在裝備名稱加上 onclick="showCompare(${item.id})" 與底線提示，點擊即可彈出詳情比對視窗！
         return `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; border-bottom:1px dashed #333; padding-bottom:6px;">
-            <span class="${item.class}" onclick="showCompare(${item.id})" style="cursor:pointer; text-decoration:underline dotted; flex:1; line-height:1.4;">[${item.slotText}] ${item.name}</span>
+            <span class="${item.class}" onclick="showCompare(${item.id})" style="cursor:pointer; text-decoration:underline dotted; flex:1; line-height:1.4;">[${item.slotText}] ${item.name}${lvlStr}</span>
             <button class="btn" style="width:auto; padding:4px 12px; margin:0; font-size:0.75rem; border-color:#ff3333; color:#ff3333;" onclick="unequipSlot('${slot}')">卸下</button>
         </div>`;
     };
+
 
 
     if (gameState.equipped.helmet) eqText.push(buildEqLine('helmet', gameState.equipped.helmet));
@@ -1630,4 +1676,226 @@ function closeLoreModal() {
     const backdrop = document.getElementById("lore-backdrop");
     if (modal) modal.style.display = "none";
     if (backdrop) backdrop.style.display = "none";
+}
+
+// ==========================================
+// 🔨 黑市與鐵匠鋪子分頁切換邏輯
+// ==========================================
+function switchShopSubTab(subView, btnEl) {
+    // 1. 隱藏兩個子面板
+    const tradeView = document.getElementById('shop-trade-view');
+    const forgeView = document.getElementById('shop-forge-view');
+    if (tradeView) tradeView.style.display = 'none';
+    if (forgeView) forgeView.style.display = 'none';
+    
+    // 2. 移除按鈕亮燈
+    document.querySelectorAll('.shop-subtab').forEach(btn => {
+        btn.classList.remove('active-subtab');
+        btn.style.backgroundColor = 'transparent';
+    });
+    
+    // 3. 顯示目標面板與亮燈
+    if (subView === 'trade' && tradeView) tradeView.style.display = 'block';
+    if (subView === 'forge' && forgeView) {
+        forgeView.style.display = 'block';
+        if (typeof renderForge === "function") renderForge(); // 預留：往後切換時自動渲染鐵匠鋪
+    }
+    
+    if (btnEl) {
+        btnEl.classList.add('active-subtab');
+        btnEl.style.backgroundColor = 'rgba(255, 153, 0, 0.15)'; // 繼承 CyberCode 橘色微光
+    }
+}
+
+
+// ==========================================
+// 🔨 黑市鐵匠鋪與 +1～+9 強化核心引擎
+// ==========================================
+
+// 強化機率與材料平衡表
+const FORGE_DATA = {
+    1: { rate: 100, metal: 1,  zaco: 50 },
+    2: { rate: 85,  metal: 2,  zaco: 100 },
+    3: { rate: 70,  metal: 3,  zaco: 200 },
+    4: { rate: 50,  metal: 5,  zaco: 400 },
+    5: { rate: 35,  metal: 8,  zaco: 800 },
+    6: { rate: 20,  metal: 12, zaco: 1500 },
+    7: { rate: 10,  metal: 18, zaco: 3000 },
+    8: { rate: 5,   metal: 25, zaco: 5000 },
+    9: { rate: 1,   metal: 40, zaco: 10000 }
+};
+
+// 1. 提煉生物金屬 (500廢料 = 1生物金屬)
+function refineBioMetal(times = 1) {
+    let cost = times * 500;
+    if (gameState.resources.scrap < cost) {
+        logMessage(">> [警告] 廢料不足！提煉 1 個生物金屬需要 500 廢料。", "zaco");
+        return;
+    }
+    gameState.resources.scrap -= cost;
+    gameState.resources.biometal = (gameState.resources.biometal || 0) + times;
+    savePlayerState(); updateUI(); renderForge();
+    logMessage(`>> [煉金成功] 消耗 ${cost} 廢料，提煉出 <span style="color:#00ffcc; font-weight:bold;">${times} 個生物金屬</span>！`, "system");
+}
+
+// ==========================================
+// 🔨 鐵匠鋪子欄位狀態與切換控制
+// ==========================================
+let currentForgeTab = 'equipped'; // 預設顯示「身上裝備」
+
+function switchForgeTab(tab) {
+    currentForgeTab = tab;
+    if (typeof renderForge === "function") renderForge();
+}
+
+// 2. 渲染鐵匠鋪介面 (已優化：新增 4 大部位子欄位過濾)
+async function renderForge() {
+    const container = document.getElementById('forge-container');
+    if (!container) return;
+
+    let bmCount = gameState.resources.biometal || 0;
+    let ctCount = gameState.resources.coating || 0;
+
+    // 建立子分頁按鈕的樣式生成器 (繼承 CyberCode 螢光綠/暗色微光風格)
+    const getBtnStyle = (tabName) => {
+        const isActive = currentForgeTab === tabName;
+        return `flex:1; min-width: 45%; padding: 6px 4px; margin: 0; font-size: 0.8rem; border-color: ${isActive ? '#00ffcc' : '#444'}; color: ${isActive ? '#00ffcc' : '#888'}; background: ${isActive ? 'rgba(0, 255, 204, 0.15)' : 'transparent'};`;
+    };
+
+    // 頂部煉金爐、素材狀態 與 ✨部位過濾切換按鈕
+    let html = `
+    <div style="background:#111; border:1px solid var(--zaco-color); padding:10px; margin-bottom:15px; border-radius:4px; text-align:left;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:0.9rem;">
+            <span>🧬 生物金屬：<strong style="color:#00ffcc;">${bmCount}</strong></span>
+            <span>🧪 黑水鍍膜：<strong style="color:#00ffcc;">${ctCount}</strong></span>
+        </div>
+        <div style="display:flex; gap:8px;">
+            <button class="btn" style="flex:1; border-color:#00ffcc; color:#00ffcc; padding:6px; margin:0; font-size:0.8rem;" onclick="refineBioMetal(1)">提煉 x1 (-500廢料)</button>
+            <button class="btn" style="flex:1; border-color:#00ffcc; color:#00ffcc; padding:6px; margin:0; font-size:0.8rem;" onclick="refineBioMetal(10)">提煉 x10 (-5000廢料)</button>
+        </div>
+    </div>
+    
+    <h4 style="color:var(--text-color); text-align:left; margin-bottom:8px; border-bottom:1px dashed #444; padding-bottom:5px;">// 裝備強化控制台 (選擇裝備部位)</h4>
+    
+    <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;">
+        <button class="btn" style="${getBtnStyle('equipped')}" onclick="switchForgeTab('equipped')">🛡️ 身上裝備</button>
+        <button class="btn" style="${getBtnStyle('helmet')}" onclick="switchForgeTab('helmet')">⛑️ 頭盔</button>
+        <button class="btn" style="${getBtnStyle('collar')}" onclick="switchForgeTab('collar')">🔗 項圈</button>
+        <button class="btn" style="${getBtnStyle('harness')}" onclick="switchForgeTab('harness')">🦺 胸背帶</button>
+    </div>
+
+    <div class="inv-list" style="text-align:left;">`;
+
+    // 讀取所有裝備並依據 currentForgeTab 進行精準過濾
+    let allItems = await db.inventory_items.toArray();
+    let filteredItems = allItems.filter(item => {
+        if (currentForgeTab === 'equipped') return item.is_equipped === 1;
+        // 點選其他部位時：只列出背包中未穿戴 (is_equipped === 0) 且符合該部位的武裝，畫面最乾淨！
+        return item.is_equipped === 0 && item.slot === currentForgeTab;
+    });
+
+    // 若當前分類無任何裝備的提示語
+    if (filteredItems.length === 0) {
+        let emptyMsg = currentForgeTab === 'equipped' ? "獵犬身上目前無穿戴任何裝備" : "背包中目前無此部位的備用武裝";
+        container.innerHTML = html + `<p style="color:#777; text-align:center; padding:20px 0;">[ ${emptyMsg} ]</p></div>`;
+        return;
+    }
+
+    filteredItems.forEach(item => {
+        let curLvl = item.level || 0;
+        let nextLvl = curLvl + 1;
+        let isMax = curLvl >= 9;
+        let data = FORGE_DATA[nextLvl];
+        let lvlStr = curLvl > 0 ? ` <strong style="color:#00ffcc;">+${curLvl}</strong>` : "";
+        let eqTag = item.is_equipped ? ` <span style="color:var(--zaco-color); font-size:0.75rem;">[穿戴中]</span>` : "";
+
+        html += `
+        <div style="border:1px solid #333; background:rgba(0,0,0,0.6); padding:10px; margin-bottom:8px; border-radius:4px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <span class="${item.class}" style="font-weight:bold; font-size:0.95rem;">[${item.slotText}] ${item.name}${lvlStr}${eqTag}</span>
+                <span style="font-size:0.8rem; color:${isMax ? '#00ffcc' : '#aaa'};">${isMax ? 'MAX TOP' : `下一階: +${nextLvl} (+${nextLvl*10}%)`}</span>
+            </div>`;
+
+        if (!isMax) {
+            let canUpgrade = (bmCount >= data.metal) && (gameState.resources.zaco >= data.zaco);
+            let hasCoating = ctCount > 0;
+            html += `
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem; background:#0a0a0a; padding:6px; border-radius:3px; margin-bottom:8px;">
+                <span>消耗: <strong style="color:#00ffcc;">${data.metal} 金屬</strong> + <strong style="color:var(--zaco-color);">${data.zaco} ZaCo</strong></span>
+                <span>成功率: <strong style="color:${data.rate <= 20 ? '#ff3333' : '#fff'};">${data.rate}%</strong></span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <label style="font-size:0.8rem; color:#aaa; display:flex; align-items:center; cursor:pointer;">
+                    <input type="checkbox" id="coat_${item.id}" ${hasCoating ? '' : 'disabled'} style="margin-right:5px;">
+                    使用黑水鍍膜 (+15%機率)
+                </label>
+                <button class="btn" style="width:auto; padding:5px 15px; margin:0; font-size:0.8rem; border-color:${canUpgrade ? '#00ffcc' : '#555'}; color:${canUpgrade ? '#00ffcc' : '#555'};" onclick="enhanceItem(${item.id})">確認強化</button>
+            </div>`;
+        } else {
+            html += `<div style="text-align:center; color:#00ffcc; font-size:0.8rem; padding:4px;">[ 頂級武裝！已達極限強化階級 ]</div>`;
+        }
+        html += `</div>`;
+    });
+
+    container.innerHTML = html + `</div>`;
+}
+
+
+// 3. 執行裝備強化 (+1 ~ +9)
+async function enhanceItem(id) {
+    const item = await db.inventory_items.get(id);
+    if (!item) return;
+
+    let curLvl = item.level || 0;
+    if (curLvl >= 9) return;
+    let nextLvl = curLvl + 1;
+    let data = FORGE_DATA[nextLvl];
+
+    let useCoating = false;
+    let coatCheckbox = document.getElementById(`coat_${id}`);
+    if (coatCheckbox && coatCheckbox.checked) useCoating = true;
+
+    // 檢查素材
+    if ((gameState.resources.biometal || 0) < data.metal || gameState.resources.zaco < data.zaco) {
+        logMessage(">> [強化失敗] 生物金屬或 ZaCo 資金不足！", "zaco");
+        return;
+    }
+    if (useCoating && (gameState.resources.coating || 0) < 1) {
+        logMessage(">> [強化失敗] 黑水鍍膜數量不足！", "zaco");
+        return;
+    }
+
+    // 扣除消耗
+    gameState.resources.biometal -= data.metal;
+    gameState.resources.zaco -= data.zaco;
+    if (useCoating) gameState.resources.coating -= 1;
+
+    // 計算機率 (加上鍍膜 15%，最高 100%)
+    let finalRate = data.rate + (useCoating ? 15 : 0);
+    if (finalRate > 100) finalRate = 100;
+
+    let roll = Math.random() * 100;
+    if (roll <= finalRate) {
+        // 強化成功
+        await db.inventory_items.update(id, { level: nextLvl });
+        logMessage(`>> ⚡ [強化成功！] <span class="${item.class}">${item.name}</span> 升級至 <strong style="color:#00ffcc;">+${nextLvl}</strong>！基礎屬性提升 ${nextLvl*10}%！`, "system");
+    } else {
+        // 強化失敗 (不損毀、不降級)
+        logMessage(`>> 💥 [強化失敗] <span class="${item.class}">${item.name}</span> 強化 +${nextLvl} 失敗！裝備維持原階級，素材已消耗。`, "zaco");
+    }
+
+    // 若強化的是身上穿戴的裝備，立即刷新獵犬戰力
+    if (item.is_equipped) {
+        const equippedItems = await db.inventory_items.where("is_equipped").equals(1).toArray();
+        gameState.equipped = { helmet: null, collar: null, harness: null };
+        equippedItems.forEach(i => { gameState.equipped[i.slot] = i; });
+        calculateHoundStats();
+    }
+
+    savePlayerState();
+    updateUI();
+    renderForge();
+    if (typeof renderInventory === "function" && document.getElementById('tab-inv').classList.contains('active')) {
+        renderInventory();
+    }
 }

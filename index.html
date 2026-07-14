@@ -305,11 +305,26 @@
         </div>
     </div>
 
-    <div id="tab-shop" class="tab-content">
-        <h3 class="warning-text" style="color:var(--zaco-color);">// UNDERGROUND_BLACK_MARKET</h3>
-        <p style="font-size: 0.85rem;">使用 <span style="color:var(--zaco-color); font-weight:bold;">ZaCo</span> 交易地下改造武裝。購買後裝備將直接送入背包 [INV]：</p>
-        <div id="shop-list" class="inv-list"></div>
+        <div id="tab-shop" class="tab-content">
+        <h3 class="warning-text" style="color:var(--zaco-color);">// UNDERGROUND_BLACK_MARKET & FORGE</h3>
+        
+        <div class="subtab-container" style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <button class="btn subtab-btn shop-subtab active-subtab" onclick="switchShopSubTab('trade', this)" style="flex:1; border-color: var(--zaco-color); color: var(--zaco-color);">🛒 黑市商品交易</button>
+            <button class="btn subtab-btn shop-subtab" onclick="switchShopSubTab('forge', this)" style="flex:1; border-color: var(--zaco-color); color: var(--zaco-color);">🔨 鐵匠鋪 (強化)</button>
+        </div>
+
+        <div id="shop-trade-view" style="display: block;">
+            <p style="font-size: 0.85rem;">使用 <span style="color:var(--zaco-color); font-weight:bold;">ZaCo</span> 交易地下改造武裝。購買後裝備將直接送入背包 [INV]：</p>
+            <div id="shop-list" class="inv-list"></div>
+        </div>
+
+        <div id="shop-forge-view" style="display: none;">
+            <div id="forge-container" style="text-align: center; padding: 20px; border: 1px dashed var(--zaco-color); border-radius: 4px;">
+                <p style="color: var(--zaco-color);">[ 鐵匠鋪模組準備就緒，等待對接強化引擎... ]</p>
+            </div>
+        </div>
     </div>
+
 
 <!-- ===== [06_BASE] 家園系統分頁 ===== -->
     <div id="tab-base" class="tab-content">
