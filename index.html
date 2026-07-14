@@ -216,8 +216,13 @@
         <button id="btn-upgrade-drone" class="btn" onclick="buyDrone()">DEPLOY_SCRAP_DRONE [成本: 10 廢料]</button>
         <hr style="border-style: dashed; border-color: var(--border-color);">
         <button class="btn" onclick="saveGame()" style="border-color: #888; color: #888;">FORCE_SAVE (手動備份資料)</button>
-        <button class="btn" onclick="resetGame()" style="border-color: #ff3333; color: #ff3333;">FORMAT_DRIVE (清除存檔)</button>
+        <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+    <button class="btn" onclick="exportGameData()" style="flex: 1; border-color: #00ffcc; color: #00ffcc;">EXPORT_DATA (匯出存檔)</button>
+    <button class="btn" onclick="importGameData()" style="flex: 1; border-color: #ff9900; color: #ff9900;">IMPORT_DATA (匯入存檔)</button>
+</div>
+<button id="btn-reset-game" class="btn" onclick="resetGame()" style="width: 100%; border-color: #ff3333; color: #ff3333;">FORMAT_DRIVE (清除存檔)</button>
     </div>
+
 
     <div id="tab-gather" class="tab-content">
         <h3 class="warning-text">// SCAVENGE_PROTOCOLS</h3>
