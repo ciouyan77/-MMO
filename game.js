@@ -959,7 +959,8 @@ async function buyShopItem(index) {
     const item = gameConfig.shop_database[index];
     if (gameState.resources.zaco >= item.price) {
         gameState.resources.zaco -= item.price;
-                if (item.slot === 'usable' && item.id === 'shop_jerky_bulk') {
+        
+        if (item.slot === 'usable' && item.id === 'shop_jerky_bulk') {
             let maxFoodCap = getMaxFood();
             // 防呆：受限於中央控制室當前動態上限
             if (gameState.resources.food >= maxFoodCap) {
@@ -972,11 +973,41 @@ async function buyShopItem(index) {
             // 加上 200 份，但受限於當前動態上限
             gameState.resources.food = Math.min(gameState.resources.food + 200, maxFoodCap);
             logMessage(`地下交易完成: 拆開 <span class="${item.class}">${item.name}</span>，物資入庫。(當前: ${gameState.resources.food}/${maxFoodCap})`, 'zaco');
+        } else {
+            // 🚀 關鍵修復：處理「裝備類」商品的物流配送邏輯
+            try {
+                // 將裝備正式寫入 IndexedDB 背包資料庫
+                await db.inventory_items.add({
+                    slot: item.slot,
+                    slotText: item.slotText || (item.slot === 'helmet' ? '頭盔' : (item.slot === 'collar' ? '項圈' : '胸背帶')), // 防呆轉換
+                    rarity: item.rarity || 'common',
+                    class: item.class || 'loot-common',
+                    atk: item.atk || 0,
+                    maxHp: item.maxHp || 0,
+                    def: item.def || 0,
+                    dodge: item.dodge || 0,
+                    crit: item.crit || 0,
+                    setId: item.setId || null,
+                    is_equipped: 0, // 剛買來的裝備預設放在背包
+                    is_locked: 0,   // 預設未鎖定
+                    name: item.name,
+                    level: 0
+                });
+                logMessage(`地下交易完成: <span class="${item.class}">${item.name}</span> 已由無人機空投至您的背包。`, 'zaco');
+            } catch (err) {
+                // 防呆機制：萬一資料庫卡死寫入失敗，立即啟動退款程序，避免吃錢
+                logMessage(`[物流中斷] 裝備配送失敗，已啟動 ZaCo 幣退款程序。`, 'warning');
+                gameState.resources.zaco += item.price; 
+            }
         }
 
-        updateUI(); savePlayerState();
-    } else { logMessage(`[ZACO_ERROR] 帳戶餘額不足以支付黑市交易。`, 'system'); }
+        updateUI(); 
+        savePlayerState();
+    } else { 
+        logMessage(`[ZACO_ERROR] 帳戶餘額不足以支付黑市交易。`, 'system'); 
+    }
 }
+
 
 function renderShop() {
     const list = document.getElementById('shop-list'); list.innerHTML = "";
