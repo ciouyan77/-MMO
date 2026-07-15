@@ -1444,38 +1444,22 @@ function changeArea() {
     }
     gameState.currentArea = document.getElementById('area-select').value;
     
-    // 切換影像觀測區圖片與戰術簡報
+    // 切換影像觀測區圖片
     const imgEl = document.getElementById('area-image');
     const textEl = document.getElementById('area-image-text');
-    const descEl = document.getElementById('area-desc'); // 取得簡報 DOM
-    
     if (gameState.currentArea !== 'wasteland') {
         const dungeon = gameConfig.dungeon_database.find(d => d.id === gameState.currentArea);
-        if (dungeon) {
-            // 更新圖片
-            if (dungeon.img_url) {
-                imgEl.src = dungeon.img_url; imgEl.style.display = 'block'; textEl.style.display = 'none';
-            } else {
-                imgEl.style.display = 'none'; textEl.style.display = 'block'; textEl.innerText = "[NO_SIGNAL_IMAGE_NOT_FOUND]";
-            }
-            // 更新簡報內容
-            if (descEl) {
-                descEl.innerHTML = `>> [戰術簡報]: ${dungeon.desc || "無可用區域情報。"}`;
-                descEl.style.color = "#00ff66"; // 副本顯示螢光綠
-            }
-            logMessage(`>> 目標區域重新定位：${dungeon.name}`, "system");
+        if (dungeon && dungeon.img_url) {
+            imgEl.src = dungeon.img_url; imgEl.style.display = 'block'; textEl.style.display = 'none';
+        } else {
+            imgEl.style.display = 'none'; textEl.style.display = 'block'; textEl.innerText = "[NO_SIGNAL_IMAGE_NOT_FOUND]";
         }
+        logMessage(`>> 目標區域重新定位：${dungeon.name}`, "system");
     } else {
         imgEl.style.display = 'none'; textEl.style.display = 'block'; textEl.innerText = "[NO_SIGNAL_IMAGE_NOT_FOUND]";
-        // 恢復荒野預設簡報
-        if (descEl) {
-            descEl.innerHTML = `>> [戰術簡報]: 城市邊緣的死寂廢土，遊蕩著初階變異生物，適合收集基礎組件。`;
-            descEl.style.color = "#ffaa00"; // 荒野顯示橘黃色
-        }
         logMessage(`>> 目標區域重新定位：荒野外圍`, "system");
     }
 }
-
 
 // ====== 霸主召喚系統 ======
 function summonBoss() {
@@ -1488,21 +1472,14 @@ function summonBoss() {
         return;
     }
     
-    // 【聰明定位邏輯】：不再寫死副本名稱！
-    // 預設荒野外圍為「狂暴野熊」，若在副本中，則自動讀取該副本名單的「最後一隻」怪物
-    let bossName = "狂暴野熊";
-    if (gameState.currentArea !== "wasteland") {
-        const dungeon = gameConfig.dungeon_database.find(d => d.id === gameState.currentArea);
-        if (dungeon && dungeon.enemies && dungeon.enemies.length > 0) {
-            bossName = dungeon.enemies[dungeon.enemies.length - 1];
-        }
-    }
+    // 依照當前區域決定霸主種類 (強度從資料庫借用高階怪物)
+    let bossName = "狂暴野熊"; // 荒野預設霸主
+    if (gameState.currentArea === "dungeon_1") bossName = "廢料聚合怪"; 
+    else if (gameState.currentArea === "dungeon_2") bossName = "毒液噴射巨蛾";
+    else if (gameState.currentArea === "dungeon_3") bossName = "舊時代軍用突擊犬";
     
     const bossTemplate = gameConfig.enemy_database.find(e => e.name === bossName);
-    if (!bossTemplate) {
-        logMessage(">> [系統錯誤] 無法在資料庫定位當前區域的霸主特徵代碼！", "system");
-        return;
-    }
+    if (!bossTemplate) return;
 
     // 扣除誘餌並設定當前敵人 (血量兩倍、攻擊力 1.5 倍)
     gameState.resources.baits -= 5;
@@ -1530,7 +1507,6 @@ updateUI = function() {
     const baitsEl = document.getElementById('res-baits');
     if (baitsEl) baitsEl.innerText = gameState.resources.baits || 0;
 };
-
 
 // ====== 一鍵批量拆解 ======
 async function bulkSellItems() {
