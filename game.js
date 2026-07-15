@@ -375,12 +375,33 @@ function buyDrone() {
 
 // 更新家園分頁的所有 UI 數值
 function updateBaseUI() {
-    // 1. 中央控制室
-        // 修正：同步 UI 顯示的平滑成本公式
-    let ccCost = Math.floor(500 * Math.pow(1.35, baseData.ccLevel || 0));
+    // 1. 中央控制室 (升級版：支援 Lv.Max 與按鈕封印)
+    let currentLevel = baseData.ccLevel || 0;
+    let isMax = currentLevel >= 9; // 達到 Lv9 視為滿等
+    let ccCost = Math.floor(500 * Math.pow(1.35, currentLevel));
 
-    if(document.getElementById('base-cc-level')) document.getElementById('base-cc-level').innerText = baseData.ccLevel || 0;
-    if(document.getElementById('base-cc-cost')) document.getElementById('base-cc-cost').innerText = ccCost;
+    if (document.getElementById('base-cc-level')) {
+        document.getElementById('base-cc-level').innerText = isMax ? "Max" : currentLevel;
+    }
+    
+    let costEl = document.getElementById('base-cc-cost');
+    if (costEl) {
+        if (isMax) {
+            // 系統自動往上尋找外層的 button，直接替換整顆按鈕樣式
+            let btn = costEl.closest('button'); 
+            if (btn) {
+                btn.innerText = "擴充完成";
+                btn.disabled = true; // 停用按鈕防呆
+                btn.style.color = "#666";
+                btn.style.borderColor = "#333";
+            } else {
+                costEl.innerText = "擴充完成";
+            }
+        } else {
+            // 尚未滿等，正常顯示花費
+            costEl.innerText = ccCost;
+        }
+    }
     
     // 2. 收音機狀態
     const radioBtn = document.getElementById('btn-radio-state');
@@ -407,6 +428,7 @@ function updateBaseUI() {
 
     if (typeof updateDispatchUI === "function") updateDispatchUI();
 }
+
 
 // ⚠️ 新增：一鍵引爆廣播塔收割殭屍
 function detonateTower() {
