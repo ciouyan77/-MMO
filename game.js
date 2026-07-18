@@ -1,9 +1,20 @@
 // 全域記憶體快照
 let gameConfig = null;
+const isDevMode = false; // 🔒 永久死鎖：嚴格禁止任何腳本重啟作弊模式
+
+
+
+// 🚀 廢土全域資料字典 (O(1) 高速檢索)
+const WastelandDB = {
+    enemies: {},
+    dungeons: {}
+};
+
 let gameState = {
     playerName: "倖存者", houndName: "廢土獵犬", playerAvatar: null,
 
 resources: { scrap: 0, food: 10, zaco: 0, biometal: 0, coating: 0 },
+
 
     upgrades: { drones: 0 }, costs: { drone: 10 }, autoRates: { scrap: 0 },
     isExploring: false, currentArea: "wasteland",
@@ -51,21 +62,45 @@ function getMaxFood() {
     return 400 + (level * 400);
 }
 
-// 啟動初始化 (新增：強制顯影報錯機制)
 window.addEventListener("DOMContentLoaded", async () => {
-    try {
-        const response = await fetch('./config.json');
-        gameConfig = await response.json();
-        await loadGameData();
-        initGameLoops();
-        if (typeof renderDungeonList === "function") renderDungeonList();
-    } catch (e) { 
-        // ⚠️ 關鍵防護：如果初始化失敗，強制在手機畫面上彈出警告並顯示病因！
-        alert("🚨 系統初始化崩潰：\n" + e.message);
-        const log = document.getElementById('log-container');
-        if (log) log.innerHTML = `<div style="color:#ff3333; font-weight:bold;">[致命錯誤] 檔案解析失敗: ${e.message}</div>`;
+    // 讀取 JSON 設定檔
+    const response = await fetch('./config.json');
+    gameConfig = await response.json();
+    
+    // 🚀 關鍵修復：把怪物與副本的資料，真正「灌入」我們的高速字典中！
+    if (gameConfig.enemy_database) {
+        gameConfig.enemy_database.forEach(e => WastelandDB.enemies[e.id] = e);
     }
+    if (gameConfig.dungeon_database) {
+        gameConfig.dungeon_database.forEach(d => WastelandDB.dungeons[d.id] = d);
+    }
+    
+    // ==========================================
+    // 🚀 [幽靈金鑰探測協議] (新增：不影響任何原有邏輯)
+    // ==========================================
+    try {
+        const devResponse = await fetch('./dev_key.json');
+        if (devResponse.ok) {
+            const devData = await devResponse.json();
+            if (devData.dev_mode_active) {
+                isDevMode = true;
+                if (typeof initDevTools === "function") initDevTools(); // 啟動開發者面板！
+            }
+        }
+    } catch (e) {
+        // 靜默處理：如果沒抓到 dev_key.json 檔案，就當作一般玩家，絕對不報錯
+    }
+    // ==========================================
+
+    // 繼續原本的開局流程
+    await loadGameData();
+    initGameLoops();
+    if (typeof renderDungeonList === "function") renderDungeonList();
 });
+
+
+
+
 
 // ==========================================
 // async function loadGameData() { 
@@ -130,7 +165,15 @@ renderProfileAvatar(); // 讀檔後順便將大頭照與姓名寫入 UI
     gameState.equipped = { helmet: null, collar: null, harness: null };
     equippedItems.forEach(item => { gameState.equipped[item.slot] = item; });
 
-    calculateHoundStats(); 
+        // 🛡️ 防禦性裝甲：隔離外部模組計算，確保即便出錯也不會阻斷 UI 與廢料渲染！
+    try {
+        if (typeof calculateHoundStats === "function") {
+            calculateHoundStats();
+        }
+    } catch (err) {
+        console.error(">> [模組警告] calculateHoundStats 執行失敗:", err);
+        logMessage(`>> [系統提示] 數值模組載入異常: ${err.message}`, "warning");
+    }
     
     // --- 關鍵修復：同步 UI 按鈕，確保重整網頁時探索按鈕維持在「執行中」 ---
     if (gameState.isExploring) {
@@ -157,6 +200,7 @@ renderProfileAvatar(); // 讀檔後順便將大頭照與姓名寫入 UI
 async function savePlayerState() {
     // 存檔時，刷新最後登入時間
     if (window.baseData) baseData.lastLoginTime = Date.now();
+
     
     await db.player_state.put({
         id: 1, 
@@ -175,62 +219,7 @@ async function savePlayerState() {
         dispatch: gameState.dispatch    
     });
 }
-// 計算能力值 (包含 +1~+9 強化倍率與套裝遞減效應)
-function calculateHoundStats() {
-    let bAtk = 0, bHp = 0, bDef = 0, bDodge = 0, bCrit = 0, ohko = 0;
-    let setCounts = {};
 
-    Object.values(gameState.equipped).forEach(item => {
-        if (!item) return;
-        // 🚀 微創手術：實裝 +1~+9 強化屬性成長 (每階提升 10%)
-        let lvlMult = 1 + (item.level || 0) * 0.1;
-        
-        if (item.atk) bAtk += Math.floor(item.atk * lvlMult);
-        if (item.maxHp) bHp += Math.floor(item.maxHp * lvlMult);
-        if (item.def) bDef += Math.floor(item.def * lvlMult);
-        if (item.dodge) bDodge += Math.floor(item.dodge * lvlMult);
-        if (item.crit) bCrit += Math.floor(item.crit * lvlMult);
-        if (item.setId) setCounts[item.setId] = (setCounts[item.setId] || 0) + 1;
-    });
-
-    let activeText = []; 
-    gameState.hound.activeSets = []; 
-    let atkMultiplier = 1; 
-
-    for (const [setId, count] of Object.entries(setCounts)) {
-        let setName = gameConfig.loot_pool.sets[setId] ? gameConfig.loot_pool.sets[setId].name : setId;
-
-        if (count >= 2) {
-            gameState.hound.activeSets.push(`${setId}_2pc`);
-            if (setId === 'scavenger') { bAtk += 30; activeText.push(`[${setName}] 2件套: 攻擊力 +30`); }
-            if (setId === 'ninja') { bDodge += 30; activeText.push(`[${setName}] 2件套: 閃避率 +30% | 閃避後必爆`); }
-            if (setId === 'thug') { bCrit += 30; activeText.push(`[${setName}] 2件套: 暴擊率 +30% | 暴傷 3 倍`); }
-            if (setId === 'zombie') { ohko += 12; activeText.push(`[${setName}] 2件套: 秒殺機率 +12%`); }
-            if (setId === 'abyss') { bDef += 30; activeText.push(`[${setName}] 2件套: 防禦力 +30 | 反彈 50% 傷害`); }
-        }
-        
-        if (count >= 3) {
-            gameState.hound.activeSets.push(`${setId}_3pc`);
-            if (setId === 'scavenger') { bAtk += 15; activeText.push(`[${setName}] 3件套: 攻擊力再 +15 (總和+45)`); }
-            if (setId === 'ninja') { bDodge += 10; activeText.push(`[${setName}] 3件套: 閃避率再 +10% (總和+40%)`); }
-            if (setId === 'thug') { bCrit += 15; activeText.push(`[${setName}] 3件套: 暴擊率再 +15% (總和+45%)`); }
-            if (setId === 'zombie') { ohko += 5; activeText.push(`[${setName}] 3件套: 秒殺機率再 +5% (總和+17%)`); }
-            if (setId === 'abyss') { bDef += 15; activeText.push(`[${setName}] 3件套: 防禦力再 +15 (總和+45)`); }
-        }
-    }
-
-    gameState.hound.totalAtk = Math.floor((gameState.hound.baseAtk + bAtk) * atkMultiplier);
-    gameState.hound.maxHp = 100 + bHp; 
-    gameState.hound.totalDef = gameState.hound.baseDef + bDef;
-    gameState.hound.totalDodge = gameState.hound.baseDodge + bDodge; 
-    gameState.hound.totalCrit = gameState.hound.baseCrit + bCrit;
-    gameState.hound.ohko = ohko;
-    
-    if (gameState.hound.hp > gameState.hound.maxHp) gameState.hound.hp = gameState.hound.maxHp;
-    
-    const setText = document.getElementById('set-bonus-text');
-    if (setText) setText.innerHTML = activeText.length > 0 ? activeText.join("<br>") : "<span style='color:#777;'>[未啟動任何套裝效果]</span>";
-}
 
 
 
@@ -371,676 +360,6 @@ function buyDrone() {
     } else { logMessage(`[SCRAP] 資源不足。`, 'system'); }
 }
 
-// --- [06_BASE] 家園設施邏輯 ---
-
-// 更新家園分頁的所有 UI 數值
-function updateBaseUI() {
-    // 1. 中央控制室 (升級版：支援 Lv.Max 與按鈕封印)
-    let currentLevel = baseData.ccLevel || 0;
-    let isMax = currentLevel >= 9; // 達到 Lv9 視為滿等
-    let ccCost = Math.floor(500 * Math.pow(1.35, currentLevel));
-
-    if (document.getElementById('base-cc-level')) {
-        document.getElementById('base-cc-level').innerText = isMax ? "Max" : currentLevel;
-    }
-    
-    let costEl = document.getElementById('base-cc-cost');
-    if (costEl) {
-        if (isMax) {
-            // 系統自動往上尋找外層的 button，直接替換整顆按鈕樣式
-            let btn = costEl.closest('button'); 
-            if (btn) {
-                btn.innerText = "擴充完成";
-                btn.disabled = true; // 停用按鈕防呆
-                btn.style.color = "#666";
-                btn.style.borderColor = "#333";
-            } else {
-                costEl.innerText = "擴充完成";
-            }
-        } else {
-            // 尚未滿等，正常顯示花費
-            costEl.innerText = ccCost;
-        }
-    }
-    
-    // 2. 收音機狀態
-    const radioBtn = document.getElementById('btn-radio-state');
-    if (radioBtn) {
-        if (baseData.radioState) {
-            radioBtn.innerText = "[目前狀態: 啟動] TURN_OFF";
-            radioBtn.style.borderColor = "#55aaff"; radioBtn.style.color = "#55aaff";
-        } else {
-            radioBtn.innerText = "[目前狀態: 關閉] TURN_ON";
-            radioBtn.style.borderColor = "#888"; radioBtn.style.color = "#888";
-        }
-    }
-
-    // 3. 誘餌廣播塔
-    let towerLv = baseData.towerLevel || 0;
-    let maxZombies = (2 + (towerLv * 2)) * 60 * towerLv;
-    let chargePct = maxZombies > 0 ? Math.min(100, Math.floor(((baseData.towerZombies || 0) / maxZombies) * 100)) : 0;
-    if(document.getElementById('base-tower-charge')) document.getElementById('base-tower-charge').innerText = `${chargePct}% (${baseData.towerZombies || 0}隻)`;
-
-    // 4. 派遣電台
-    let dispatchCost = Math.floor(6000 * Math.pow(1.8, baseData.dispatchLevel || 0));
-    if(document.getElementById('base-dispatch-level')) document.getElementById('base-dispatch-level').innerText = baseData.dispatchLevel || 0;
-    if(document.getElementById('base-dispatch-cost')) document.getElementById('base-dispatch-cost').innerText = dispatchCost;
-
-    if (typeof updateDispatchUI === "function") updateDispatchUI();
-}
-
-
-// ⚠️ 新增：一鍵引爆廣播塔收割殭屍
-function detonateTower() {
-    if (!baseData.towerLevel || baseData.towerLevel === 0) {
-        logMessage("⚠️ 尚未建立誘餌廣播塔，請先升級建立！", "warning"); return;
-    }
-    if (!baseData.towerZombies || baseData.towerZombies <= 0) {
-        logMessage("⚠️ 廣播塔附近目前沒有徘徊的屍群，請等待離線蓄力。", "warning"); return;
-    }
-    let killed = baseData.towerZombies;
-    let scrapGain = killed * (Math.floor(Math.random() * 3) + 2);
-    let maxCap = getMaxScrap();
-    gameState.resources.scrap = Math.min(gameState.resources.scrap + scrapGain, maxCap);
-    baseData.towerZombies = 0;
-    
-    updateBaseUI(); updateUI(); savePlayerState();
-    logMessage(`💥 [EMP引爆] 成功清剿廣播塔周圍 ${killed} 隻殭屍，回收 +${scrapGain} 廢料！`, "success");
-}
-
-// 收音機開關切換邏輯
-function toggleRadio() {
-    if (baseData.radioState === undefined) baseData.radioState = false;
-    baseData.radioState = !baseData.radioState;
-    
-    updateBaseUI();
-    savePlayerState();
-    
-    if (baseData.radioState) {
-        logMessage(`📻 [雜訊] 收音機已開啟。虛空中的低語開始在營地迴盪...`, 'system');
-    } else {
-        logMessage(`📻 [靜音] 切斷收音機電源。空間恢復了令人安心的死寂。`, 'system');
-    }
-}
-
-// 升級設施共用函數
-function upgradeFacility(facility) {
-        if (facility === 'controlCenter') {
-        // 新增：滿等 10 級限制
-        if ((baseData.ccLevel || 0) >= 9) {
-            logMessage(`[系統] 中央控制室已達最高擴容等級 (Lv.10)。`, 'warning');
-            return;
-        }
-                // 修正：將 2 倍暴增改為 1.35 倍平滑成長，並以 Math.floor 取整數，防止數值死鎖！
-        let cost = Math.floor(500 * Math.pow(1.35, baseData.ccLevel || 0));
-
-        if (gameState.resources.scrap >= cost) {
-            gameState.resources.scrap -= cost;
-            baseData.ccLevel = (baseData.ccLevel || 0) + 1;
-            logMessage(`[系統] 系統擴容成功。中央控制室升級至 Lv.${(baseData.ccLevel || 0) + 1} (廢料上限: ${getMaxScrap()} / 肉乾上限: ${getMaxFood()})`, 'system');
-            updateBaseUI(); updateUI(); savePlayerState();
-        } else {
-            logMessage(`[警告] 廢料不足，擴容需要 ${cost} 廢料`, 'zaco');
-        }
-    } else if (facility === 'tower') {
-
-        let cost = Math.floor(4500 * Math.pow(1.7, baseData.towerLevel || 0));
-        if (gameState.resources.scrap >= cost) {
-            gameState.resources.scrap -= cost;
-            baseData.towerLevel = (baseData.towerLevel || 0) + 1;
-            logMessage(`[系統] 廣播塔增幅成功！升級至 Lv.${baseData.towerLevel}`, 'system');
-            updateBaseUI(); updateUI(); savePlayerState();
-        } else {
-            logMessage(`[警告] 廢料不足，升級廣播塔需要 ${cost} 廢料`, 'zaco');
-        }
-    } else if (facility === 'dispatch') {
-        let cost = Math.floor(6000 * Math.pow(1.8, baseData.dispatchLevel || 0));
-        if (gameState.resources.scrap >= cost) {
-            gameState.resources.scrap -= cost;
-            baseData.dispatchLevel = (baseData.dispatchLevel || 0) + 1;
-            logMessage(`[系統] 派遣電台功率提升！升級至 Lv.${baseData.dispatchLevel}`, 'system');
-            updateBaseUI(); updateUI(); savePlayerState();
-        } else {
-            logMessage(`[警告] 廢料不足，升級電台需要 ${cost} 廢料`, 'zaco');
-        }
-    }
-}
-
-function healHound() {
-    if (gameState.hound.hp >= gameState.hound.maxHp) return;
-    if (gameState.resources.food >= 1) {
-        gameState.resources.food--;
-        // 🚀 微創優化：改為計算總血量的 25% (無條件捨去小數點)
-        let healAmount = Math.floor(gameState.hound.maxHp * 0.25);
-        gameState.hound.hp = Math.min(gameState.hound.hp + healAmount, gameState.hound.maxHp);
-        
-        updateUI(); 
-        savePlayerState(); 
-        logMessage(`餵食肉乾，恢復 ${healAmount} HP (25%)。[${gameState.hound.hp}/${gameState.hound.maxHp}]`);
-    }
-}
-
-
-
-
-function toggleExplore() {
-    if (gameState.hound.hp <= 0 && !gameState.isExploring) { logMessage("獵犬處於重傷休克狀態，請餵食肉乾。", "system"); return; }
-    gameState.isExploring = !gameState.isExploring;
-    const btn = document.getElementById('btn-explore'); const stateEl = document.getElementById('hound-state'); const reportEl = document.getElementById('combat-report');
-    if (gameState.isExploring) {
-        btn.innerText = "HALT_EXPLORATION [停止探索]"; btn.style.borderColor = "#ff3333"; btn.style.color = "#ff3333";
-        stateEl.innerText = "[探索中]"; stateEl.style.color = "var(--primary-color)"; reportEl.innerHTML = "波段掃描中...搜尋目標中...";
-    } else {
-        btn.innerText = "EXECUTE_AUTO_EXPLORE [啟動自動探索]"; btn.style.borderColor = "var(--primary-color)"; btn.style.color = "var(--primary-color)";
-        stateEl.innerText = "[待命中]"; stateEl.style.color = "var(--text-color)"; reportEl.innerHTML = "探索中斷，返回營地。";
-        gameState.currentEnemy = null;
-    }
-}
-
-function handleExplorationTick() {
-    if (!gameState.isExploring) return;
-    const reportEl = document.getElementById('combat-report');
-    if (!reportEl) return;
-
-    // 1. 遇敵與區域過濾邏輯
-    if (!gameState.currentEnemy) {
-        let possibleEnemies = gameConfig.enemy_database;
-        
-        if (gameState.currentArea === "wasteland") {
-            possibleEnemies = possibleEnemies.filter(e => e.atk <= 10);
-        } else {
-            const dungeon = gameConfig.dungeon_database.find(d => d.id === gameState.currentArea);
-            if (dungeon) possibleEnemies = possibleEnemies.filter(e => dungeon.enemies.includes(e.name));
-        }
-        
-        if (possibleEnemies.length === 0) possibleEnemies = [{ name: "系統錯誤代碼: 404_ENEMY", hp: 10, atk: 1 }];
-        
-        gameState.currentEnemy = { ...possibleEnemies[Math.floor(Math.random() * possibleEnemies.length)] };
-        reportEl.innerHTML = `>> 遇敵：<span class='warning-text'>${gameState.currentEnemy.name}</span> (HP: ${gameState.currentEnemy.hp})`;
-        return;
-    }
-
-        // 2. 戰鬥傷害邏輯
-    let currentAtk = gameState.hound.totalAtk;
-    let currentDef = gameState.hound.totalDef;
-    let currentDodge = gameState.hound.totalDodge;
-    let currentCrit = gameState.hound.totalCrit;
-    
-    // 🚀 微創實裝：判定上一回合是否觸發「忍術殘影必爆」，或是常規暴擊
-    let isGuaranteedCrit = gameState.hound.guaranteedCrit === true;
-    let isCrit = isGuaranteedCrit || (Math.random() * 100 < currentCrit);
-
-    // 觸發後立刻消耗掉必爆旗標
-    if (isGuaranteedCrit) {
-        gameState.hound.guaranteedCrit = false;
-    }
-
-    let dmgDealt = isCrit ? currentAtk * 2 : currentAtk;
-
-    // 🚀 微創對齊：暴擊傷害 3 倍移至 thug_2pc 觸發
-    if (isCrit && gameState.hound.activeSets.includes('thug_2pc')) dmgDealt = currentAtk * 3;
-
-    let ohkoChance = gameState.hound.ohko || 0;
-    if (Math.random() * 100 < ohkoChance) {
-        dmgDealt = 999999;
-        reportEl.innerHTML = `<span style="color:#ff2222;">>> [致命一擊] 觸發殭屍骰效果，直接秒殺！</span>`;
-    } else {
-        let critTag = isGuaranteedCrit ? " <span style='color:#00ff66;'>[忍術必爆!]</span>" : (isCrit ? " <span style='color:var(--zaco-color);'>(暴擊)</span>" : "");
-        reportEl.innerHTML = `>> 獵犬發動攻擊，造成 ${dmgDealt} 點傷害${critTag}。`;
-    }
-    
-    gameState.currentEnemy.hp -= dmgDealt;
-
-    // 3. 敵方反擊與秒殺檢定
-    if (gameState.currentEnemy.hp > 0) {
-        if (Math.random() * 100 < currentDodge) { 
-            reportEl.innerHTML += `<br>💨 [幻影] 獵犬靈巧地閃避了敵人的攻擊！`; 
-            // 🚀 微創實裝：著裝都市忍者 2件套且閃避成功時，賦予下回合必爆旗標
-            if (gameState.hound.activeSets.includes('ninja_2pc')) {
-                gameState.hound.guaranteedCrit = true;
-                reportEl.innerHTML += ` <span style="color:#00ff66;">[忍術殘影：下擊必定暴擊！]</span>`;
-            }
-        } else {
-            let dmgTaken = Math.max(1, gameState.currentEnemy.atk - currentDef);
-            gameState.hound.hp = Math.max(0, gameState.hound.hp - dmgTaken);
-            reportEl.innerHTML += `<br>💥 遭受攻擊，裝甲抵禦後受傷 ${dmgTaken} 點。`;
-            
-            // 🚀 微創對齊：深淵琉璃反傷移至 abyss_2pc 觸發
-            if (gameState.hound.activeSets.includes('abyss_2pc')) {
-                let reflectDmg = Math.floor(dmgTaken * 0.5); 
-                gameState.currentEnemy.hp -= reflectDmg;
-                reportEl.innerHTML += ` <span style="color: #ff3333;">(反彈 ${reflectDmg} 傷害)</span>`;
-            }
-        }
-
-        // 裝備檢定：秒殺警告
-        if (gameState.hound.hp <= 0) {
-            reportEl.innerHTML += `<br><b style="color:#ff3333; font-size:1.1rem;">💀 [SYSTEM_WARNING] 承受傷害超過極限，獵犬遭到秒殺！</b><br><span style="color:#ffaa00;">>> 系統提示：請提升【胸背帶】生命值與【頭盔】防禦力，或農出【滅世】級別武裝再進行挑戰。</span>`;
-            if (gameState.isExploring) toggleExplore(); 
-            return;
-        }
-    }
-
-
-    // 4. 擊殺結算
-    if (gameState.currentEnemy.hp <= 0) {
-        reportEl.innerHTML += `<br>>> <span class='warning-text'>${gameState.currentEnemy.name}</span> 已被擊敗！`;
-        
-        let isBoss = gameState.currentEnemy.isBoss; // 紀錄剛才死掉的是不是霸主
-        gameState.currentEnemy = null;
-        
-        let scrapGain = Math.floor(Math.random() * 5) + 1;
-        let maxCap = getMaxScrap();
-        let oldScrap = gameState.resources.scrap;
-        
-        // 加上戰鬥產出，但不超過上限
-        gameState.resources.scrap = Math.min(gameState.resources.scrap + scrapGain, maxCap);
-        
-        let actualGain = gameState.resources.scrap - oldScrap;
-        if (actualGain > 0) {
-            reportEl.innerHTML += `<br>獲得 ${actualGain} 廢料。`;
-        } else {
-            reportEl.innerHTML += `<br><span style="color:#ff3333;">(廢料儲存已滿，無法回收更多)</span>`;
-        }
-        
-        // 誘餌掉落機制 (15% 機率掉落)
-        if (Math.random() * 100 < 15) {
-            gameState.resources.baits = (gameState.resources.baits || 0) + 1;
-            reportEl.innerHTML += `<br><span style="color:#ff5555; font-weight:bold;">>> 發現特殊物資：[Alpha 誘餌] x1！</span>`;
-        }
-        
-        // ⚠️ 修正：使用非同步閉包依序 await，避免手機 IndexedDB 交易死鎖與 UI 凍結！
-        (async () => {
-            await generateLoot(false);
-            if (isBoss) {
-                reportEl.innerHTML += `<br><span style="color:#ffcc00;">>> 霸主倒下，噴出了大量的戰利品！</span>`;
-                await generateLoot(true);
-                await generateLoot(true); 
-            // ⚠️ 新增：擊殺霸主時，有 35% 高機率解密尋獲【副本機密文件】！
-                if (Math.random() < 0.35) {
-                    const newLore = rollForLore("dungeon"); // 觸發副本文件抽獎
-                    if (newLore) {
-                        gameState.unlockedLore.push(newLore.id);
-                        reportEl.innerHTML += `<br><b style="color:#d69e2e; font-size:1.05em;">📜 [機密解密] 尋獲副本檔案：《${newLore.title}》！</b>`;
-                    }
-                }
-            } else if (Math.random() < 0.05) {
-                // ⚠️ 新增：普通怪物也有 5% 微小機率掉落文件
-                const newLore = rollForLore("dungeon");
-                if (newLore) {
-                    gameState.unlockedLore.push(newLore.id);
-                    reportEl.innerHTML += `<br><span style="color:#d69e2e;">📜 尋獲殘破文件：《${newLore.title}》！</span>`;
-                }
-            }
-        })();
-    } // 閉合 if (gameState.currentEnemy.hp <= 0)
-
-    // 5. 補血機制 (血量低於 75% 觸發)
-    if (gameState.hound.hp < gameState.hound.maxHp * 0.75) {
-        if (gameState.resources.food > 0) {
-            gameState.resources.food--;
-            let heal = Math.floor(gameState.hound.maxHp * 0.5);
-            gameState.hound.hp = Math.min(gameState.hound.maxHp, gameState.hound.hp + heal);
-            reportEl.innerHTML += `<br><span style="color:#55ff55;">>> 自動餵食肉乾，恢復 ${heal} HP。</span>`;
-        } else {
-            reportEl.innerHTML += `<br><span style="color:#ff3333;">>> 警告：物資耗盡，獵犬必須撤退！</span>`;
-            if (gameState.isExploring) toggleExplore();
-        }
-    }
-    
-    updateUI();
-    savePlayerState();
-}
-
-async function generateLoot(isBossDrop = false) {
-    const r = Math.floor(Math.random() * 1000000);
-    let rarity = "common", rarityText = "普通", rarityClass = "loot-common", statMult = 1; let isSet = false;
-    
-    if (isBossDrop) {
-        // 霸主保底機制：95% 傳奇(金)，5% 滅世(紅)
-        if (Math.random() * 100 < 5) { rarity = "apocalyptic"; rarityText = "滅世"; rarityClass = "loot-apocalyptic"; statMult = 5; }
-        else { rarity = "legendary"; rarityText = "傳奇"; rarityClass = "loot-legendary"; statMult = 3; }
-    } else {
-        // 長線掉落率 (假設 1 小時約 720 次擊殺): 
-        // 紅裝~4小時 (機率約 340/1M)
-        if (gameState.currentArea !== "wasteland" && r > 999660) { 
-            rarity = "apocalyptic"; rarityText = "滅世"; rarityClass = "loot-apocalyptic"; statMult = 5;
-        } 
-        // 金裝~0.5小時 (機率約 2700/1M)
-        else if (r > 997300) { rarity = "legendary"; rarityText = "傳奇"; rarityClass = "loot-legendary"; statMult = 3; } 
-        // 🚀 強化 1：綠裝(套裝)倍率由 2 提升至 2.4，完美界於稀有(1.8)與傳奇(3)正中間！
-        else if (r > 988500) { rarity = "set"; rarityText = "套裝"; rarityClass = "loot-set"; statMult = 2.4; isSet = true; } 
-        else if (r > 838500) { rarity = "rare"; rarityText = "稀有"; rarityClass = "loot-rare"; statMult = 1.8; }
-    }
-
-    // 裝備品質浮動機制 (同階級中的素質高低，模擬 2~6 小時的極品獲取)
-    let qualityRoll = Math.random();
-    let qualityMult = 1.0;
-    if (qualityRoll > 0.95) qualityMult = 1.5; // 5% 極品素質 (大約掛幾小時才會出現一次頂值)
-    else if (qualityRoll > 0.80) qualityMult = 1.25; // 15% 優良素質
-
-    // 讀取副本專屬的屬性加成倍率 (loot_multiplier)
-    let areaMultiplier = 1;
-    if (gameState.currentArea !== "wasteland") {
-        const dungeon = gameConfig.dungeon_database.find(d => d.id === gameState.currentArea);
-        if (dungeon && dungeon.loot_multiplier) areaMultiplier = dungeon.loot_multiplier;
-    }
-    
-    // 將基礎稀有度倍率 * 副本環境倍率 * 品質浮動倍率
-    statMult = statMult * areaMultiplier * qualityMult;
-
-    const pool = gameConfig.loot_pool;
-    const slotKeys = ["helmet", "collar", "harness"];
-    const slot = slotKeys[Math.floor(Math.random() * slotKeys.length)];
-    const slotData = pool.slots[slot];
-    const baseName = slotData.names[Math.floor(Math.random() * slotData.names.length)];
-
-    let item = { slot: slot, slotText: slotData.typeName, rarity: rarity, class: rarityClass, atk: 0, maxHp: 0, def: 0, dodge: 0, crit: 0, setId: null, is_equipped: 0, is_locked: 0 };
-
-    if (isSet) {
-        const setKeys = Object.keys(pool.sets); const setId = setKeys[Math.floor(Math.random() * setKeys.length)];
-        item.name = `[套裝] ${pool.sets[setId].name}・${baseName}`; item.setId = setId;
-        // 🚀 強化 2：綠裝基礎數值大幅調高，並強制附加 1.5 倍補正，彌補無隨機詞條的劣勢！
-        if (slot === 'collar') item.atk = Math.floor(6 * statMult * 1.5); 
-        else if (slot === 'harness') item.maxHp = Math.floor(30 * statMult * 1.5); 
-        else if (slot === 'helmet') item.def = Math.floor(5 * statMult * 1.5);
-    } else {
-        const affix = pool.affixes[Math.floor(Math.random() * pool.affixes.length)];
-        item.name = `[${rarityText}] ${affix.name}${baseName}`;
-        if (slot === 'collar') item.atk = Math.floor((Math.random() * 4 + 3) * statMult); else if (slot === 'harness') item.maxHp = Math.floor((Math.random() * 15 + 20) * statMult); else if (slot === 'helmet') item.def = Math.floor((Math.random() * 3 + 2) * statMult);
-        if (affix.type === 'atk') item.atk += Math.floor(3 * statMult); if (affix.type === 'hp') item.maxHp += Math.floor(15 * statMult); if (affix.type === 'def') item.def += Math.floor(3 * statMult); if (affix.type === 'crit') item.crit += Math.floor(3 * statMult); if (affix.type === 'dodge') item.dodge += Math.floor(3 * statMult);
-    }
-
-    if (gameState.autoSell && gameState.autoSell[rarity]) {
-        let val = rarity === 'rare' ? 5 : 1;
-        gameState.resources.zaco += val;
-        logMessage(`>> [自動拆解] 將 <span class="${item.class}">${item.name}</span> 轉換為 +${val} ZaCo`);
-        return; 
-    }
-
-    await db.inventory_items.add(item);
-    if (document.getElementById('tab-inv').classList.contains('active')) renderInventory();
-    logMessage(`獲得戰利品: <span class="${item.class}">${item.name}</span>`);
-}
-
-// --- 升級版：自動拆解切換 (防呆防空指針當機) ---
-function toggleAutoSell(type) { 
-    const checkbox = document.getElementById(`auto-${type}`);
-    // 防呆檢查：確保畫面上真的有這個勾選框，且 autoSell 物件已初始化
-    if (!checkbox) return;
-    if (!gameState.autoSell) gameState.autoSell = { common: false, rare: false };
-    
-    gameState.autoSell[type] = checkbox.checked; 
-    savePlayerState(); 
-    logMessage(`>> [自動拆解] 已${checkbox.checked ? '啟用' : '關閉'} ${type === 'common' ? '普通' : '稀有'}品質自動拆解。`, 'system');
-}
-
-
-async function equipItem(id) {
-    const item = await db.inventory_items.get(id); if (!item) return;
-    await db.inventory_items.where("slot").equals(item.slot).modify({ is_equipped: 0 });
-    await db.inventory_items.update(id, { is_equipped: 1 });
-    const equippedItems = await db.inventory_items.where("is_equipped").equals(1).toArray();
-    gameState.equipped = { helmet: null, collar: null, harness: null };
-    equippedItems.forEach(i => { gameState.equipped[i.slot] = i; });
-    calculateHoundStats(); updateUI(); renderInventory();
-    logMessage(`裝備成功：獵犬已配備 <span class="${item.class}">${item.name}</span>`);
-}
-
-async function unequipSlot(slot) {
-    const item = gameState.equipped[slot]; if(!item) return;
-    await db.inventory_items.update(item.id, { is_equipped: 0 });
-    gameState.equipped[slot] = null;
-    calculateHoundStats(); updateUI();
-    if(document.getElementById('tab-inv').classList.contains('active')) renderInventory();
-    logMessage(`>> 已卸下裝備：${item.name}`);
-}
-
-async function sellItem(event, id) {
-    event.stopPropagation(); const item = await db.inventory_items.get(id); if (!item || item.is_locked) return;
-    let val = 1; if(item.rarity==='rare') val=5; if(item.rarity==='set') val=80; if(item.rarity==='legendary') val=25; if(item.rarity==='apocalyptic') val=150;
-    gameState.resources.zaco += val; 
-    
-    // ✨ 新增：黑水鍍膜抽取邏輯 (出售滅世紅裝時額外獲得 1 個)
-    let extraMsg = "";
-    if (item.rarity === 'apocalyptic') {
-        gameState.resources.coating = (gameState.resources.coating || 0) + 1;
-        extraMsg = ` 與 <span style="color:#00ffcc; font-weight:bold;">1 瓶黑水鍍膜</span>`;
-    }
-    
-    await db.inventory_items.delete(id);
-    logMessage(`出售 ${item.name}，獲得 <span style="color:var(--zaco-color)">+${val} ZaCo</span>${extraMsg}`, 'zaco');
-    updateUI(); renderInventory();
-}
-
-
-async function toggleLock(event, id) {
-    event.stopPropagation(); const item = await db.inventory_items.get(id); if (!item) return;
-    await db.inventory_items.update(id, { is_locked: item.is_locked ? 0 : 1 }); renderInventory();
-}
-
-let pendingEquipId = null;
-
-async function showCompare(id) {
-    const item = await db.inventory_items.get(id); if (!item) return;
-    const currentEquip = gameState.equipped[item.slot];
-    
-    const buildStatsHTML = (eqItem, title) => {
-        if(!eqItem) return `<div style="border:1px dashed #555; padding:8px;"><div style="color:#888; margin-bottom:5px;">[${title}]</div><span style="color:#555;">(無裝備)</span></div>`;
-        
-        let lvlMult = 1 + (eqItem.level || 0) * 0.1;
-        let lvlStr = eqItem.level ? ` <span style="color:#00ffcc; font-weight:bold;">+${eqItem.level}</span>` : "";
-
-        // 🚀 微創手術：新增數值分離顯示 DIV 輔助函數
-        const getStatDiv = (label, baseVal, isPct = false) => {
-            if (!baseVal) return '';
-            let total = Math.floor(baseVal * lvlMult);
-            let bonus = total - baseVal;
-            let pct = isPct ? "%" : "";
-            let bonusStr = bonus > 0 ? ` <span style="color:#00ffcc; font-weight:bold;">(+${bonus}${pct})</span>` : "";
-            return `<div>${label}: ${baseVal}${pct}${bonusStr}</div>`;
-        };
-
-        let setHtml = "";
-        if (eqItem.setId && gameConfig.loot_pool.sets[eqItem.setId]) {
-            const s = gameConfig.loot_pool.sets[eqItem.setId];
-            setHtml = `<div style="margin-top:6px; padding-top:4px; border-top:1px dotted #444; font-size:0.75rem; color:#00ff66;">
-                <div>[2PC] ${s['2pc']}</div>
-                <div>[3PC] ${s['3pc']}</div>
-            </div>`;
-        }
-
-        return `<div style="border:1px dashed ${eqItem.is_equipped ? 'var(--text-color)' : 'var(--primary-color)'}; padding:8px;">
-            <div style="color:#888; margin-bottom:5px;">[${title}]</div>
-            <div class="${eqItem.class}" style="margin-bottom:5px; font-weight:bold;">${eqItem.name}${lvlStr}</div>
-            ${getStatDiv('ATK', eqItem.atk)} 
-            ${getStatDiv('HP', eqItem.maxHp)}
-            ${getStatDiv('DEF', eqItem.def)} 
-            ${getStatDiv('CRIT', eqItem.crit, true)}
-            ${getStatDiv('DODGE', eqItem.dodge, true)}
-            ${setHtml}
-        </div>`;
-    };
-    
-    document.getElementById('compare-content').innerHTML = buildStatsHTML(currentEquip, "當前著裝") + buildStatsHTML(item, "準備換上");
-    pendingEquipId = id; document.getElementById('compare-backdrop').style.display = 'block'; document.getElementById('compare-modal').style.display = 'block';
-}
-
-
-
-
-function closeCompare() { pendingEquipId = null; document.getElementById('compare-backdrop').style.display = 'none'; document.getElementById('compare-modal').style.display = 'none'; }
-async function confirmEquip() { if(pendingEquipId) await equipItem(pendingEquipId); closeCompare(); }
-
-// 🚀 新增：背包當前分頁狀態與模組化切換函式
-let currentInvTab = 'all';
-
-function switchInvTab(tabId, btnEl) {
-    currentInvTab = tabId;
-    // 1. 移除所有按鈕的高亮發光狀態
-    document.querySelectorAll('.subtab-btn').forEach(btn => {
-        btn.style.borderColor = '#555';
-        btn.style.color = '#888';
-        btn.classList.remove('active-subtab');
-    });
-    // 2. 點亮玩家當前點選的按鈕 (繼承 Cyberpunk 主題色)
-    btnEl.style.borderColor = 'var(--text-color, #ffffff)';
-    btnEl.style.color = 'var(--text-color, #ffffff)';
-    btnEl.classList.add('active-subtab');
-    
-    // 3. 重新渲染列表
-    renderInventory();
-}
-
-
-async function renderInventory() {
-    const list = document.getElementById('inventory-list');
-    let items = await db.inventory_items.where("is_equipped").equals(0).toArray();
-    
-    // 🚀 微創植入：模組化擴充過濾模組 (Extensible Filter Map)
-    // 為了做到絕對防錯，我們同時比對英文 slot 與中文 slotText，確保零幻覺命中！
-    // 未來擴充新功能時，只需在這裡多加一行，例如： 'doc': i => i.type === 'lore'
-    const tabFilters = {
-        'all': () => true,
-        'head': i => i.slot === 'head' || i.slotText === '頭盔',
-        'neck': i => i.slot === 'neck' || i.slot === 'collar' || i.slotText === '項圈',
-        'body': i => i.slot === 'body' || i.slot === 'harness' || i.slot === 'chest' || i.slotText === '胸背帶'
-    };
-    
-    if (tabFilters[currentInvTab]) {
-        items = items.filter(tabFilters[currentInvTab]);
-    }
-
-    const searchEl = document.getElementById('inv-search');
-    if(searchEl && searchEl.value) {
-        const searchQ = searchEl.value.toLowerCase();
-        items = items.filter(i => i.name.toLowerCase().includes(searchQ));
-    }
-    
-    const sortEl = document.getElementById('inv-sort');
-    if(sortEl) {
-        const sortQ = sortEl.value;
-        const rWeights = { common: 1, rare: 2, set: 3, legendary: 4, apocalyptic: 5 };
-        items.sort((a, b) => {
-            if(sortQ === 'rarity-desc') return rWeights[b.rarity] - rWeights[a.rarity];
-            if(sortQ === 'rarity-asc') return rWeights[a.rarity] - rWeights[b.rarity];
-            if(sortQ === 'atk-desc') return (b.atk||0) - (a.atk||0);
-            if(sortQ === 'hp-desc') return (b.maxHp||0) - (a.maxHp||0);
-            return 0;
-        });
-    }
-
-
-    if (items.length === 0) { list.innerHTML = "<span style='color:#777;'>[數據空載 / 無符合條件的裝備]</span>"; return; }
-    list.innerHTML = "";
-            items.forEach((item) => {
-        const el = document.createElement('div'); el.className = 'inv-item';
-        let price = 1; if(item.rarity==='rare') price=5; if(item.rarity==='set') price=80; if(item.rarity==='legendary') price=25; if(item.rarity==='apocalyptic') price=150;
-        
-        let lvlMult = 1 + (item.level || 0) * 0.1;
-        let lvlStr = item.level ? ` <span style="color:#00ffcc; font-weight:bold;">+${item.level}</span>` : "";
-        
-        let descArr = []; 
-        // 🚀 微創手術：新增數值分離顯示輔助函數
-        const pushStat = (label, baseVal, isPct = false) => {
-            let total = Math.floor(baseVal * lvlMult);
-            let bonus = total - baseVal;
-            let pct = isPct ? "%" : "";
-            let bonusStr = bonus > 0 ? `<span style="color:#00ffcc;">(+${bonus}${pct})</span>` : "";
-            descArr.push(`${label} +${baseVal}${pct}${bonusStr}`);
-        };
-
-        if (item.atk) pushStat('ATK', item.atk); 
-        if (item.maxHp) pushStat('HP', item.maxHp); 
-        if (item.def) pushStat('DEF', item.def); 
-        if (item.crit) pushStat('暴擊', item.crit, true); 
-        if (item.dodge) pushStat('閃避', item.dodge, true); 
-        
-        if (item.setId && gameConfig.loot_pool.sets[item.setId]) {
-             descArr.push(`套裝: ${gameConfig.loot_pool.sets[item.setId].name}`);
-        }
-        
-        const lockIcon = item.is_locked ? "🔒" : "🔓"; const lockColor = item.is_locked ? "var(--primary-color)" : "#555";
-        el.innerHTML = `
-            <div class="inv-info" onclick="showCompare(${item.id})">
-                <span class="${item.class}">${item.name}${lvlStr}</span><br>
-                <span style="color:#888; font-size:0.75rem;">[${item.slotText}] ${descArr.length > 0 ? descArr.join(" | ") : "無附加"}</span>
-            </div>
-            <div style="display:flex; gap:5px; align-items: flex-start;">
-                <button class="btn" style="width: auto; padding: 5px; margin: 0; border-color: ${lockColor}; color: ${lockColor};" onclick="toggleLock(event, ${item.id})">${lockIcon}</button>
-                <button class="btn" style="width: auto; padding: 5px 10px; margin: 0; border-color: var(--zaco-color); color: var(--zaco-color);" onclick="sellItem(event, ${item.id})" ${item.is_locked ? 'disabled' : ''}>出售 ($${price})</button>
-            </div>`;
-        list.appendChild(el);
-    });
-}
-
-
-
-
-async function buyShopItem(index) {
-    const item = gameConfig.shop_database[index];
-    if (gameState.resources.zaco >= item.price) {
-        gameState.resources.zaco -= item.price;
-        
-        if (item.slot === 'usable' && item.id === 'shop_jerky_bulk') {
-            let maxFoodCap = getMaxFood();
-            // 防呆：受限於中央控制室當前動態上限
-            if (gameState.resources.food >= maxFoodCap) {
-                logMessage(`[交易失敗] 肉乾儲存槽已滿，黑市商人拒絕將補給包塞進你的背包。`, 'system');
-                gameState.resources.zaco += item.price; // 退回剛剛扣除的 ZaCo
-                updateUI();
-                return;
-            }
-            
-            // 加上 200 份，但受限於當前動態上限
-            gameState.resources.food = Math.min(gameState.resources.food + 200, maxFoodCap);
-            logMessage(`地下交易完成: 拆開 <span class="${item.class}">${item.name}</span>，物資入庫。(當前: ${gameState.resources.food}/${maxFoodCap})`, 'zaco');
-        } else {
-            // 🚀 關鍵修復：處理「裝備類」商品的物流配送邏輯
-            try {
-                // 將裝備正式寫入 IndexedDB 背包資料庫
-                await db.inventory_items.add({
-                    slot: item.slot,
-                    slotText: item.slotText || (item.slot === 'helmet' ? '頭盔' : (item.slot === 'collar' ? '項圈' : '胸背帶')), // 防呆轉換
-                    rarity: item.rarity || 'common',
-                    class: item.class || 'loot-common',
-                    atk: item.atk || 0,
-                    maxHp: item.maxHp || 0,
-                    def: item.def || 0,
-                    dodge: item.dodge || 0,
-                    crit: item.crit || 0,
-                    setId: item.setId || null,
-                    is_equipped: 0, // 剛買來的裝備預設放在背包
-                    is_locked: 0,   // 預設未鎖定
-                    name: item.name,
-                    level: 0
-                });
-                logMessage(`地下交易完成: <span class="${item.class}">${item.name}</span> 已由無人機空投至您的背包。`, 'zaco');
-            } catch (err) {
-                // 防呆機制：萬一資料庫卡死寫入失敗，立即啟動退款程序，避免吃錢
-                logMessage(`[物流中斷] 裝備配送失敗，已啟動 ZaCo 幣退款程序。`, 'warning');
-                gameState.resources.zaco += item.price; 
-            }
-        }
-
-        updateUI(); 
-        savePlayerState();
-    } else { 
-        logMessage(`[ZACO_ERROR] 帳戶餘額不足以支付黑市交易。`, 'system'); 
-    }
-}
-
-
-function renderShop() {
-    const list = document.getElementById('shop-list'); list.innerHTML = "";
-    gameConfig.shop_database.forEach((item, index) => {
-        const el = document.createElement('div'); el.className = 'inv-item';
-        let desc = item.desc ? item.desc : (item.atk > 0 ? `加成: ATK +${item.atk}` : `加成: HP +${item.maxHp}`);
-        el.innerHTML = `<div class="inv-info"><span class="${item.class}">${item.name}</span><br><span style="color:#888; font-size:0.75rem;">${desc}</span></div><button class="btn" style="width: auto; padding: 6px 12px; margin: 0; border-color: var(--zaco-color); color: var(--zaco-color); font-weight:bold;" onclick="buyShopItem(${index})">購入 ($${item.price})</button>`;
-        list.appendChild(el);
-    });
-}
-
 function logMessage(text, type = 'normal') {
     const container = document.getElementById('log-container'); const entry = document.createElement('div');
     entry.className = `log-entry ${type}`; entry.innerHTML = `[${new Date().toLocaleTimeString()}] ${text}`;
@@ -1048,11 +367,14 @@ function logMessage(text, type = 'normal') {
 }
 
 function updateUI() {
-        // 修正：分別正確顯示當前廢料與肉乾的動態上限
+    // 修正：分別正確顯示當前廢料與肉乾的動態上限
     document.getElementById('res-scrap').innerText = `${gameState.resources.scrap} / ${getMaxScrap()}`;
     document.getElementById('res-food').innerText = `${gameState.resources.food} / ${getMaxFood()}`;
-
     document.getElementById('res-zaco').innerText = gameState.resources.zaco;
+    
+    // 🟢 移到這裡！跟其他資源放在一起，保證每次 UI 刷新都會執行到！
+    if (document.getElementById('res-baits')) document.getElementById('res-baits').innerText = gameState.resources.baits || 0;
+
     document.getElementById('rate-scrap').innerText = gameState.autoRates.scrap;
     document.getElementById('camp-drones').innerText = gameState.upgrades.drones;
     document.getElementById('hound-hp').innerText = gameState.hound.hp;
@@ -1067,7 +389,9 @@ function updateUI() {
 
     const equipDiv = document.getElementById('camp-equipped'); 
     let eqText = [];
-            const buildEqLine = (slot, item) => {
+    
+    // 這裡恢復原本乾淨的裝備生成邏輯
+    const buildEqLine = (slot, item) => {
         if(!item) return "";
         // 🚀 微創手術：若有 level 屬性，在名字後方顯示螢光綠色的 +N 階級
         const lvlStr = item.level ? ` <span style="color:#00ffcc; font-weight:bold;">+${item.level}</span>` : "";
@@ -1078,14 +402,12 @@ function updateUI() {
         </div>`;
     };
 
-
-
     if (gameState.equipped.helmet) eqText.push(buildEqLine('helmet', gameState.equipped.helmet));
     if (gameState.equipped.collar) eqText.push(buildEqLine('collar', gameState.equipped.collar));
     if (gameState.equipped.harness) eqText.push(buildEqLine('harness', gameState.equipped.harness));
     equipDiv.innerHTML = eqText.length > 0 ? eqText.join("") : `<span style="color:#777;">[無裝備]</span>`;
 
-    // 🚀 正確歸位：每秒 DPS 期望值計算公式 (獨立在 HTML 生成之後，正確執行！)
+    // 🚀 正確歸位：每秒 DPS 期望值計算公式
     let critBonus = gameState.hound.activeSets && gameState.hound.activeSets.includes('thug_2pc') ? 2 : 1;
     let expectedDps = ((gameState.hound.totalAtk * (1 + (gameState.hound.totalCrit / 100) * critBonus)) + ((gameState.hound.ohko || 0) * 50)) / 5;
     if (document.getElementById('hound-dps-val')) {
@@ -1423,158 +745,13 @@ async function executeFormatDrive() {
 
 
 
-function renderDungeonList() {
-    const selectEl = document.getElementById('area-select');
-    if (!selectEl) return;
-    
-    gameConfig.dungeon_database.forEach(dungeon => {
-        const option = document.createElement('option');
-        option.value = dungeon.id;
-        option.innerText = `>> ${dungeon.name} [推薦 ATK: ${dungeon.req_atk}]`;
-        selectEl.appendChild(option);
-    });
-    selectEl.value = gameState.currentArea;
-}
-
-function changeArea() {
-    if (gameState.isExploring) {
-        logMessage(">> 探索進行中，無法切換區域！請先停止探索。", "system");
-        document.getElementById('area-select').value = gameState.currentArea;
-        return;
-    }
-    gameState.currentArea = document.getElementById('area-select').value;
-    
-    // 切換影像觀測區圖片與戰術簡報
-    const imgEl = document.getElementById('area-image');
-    const textEl = document.getElementById('area-image-text');
-    const descEl = document.getElementById('area-desc'); // 取得簡報 DOM
-    
-    if (gameState.currentArea !== 'wasteland') {
-        const dungeon = gameConfig.dungeon_database.find(d => d.id === gameState.currentArea);
-        if (dungeon) {
-            // 更新圖片
-            if (dungeon.img_url) {
-                imgEl.src = dungeon.img_url; imgEl.style.display = 'block'; textEl.style.display = 'none';
-            } else {
-                imgEl.style.display = 'none'; textEl.style.display = 'block'; textEl.innerText = "[NO_SIGNAL_IMAGE_NOT_FOUND]";
-            }
-            // 更新簡報內容
-            if (descEl) {
-                descEl.innerHTML = `>> [戰術簡報]: ${dungeon.desc || "無可用區域情報。"}`;
-                descEl.style.color = "#00ff66"; // 副本顯示螢光綠
-            }
-            logMessage(`>> 目標區域重新定位：${dungeon.name}`, "system");
-        }
-    } else {
-        imgEl.style.display = 'none'; textEl.style.display = 'block'; textEl.innerText = "[NO_SIGNAL_IMAGE_NOT_FOUND]";
-        // 恢復荒野預設簡報
-        if (descEl) {
-            descEl.innerHTML = `>> [戰術簡報]: 城市邊緣的死寂廢土，遊蕩著初階變異生物，適合收集基礎組件。`;
-            descEl.style.color = "#ffaa00"; // 荒野顯示橘黃色
-        }
-        logMessage(`>> 目標區域重新定位：荒野外圍`, "system");
-    }
-}
 
 
-// ====== 霸主召喚系統 ======
-function summonBoss() {
-    if (gameState.isExploring) {
-        logMessage(">> 必須先停止自動探索，才能佈置誘餌！", "system");
-        return;
-    }
-    if ((gameState.resources.baits || 0) < 5) {
-        logMessage(">> [Alpha 誘餌] 數量不足！(需要 5 個)", "system");
-        return;
-    }
-    
-    // 【聰明定位邏輯】：不再寫死副本名稱！
-    // 預設荒野外圍為「狂暴野熊」，若在副本中，則自動讀取該副本名單的「最後一隻」怪物
-    let bossName = "狂暴野熊";
-    if (gameState.currentArea !== "wasteland") {
-        const dungeon = gameConfig.dungeon_database.find(d => d.id === gameState.currentArea);
-        if (dungeon && dungeon.enemies && dungeon.enemies.length > 0) {
-            bossName = dungeon.enemies[dungeon.enemies.length - 1];
-        }
-    }
-    
-    const bossTemplate = gameConfig.enemy_database.find(e => e.name === bossName);
-    if (!bossTemplate) {
-        logMessage(">> [系統錯誤] 無法在資料庫定位當前區域的霸主特徵代碼！", "system");
-        return;
-    }
-
-    // 扣除誘餌並設定當前敵人 (血量兩倍、攻擊力 1.5 倍)
-    gameState.resources.baits -= 5;
-    gameState.currentEnemy = { 
-        name: `[霸主] ${bossTemplate.name}`, 
-        hp: bossTemplate.hp * 2, 
-        atk: Math.floor(bossTemplate.atk * 1.5),
-        isBoss: true  // 標記為霸主，死掉時才會爆寶
-    };
-    
-    updateUI();
-    logMessage(`>> ⚠️ 警告：探測到巨大生化反應！【${gameState.currentEnemy.name}】已被誘出！`, "system");
-    
-    // 自動開啟戰鬥
-    toggleExplore();
-	// 確保霸主出現時的日誌不被探索初始化刷掉
-    const reportEl = document.getElementById('combat-report');
-    if (reportEl) reportEl.innerHTML = `>> ⚠️ 探測到巨大生化反應！<br><span class='warning-text'>${gameState.currentEnemy.name}</span> (HP: ${gameState.currentEnemy.hp}) 已被誘出！`;
-}
-
-// 覆寫 updateUI 加入誘餌數量更新 (使用攔截器方式確保安全)
-const originalUpdateUI = updateUI;
-updateUI = function() {
-    originalUpdateUI();
-    const baitsEl = document.getElementById('res-baits');
-    if (baitsEl) baitsEl.innerText = gameState.resources.baits || 0;
-};
 
 
-// ====== 一鍵批量拆解 ======
-async function bulkSellItems() {
-    const rarity = document.getElementById('bulk-sell-rarity').value;
-    // 撈出背包裡所有的裝備
-    const allItems = await db.inventory_items.toArray();
-    
-    // 核心過濾器：只挑選「品質相符」且「未裝備」且「未鎖定」的裝備
-    const itemsToSell = allItems.filter(item => 
-        item.rarity === rarity && 
-        !item.is_equipped && 
-        !item.is_locked
-    );
 
-    if (itemsToSell.length === 0) {
-        logMessage(`>> [系統提示] 找不到可拆解的未鎖定 ${rarity} 級裝備！`, "system");
-        return;
-    }
 
-    const idsToDelete = [];
-    let totalZaco = 0; // 改為計算 ZaCo
-    
-    itemsToSell.forEach(item => {
-        idsToDelete.push(item.id);
-        // 依照品質給予不同數量的 ZaCo (對齊單件出售價格)
-        if (item.rarity === 'common') totalZaco += 1;
-        else if (item.rarity === 'rare') totalZaco += 5;
-        else if (item.rarity === 'set') totalZaco += 80;
-        else if (item.rarity === 'legendary') totalZaco += 25;
-        else if (item.rarity === 'apocalyptic') totalZaco += 150;
-        else totalZaco += 1;
-    });
 
-    // 透過 Dexie.js 的 bulkDelete 一次性刪除，效能最高
-    await db.inventory_items.bulkDelete(idsToDelete);
-    
-    // 發放 ZaCo 並更新介面
-    gameState.resources.zaco += totalZaco;
-    savePlayerState();
-    updateUI();
-    renderInventory();
-    
-    logMessage(`>> [批量拆解] 成功銷毀 ${itemsToSell.length} 件武裝，黑市帳戶進帳 ${totalZaco} 枚 ZaCo。`, "zaco");
-}
 
 
 
@@ -1724,179 +901,7 @@ async function calculateOfflineProgress() {
 
 
 
-// ==========================================
-// 🐕 [04] 倖存者派遣電台 & 📜 副本文件系統
-// ==========================================
 
-const HOUND_PREFIXES = ["鏽斑", "高壓", "狂暴", "霓虹", "輻射", "合金", "暗影", "血吻", "拾荒", "鐵顎"];
-const HOUND_NAMES = ["巴迪", "芬里爾", "雷克斯", "齒輪", "三筒", "阿努比斯", "斯巴達", "狗蛋", "破片", "羅盤"];
-
-// 產生隨機賽博廢土犬名
-function generateHoundName() {
-    const prefix = HOUND_PREFIXES[Math.floor(Math.random() * HOUND_PREFIXES.length)];
-    const name = HOUND_NAMES[Math.floor(Math.random() * HOUND_NAMES.length)];
-    return `[${prefix}] ${name}`;
-}
-
-// 招募派遣犬伴
-function recruitDispatchHound() {
-    if (gameState.dispatch.status === "running") {
-        logMessage("⚠️ 該犬隻正在執行廢土探索，無法重新招募！", "warning");
-        return;
-    }
-    dismissDispatchHound(false); // 若原本有狗，先安全解雇並歸還裝備
-    
-    gameState.dispatch.houndName = generateHoundName();
-    updateDispatchUI();
-    savePlayerState();
-    logMessage(`🐶 招募成功！新犬伴 ${gameState.dispatch.houndName} 已就位待命！`, "success");
-}
-
-// 解雇傭兵犬（防呆：自動退還裝備至玩家背包）
-function dismissDispatchHound(showMsg = true) {
-    let returnedCount = 0;
-    const gearSlots = ["head", "collar", "harness"];
-    
-    gearSlots.forEach(slot => {
-        const item = gameState.dispatch.houndGear[slot];
-        if (item !== null) {
-            // 由於你的背包是 IndexedDB 結構，需非同步寫回資料庫
-            db.inventory_items.add(item);
-            gameState.dispatch.houndGear[slot] = null;
-            returnedCount++;
-        }
-    });
-
-    gameState.dispatch.houndName = "未招募";
-    updateDispatchUI();
-    savePlayerState();
-    
-    if (showMsg && returnedCount > 0) {
-        logMessage(`♻️ 已解雇傭兵犬！身上裝備共 ${returnedCount} 件已自動退還至你的背包。`, "system");
-        if (typeof renderInventory === "function") renderInventory();
-    } else if (showMsg) {
-        logMessage("👋 已解雇傭兵犬。", "system");
-    }
-}
-
-// 開始派遣任務 (耗時 4 小時 / 消耗 200 ZaCo)
-function startDispatchMission() {
-    if (gameState.dispatch.houndName === "未招募") {
-        logMessage("⚠️ 請先點擊招募一隻廢土犬伴才能進行派遣！", "warning");
-        return;
-    }
-    if (gameState.dispatch.status === "running") {
-        logMessage("⚠️ 犬伴已經在廢土探索中！", "warning");
-        return;
-    }
-    if (gameState.resources.zaco < 200) {
-        logMessage("⚠️ 黑市貨幣 (ZaCo) 不足，需要 200 ZaCo 購買探索補給！", "warning");
-        return;
-    }
-
-    gameState.resources.zaco -= 200;
-    gameState.dispatch.status = "running";
-    gameState.dispatch.endTime = Date.now() + (4 * 60 * 60 * 1000); // 4 小時後完成
-    
-    updateUI();
-    updateDispatchUI();
-    savePlayerState();
-    logMessage(`📡 ${gameState.dispatch.houndName} 已出發前往廢土深處！預計 4 小時後歸來。`, "system");
-}
-
-// 領取派遣獎勵與掉落結算
-function claimDispatchReward() {
-    if (gameState.dispatch.status !== "running" || Date.now() < gameState.dispatch.endTime) {
-        logMessage("⏳ 探索尚未完成，犬伴還在廢土中奔波...", "warning");
-        return;
-    }
-
-    // 1. 基礎獎勵：廢料 (受限於當前儲存上限)
-    const scrapReward = Math.floor(Math.random() * 401) + 800; // 800~1200 廢料
-    let maxCap = typeof getMaxScrap === "function" ? getMaxScrap() : 1000;
-    let oldScrap = gameState.resources.scrap;
-    gameState.resources.scrap = Math.min(gameState.resources.scrap + scrapReward, maxCap);
-    let actualScrap = gameState.resources.scrap - oldScrap;
-
-    let msg = `🎉 ${gameState.dispatch.houndName} 探索歸來！獲得：+${actualScrap} 廢料`;
-
-    // 2. 刷寶判定：15% 機率尋獲文件 (Lore)
-    if (Math.random() <= 0.15) {
-        const newLore = rollForLore("dispatch");
-        if (newLore) {
-            gameState.unlockedLore.push(newLore.id);
-            msg += ` | 📜 尋獲機密文件：《${newLore.title}》！`;
-        }
-    }
-
-    gameState.dispatch.status = "idle";
-    updateUI();
-    updateDispatchUI();
-    savePlayerState();
-    logMessage(msg, "success");
-}
-
-// 從 JSON 資料庫抽取「尚未解鎖」的文件
-function rollForLore(sourceType) {
-    if (!gameConfig || !gameConfig.lore_database) return null;
-    
-    let availableLores = [];
-    gameConfig.lore_database.categories.forEach(cat => {
-        cat.subcategories.forEach(sub => {
-                        sub.items.forEach(item => {
-                // 🚀 修正：自動兼容 "dungeon" 與 "combat" 命名，並保留 "all" 通用掉落
-                const isSourceMatch = item.sourceType === sourceType || 
-                                      item.sourceType === "all" || 
-                                      (sourceType === "dungeon" && item.sourceType === "combat") ||
-                                      (sourceType === "combat" && item.sourceType === "dungeon");
-
-                if (isSourceMatch && !gameState.unlockedLore.includes(item.id)) {
-                    availableLores.push(item);
-                }
-            });
-
-        });
-    });
-
-    if (availableLores.length === 0) return null;
-    return availableLores[Math.floor(Math.random() * availableLores.length)];
-}
-
-// 更新家園派遣卡片的 UI 顯示
-function updateDispatchUI() {
-    const statusEl = document.getElementById("dispatch-status-text");
-    const startBtn = document.getElementById("btn-start-dispatch");
-    if (!statusEl || !startBtn) return;
-
-    if (gameState.dispatch.houndName === "未招募") {
-        statusEl.innerHTML = `<span style="color:#a0aec0;">[尚未招募犬伴]</span>`;
-        startBtn.innerText = "招募派遣犬伴 (免費)";
-        startBtn.onclick = recruitDispatchHound;
-        startBtn.style.borderColor = "#48bb78";
-        startBtn.style.color = "#48bb78";
-    } else if (gameState.dispatch.status === "running") {
-        if (Date.now() >= gameState.dispatch.endTime) {
-            statusEl.innerHTML = `<span style="color:#48bb78; font-weight:bold;">[探索完成！等待召回]</span>`;
-            startBtn.innerText = "領取探索物資 & 文件";
-            startBtn.onclick = claimDispatchReward;
-            startBtn.style.borderColor = "#48bb78";
-            startBtn.style.color = "#48bb78";
-        } else {
-            let remainMin = Math.ceil((gameState.dispatch.endTime - Date.now()) / 60000);
-            statusEl.innerHTML = `<span style="color:#63b3ed;">[${gameState.dispatch.houndName} 探索中... 剩餘約 ${remainMin} 分]</span>`;
-            startBtn.innerText = "探索進行中...";
-            startBtn.onclick = () => logMessage("⏳ 犬伴還在危險的廢土中，請耐心等待。", "warning");
-            startBtn.style.borderColor = "#a0aec0";
-            startBtn.style.color = "#a0aec0";
-        }
-    } else {
-        statusEl.innerHTML = `<span style="color:#ffae00;">[待命 - ${gameState.dispatch.houndName}]</span>`;
-        startBtn.innerText = "派遣探索 (-200 ZaCo)";
-        startBtn.onclick = startDispatchMission;
-        startBtn.style.borderColor = "#ffae00";
-        startBtn.style.color = "#ffae00";
-    }
-}
 
 // --- 📖 終端機資料庫 (Lore Modal) UI 渲染 ---
 
@@ -2062,224 +1067,79 @@ function closeLoreModal() {
     if (backdrop) backdrop.style.display = "none";
 }
 
+
 // ==========================================
-// 🔨 黑市與鐵匠鋪子分頁切換邏輯
+// 🚨 開發者專屬外掛模組 (僅限本地擁有 dev_key.json 時觸發)
 // ==========================================
-function switchShopSubTab(subView, btnEl) {
-    // 1. 隱藏兩個子面板
-    const tradeView = document.getElementById('shop-trade-view');
-    const forgeView = document.getElementById('shop-forge-view');
-    if (tradeView) tradeView.style.display = 'none';
-    if (forgeView) forgeView.style.display = 'none';
+function initDevTools() {
+    logMessage(">> ⚠️ 警告：系統已偵測到開發者金鑰，[ROOT] 權限已覆寫！", "warning");
+
+    // 1. 動態生成作弊 UI 容器 (不需動到 index.html)
+    const devPanel = document.createElement("div");
+    devPanel.style.cssText = `
+        position: fixed; bottom: 10px; right: 10px;
+        background: rgba(20, 0, 0, 0.9); border: 2px solid #ff2222;
+        padding: 10px; z-index: 99999; color: #ff5555;
+        font-family: monospace; font-size: 0.8rem;
+        box-shadow: 0 0 10px #ff2222; border-radius: 5px;
+    `;
     
-    // 2. 移除按鈕亮燈
-    document.querySelectorAll('.shop-subtab').forEach(btn => {
-        btn.classList.remove('active-subtab');
-        btn.style.backgroundColor = 'transparent';
-    });
-    
-    // 3. 顯示目標面板與亮燈
-    if (subView === 'trade' && tradeView) tradeView.style.display = 'block';
-    if (subView === 'forge' && forgeView) {
-        forgeView.style.display = 'block';
-        if (typeof renderForge === "function") renderForge(); // 預留：往後切換時自動渲染鐵匠鋪
-    }
-    
-    if (btnEl) {
-        btnEl.classList.add('active-subtab');
-        btnEl.style.backgroundColor = 'rgba(255, 153, 0, 0.15)'; // 繼承 CyberCode 橘色微光
-    }
+    devPanel.innerHTML = `
+        <div style="font-weight:bold; border-bottom:1px solid #ff2222; margin-bottom:5px;">[ROOT_TOOLS]</div>
+        <button onclick="cheatResources()" style="background:#330000; color:#ff2222; border:1px solid #ff2222; margin:2px; cursor:pointer; padding:5px;">+ 滿資源</button>
+        <button onclick="cheatKillEnemy()" style="background:#330000; color:#ff2222; border:1px solid #ff2222; margin:2px; cursor:pointer; padding:5px;">☠️ 秒殺怪物</button>
+        <button onclick="cheatBaits()" style="background:#330000; color:#ff2222; border:1px solid #ff2222; margin:2px; cursor:pointer; padding:5px;">+ 誘餌x5</button>
+    `;
+
+    document.body.appendChild(devPanel);
 }
 
-
-// ==========================================
-// 🔨 黑市鐵匠鋪與 +1～+9 強化核心引擎
-// ==========================================
-
-// 強化機率與材料平衡表
-const FORGE_DATA = {
-    1: { rate: 100, metal: 1,  zaco: 50 },
-    2: { rate: 85,  metal: 2,  zaco: 100 },
-    3: { rate: 70,  metal: 3,  zaco: 200 },
-    4: { rate: 50,  metal: 5,  zaco: 400 },
-    5: { rate: 35,  metal: 8,  zaco: 800 },
-    6: { rate: 20,  metal: 12, zaco: 1500 },
-    7: { rate: 10,  metal: 18, zaco: 3000 },
-    8: { rate: 5,   metal: 25, zaco: 5000 },
-    9: { rate: 1,   metal: 40, zaco: 10000 }
-};
-
-// 1. 提煉生物金屬 (500廢料 = 1生物金屬)
-function refineBioMetal(times = 1) {
-    let cost = times * 500;
-    if (gameState.resources.scrap < cost) {
-        logMessage(">> [警告] 廢料不足！提煉 1 個生物金屬需要 500 廢料。", "zaco");
-        return;
-    }
-    gameState.resources.scrap -= cost;
-    gameState.resources.biometal = (gameState.resources.biometal || 0) + times;
-    savePlayerState(); updateUI(); renderForge();
-    logMessage(`>> [煉金成功] 消耗 ${cost} 廢料，提煉出 <span style="color:#00ffcc; font-weight:bold;">${times} 個生物金屬</span>！`, "system");
-}
-
-// ==========================================
-// 🔨 鐵匠鋪子欄位狀態與切換控制
-// ==========================================
-let currentForgeTab = 'equipped'; // 預設顯示「身上裝備」
-
-function switchForgeTab(tab) {
-    currentForgeTab = tab;
-    if (typeof renderForge === "function") renderForge();
-}
-
-// 2. 渲染鐵匠鋪介面 (已優化：新增 4 大部位子欄位過濾)
-async function renderForge() {
-    const container = document.getElementById('forge-container');
-    if (!container) return;
-
-    let bmCount = gameState.resources.biometal || 0;
-    let ctCount = gameState.resources.coating || 0;
-
-    // 建立子分頁按鈕的樣式生成器 (繼承 CyberCode 螢光綠/暗色微光風格)
-    const getBtnStyle = (tabName) => {
-        const isActive = currentForgeTab === tabName;
-        return `flex:1; min-width: 45%; padding: 6px 4px; margin: 0; font-size: 0.8rem; border-color: ${isActive ? '#00ffcc' : '#444'}; color: ${isActive ? '#00ffcc' : '#888'}; background: ${isActive ? 'rgba(0, 255, 204, 0.15)' : 'transparent'};`;
-    };
-
-    // 頂部煉金爐、素材狀態 與 ✨部位過濾切換按鈕
-    let html = `
-    <div style="background:#111; border:1px solid var(--zaco-color); padding:10px; margin-bottom:15px; border-radius:4px; text-align:left;">
-        <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:0.9rem;">
-            <span>🧬 生物金屬：<strong style="color:#00ffcc;">${bmCount}</strong></span>
-            <span>🧪 黑水鍍膜：<strong style="color:#00ffcc;">${ctCount}</strong></span>
-        </div>
-        <div style="display:flex; gap:8px;">
-            <button class="btn" style="flex:1; border-color:#00ffcc; color:#00ffcc; padding:6px; margin:0; font-size:0.8rem;" onclick="refineBioMetal(1)">提煉 x1 (-500廢料)</button>
-            <button class="btn" style="flex:1; border-color:#00ffcc; color:#00ffcc; padding:6px; margin:0; font-size:0.8rem;" onclick="refineBioMetal(10)">提煉 x10 (-5000廢料)</button>
-        </div>
-    </div>
+// === 作弊功能函式庫 (防崩潰安全版) ===
+function cheatResources() {
+    if (!isDevMode) return;
+    gameState.resources.scrap += 10000;
+    gameState.resources.zaco += 10000;
+    gameState.resources.food += 1000;
     
-    <h4 style="color:var(--text-color); text-align:left; margin-bottom:8px; border-bottom:1px dashed #444; padding-bottom:5px;">// 裝備強化控制台 (選擇裝備部位)</h4>
-    
-    <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;">
-        <button class="btn" style="${getBtnStyle('equipped')}" onclick="switchForgeTab('equipped')">🛡️ 身上裝備</button>
-        <button class="btn" style="${getBtnStyle('helmet')}" onclick="switchForgeTab('helmet')">⛑️ 頭盔</button>
-        <button class="btn" style="${getBtnStyle('collar')}" onclick="switchForgeTab('collar')">🔗 項圈</button>
-        <button class="btn" style="${getBtnStyle('harness')}" onclick="switchForgeTab('harness')">🦺 胸背帶</button>
-    </div>
-
-    <div class="inv-list" style="text-align:left;">`;
-
-    // 讀取所有裝備並依據 currentForgeTab 進行精準過濾
-    let allItems = await db.inventory_items.toArray();
-    let filteredItems = allItems.filter(item => {
-        if (currentForgeTab === 'equipped') return item.is_equipped === 1;
-        // 點選其他部位時：只列出背包中未穿戴 (is_equipped === 0) 且符合該部位的武裝，畫面最乾淨！
-        return item.is_equipped === 0 && item.slot === currentForgeTab;
-    });
-
-    // 若當前分類無任何裝備的提示語
-    if (filteredItems.length === 0) {
-        let emptyMsg = currentForgeTab === 'equipped' ? "獵犬身上目前無穿戴任何裝備" : "背包中目前無此部位的備用武裝";
-        container.innerHTML = html + `<p style="color:#777; text-align:center; padding:20px 0;">[ ${emptyMsg} ]</p></div>`;
-        return;
-    }
-
-    filteredItems.forEach(item => {
-        let curLvl = item.level || 0;
-        let nextLvl = curLvl + 1;
-        let isMax = curLvl >= 9;
-        let data = FORGE_DATA[nextLvl];
-        let lvlStr = curLvl > 0 ? ` <strong style="color:#00ffcc;">+${curLvl}</strong>` : "";
-        let eqTag = item.is_equipped ? ` <span style="color:var(--zaco-color); font-size:0.75rem;">[穿戴中]</span>` : "";
-
-        html += `
-        <div style="border:1px solid #333; background:rgba(0,0,0,0.6); padding:10px; margin-bottom:8px; border-radius:4px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                <span class="${item.class}" style="font-weight:bold; font-size:0.95rem;">[${item.slotText}] ${item.name}${lvlStr}${eqTag}</span>
-                <span style="font-size:0.8rem; color:${isMax ? '#00ffcc' : '#aaa'};">${isMax ? 'MAX TOP' : `下一階: +${nextLvl} (+${nextLvl*10}%)`}</span>
-            </div>`;
-
-        if (!isMax) {
-            let canUpgrade = (bmCount >= data.metal) && (gameState.resources.zaco >= data.zaco);
-            let hasCoating = ctCount > 0;
-            html += `
-            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem; background:#0a0a0a; padding:6px; border-radius:3px; margin-bottom:8px;">
-                <span>消耗: <strong style="color:#00ffcc;">${data.metal} 金屬</strong> + <strong style="color:var(--zaco-color);">${data.zaco} ZaCo</strong></span>
-                <span>成功率: <strong style="color:${data.rate <= 20 ? '#ff3333' : '#fff'};">${data.rate}%</strong></span>
-            </div>
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <label style="font-size:0.8rem; color:#aaa; display:flex; align-items:center; cursor:pointer;">
-                    <input type="checkbox" id="coat_${item.id}" ${hasCoating ? '' : 'disabled'} style="margin-right:5px;">
-                    使用黑水鍍膜 (+15%機率)
-                </label>
-                <button class="btn" style="width:auto; padding:5px 15px; margin:0; font-size:0.8rem; border-color:${canUpgrade ? '#00ffcc' : '#555'}; color:${canUpgrade ? '#00ffcc' : '#555'};" onclick="enhanceItem(${item.id})">確認強化</button>
-            </div>`;
-        } else {
-            html += `<div style="text-align:center; color:#00ffcc; font-size:0.8rem; padding:4px;">[ 頂級武裝！已達極限強化階級 ]</div>`;
-        }
-        html += `</div>`;
-    });
-
-    container.innerHTML = html + `</div>`;
-}
-
-
-// 3. 執行裝備強化 (+1 ~ +9)
-async function enhanceItem(id) {
-    const item = await db.inventory_items.get(id);
-    if (!item) return;
-
-    let curLvl = item.level || 0;
-    if (curLvl >= 9) return;
-    let nextLvl = curLvl + 1;
-    let data = FORGE_DATA[nextLvl];
-
-    let useCoating = false;
-    let coatCheckbox = document.getElementById(`coat_${id}`);
-    if (coatCheckbox && coatCheckbox.checked) useCoating = true;
-
-    // 檢查素材
-    if ((gameState.resources.biometal || 0) < data.metal || gameState.resources.zaco < data.zaco) {
-        logMessage(">> [強化失敗] 生物金屬或 ZaCo 資金不足！", "zaco");
-        return;
-    }
-    if (useCoating && (gameState.resources.coating || 0) < 1) {
-        logMessage(">> [強化失敗] 黑水鍍膜數量不足！", "zaco");
-        return;
-    }
-
-    // 扣除消耗
-    gameState.resources.biometal -= data.metal;
-    gameState.resources.zaco -= data.zaco;
-    if (useCoating) gameState.resources.coating -= 1;
-
-    // 計算機率 (加上鍍膜 15%，最高 100%)
-    let finalRate = data.rate + (useCoating ? 15 : 0);
-    if (finalRate > 100) finalRate = 100;
-
-    let roll = Math.random() * 100;
-    if (roll <= finalRate) {
-        // 強化成功
-        await db.inventory_items.update(id, { level: nextLvl });
-        logMessage(`>> ⚡ [強化成功！] <span class="${item.class}">${item.name}</span> 升級至 <strong style="color:#00ffcc;">+${nextLvl}</strong>！基礎屬性提升 ${nextLvl*10}%！`, "system");
+    // 安全刷新：如果有 updateUI 就呼叫，沒有就手動暴力改數字
+    if (typeof updateUI === "function") {
+        updateUI();
     } else {
-        // 強化失敗 (不損毀、不降級)
-        logMessage(`>> 💥 [強化失敗] <span class="${item.class}">${item.name}</span> 強化 +${nextLvl} 失敗！裝備維持原階級，素材已消耗。`, "zaco");
+        // 暴力覆寫 UI，確保你能馬上看到錢變多
+        const scrapEl = document.getElementById('res-scrap'); // 依據你實際的 ID 調整
+        const foodEl = document.getElementById('res-food');
+        if (scrapEl) scrapEl.innerText = gameState.resources.scrap;
+        if (foodEl) foodEl.innerText = gameState.resources.food;
     }
+    
+    logMessage(">> [DEV] 已注入巨量廢料、ZaCo 與食物！", "system");
+}
 
-    // 若強化的是身上穿戴的裝備，立即刷新獵犬戰力
-    if (item.is_equipped) {
-        const equippedItems = await db.inventory_items.where("is_equipped").equals(1).toArray();
-        gameState.equipped = { helmet: null, collar: null, harness: null };
-        equippedItems.forEach(i => { gameState.equipped[i.slot] = i; });
-        calculateHoundStats();
+function cheatKillEnemy() {
+    if (!isDevMode || !gameState.currentEnemy) {
+        logMessage(">> [DEV] 找不到目標怪物！", "warning");
+        return;
     }
+    
+    gameState.currentEnemy.hp = 0; // 直接讓怪物血量歸零
+    
+    if (typeof updateUI === "function") {
+        updateUI();
+    }
+    
+    logMessage(">> [DEV] 已發送軌道炮，目標已殲滅！(請等待獵犬進行下一次攻擊結算)", "system");
+}
 
-    savePlayerState();
-    updateUI();
-    renderForge();
-    if (typeof renderInventory === "function" && document.getElementById('tab-inv').classList.contains('active')) {
-        renderInventory();
+function cheatBaits() {
+    if (!isDevMode) return;
+    gameState.resources.baits = (gameState.resources.baits || 0) + 5;
+    
+    if (typeof updateUI === "function") {
+        updateUI();
+    } else {
+        const baitsEl = document.getElementById('res-baits');
+        if (baitsEl) baitsEl.innerText = gameState.resources.baits;
     }
+    
+    logMessage(">> [DEV] Alpha 誘餌補給已空投！", "system");
 }

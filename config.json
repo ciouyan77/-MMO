@@ -1,56 +1,57 @@
 {
   "game_version": "v0.8.2",
   "enemy_database": [
-    { "name": "輻射蟑螂", "hp": 15, "atk": 3 },
-    { "name": "虛弱殭屍", "hp": 25, "atk": 5 },
-    { "name": "變異輻射鼠", "hp": 35, "atk": 8 },
-    { "name": "暴力倖存者", "hp": 50, "atk": 10 },
+    { "id": "mob_001", "name": "輻射蟑螂", "hp": 15, "atk": 3 },
+    { "id": "mob_002", "name": "虛弱殭屍", "hp": 25, "atk": 5 },
+    { "id": "mob_003", "name": "變異輻射鼠", "hp": 35, "atk": 8 },
+    { "id": "mob_004", "name": "暴力倖存者", "hp": 50, "atk": 10 },
     
-    { "name": "鐵鏽輾骨機", "hp": 150, "atk": 15 },
-    { "name": "廢土流浪暴徒", "hp": 100, "atk": 18 },
-    { "name": "感染的下水道工", "hp": 130, "atk": 22 },
-    { "name": "變異毒蛙", "hp": 90, "atk": 25 },
+    { "id": "mob_101", "name": "鐵鏽輾骨機", "hp": 150, "atk": 15 },
+    { "id": "mob_102", "name": "廢土流浪暴徒", "hp": 100, "atk": 18 },
+    { "id": "mob_103", "name": "感染的下水道工", "hp": 130, "atk": 22 },
+    { "id": "mob_104", "name": "變異毒蛙", "hp": 90, "atk": 25 },
     
-    { "name": "疫病殭屍", "hp": 350, "atk": 35 },
-    { "name": "暴走護理師", "hp": 400, "atk": 40 },
-    { "name": "嗜血醫師", "hp": 280, "atk": 45 },
-    { "name": "重症喪屍", "hp": 250, "atk": 50 },
+    { "id": "mob_201", "name": "疫病殭屍", "hp": 350, "atk": 35 },
+    { "id": "mob_202", "name": "暴走護理師", "hp": 400, "atk": 40 },
+    { "id": "mob_203", "name": "嗜血醫師", "hp": 280, "atk": 45 },
+    { "id": "mob_204", "name": "重症喪屍", "hp": 250, "atk": 50 },
     
-    { "name": "機甲擬態", "hp": 850, "atk": 60 },
-    { "name": "賽博改造暴徒", "hp": 600, "atk": 70 },
-    { "name": "失控安保機甲", "hp": 1200, "atk": 95 },
-    { "name": "警用重型機甲", "hp": 550, "atk": 110 },
-    
-    { "name": "裝甲喪屍巨獸", "hp": 3500, "atk": 120 },
-    { "name": "實驗體 X", "hp": 2000, "atk": 140 },
-    { "name": "舊時代軍用突擊犬", "hp": 1800, "atk": 180 },
-    { "name": "終極兵器・滅世機甲", "hp": 5000, "atk": 250 },
+    { "id": "mob_301", "name": "機甲擬態", "hp": 850, "atk": 60 },
+    { "id": "mob_302", "name": "賽博改造暴徒", "hp": 600, "atk": 70 },
+    { "id": "mob_303", "name": "失控安保機甲", "hp": 1200, "atk": 95 },
+    { "id": "mob_304", "name": "警用重型機甲", "hp": 550, "atk": 110 },
 
-    { "name": "類猿擬態", "hp": 180, "atk": 35 },
-    { "name": "白色巨蟒", "hp": 200, "atk": 45 },
-    { "name": "狂暴水豚", "hp": 260, "atk": 30 },
-    { "name": "純粹金剛", "hp": 550, "atk": 75 },
+    { "id": "mob_401", "name": "類猿擬態", "hp": 180, "atk": 35 },
+    { "id": "mob_402", "name": "白色巨蟒", "hp": 200, "atk": 45 },
+    { "id": "mob_403", "name": "狂暴水豚", "hp": 260, "atk": 30 },
+    { "id": "mob_404", "name": "純粹金剛", "hp": 550, "atk": 75 },
 
-    { "name": "小丑殭屍", "hp": 380, "atk": 65 },
-    { "name": "膿皰童子軍", "hp": 300, "atk": 90 },
-    { "name": "血腥瑪麗", "hp": 500, "atk": 55 },
-    { "name": "曾是鎮長", "hp": 1100, "atk": 130 },
+    { "id": "mob_501", "name": "小丑殭屍", "hp": 380, "atk": 65 },
+    { "id": "mob_502", "name": "膿皰童子軍", "hp": 300, "atk": 90 },
+    { "id": "mob_503", "name": "血腥瑪麗", "hp": 500, "atk": 55 },
+    { "id": "mob_504", "name": "曾是鎮長", "hp": 1100, "atk": 130 },
 
-    { "name": "防暴機甲", "hp": 700, "atk": 125 },
-    { "name": "強壯殭屍", "hp": 800, "atk": 100 },
-    { "name": "雷射砲台", "hp": 650, "atk": 110 },
-    { "name": "雷電將軍", "hp": 2500, "atk": 220 }
+    { "id": "mob_601", "name": "防暴機甲", "hp": 700, "atk": 125 },
+    { "id": "mob_602", "name": "強壯殭屍", "hp": 800, "atk": 100 },
+    { "id": "mob_603", "name": "雷射砲台", "hp": 650, "atk": 110 },
+    { "id": "mob_604", "name": "雷電將軍", "hp": 2500, "atk": 220 },
 
+    { "id": "mob_10001", "name": "裝甲喪屍巨獸", "hp": 3500, "atk": 120 },
+    { "id": "mob_10002", "name": "實驗體 X", "hp": 2000, "atk": 140 },
+    { "id": "mob_10003", "name": "舊時代軍用突擊犬", "hp": 1800, "atk": 180 },
+    { "id": "mob_10004", "name": "終極兵器・滅世機甲", "hp": 5000, "atk": 250 }
   ],
+
+
   "dungeon_database": [
-    { "id": "dungeon_1", "name": "[副本] 廢棄下水道", "req_atk": 15, "enemies": ["廢土流浪暴徒", "感染的下水道工", "變異毒蛙", "鐵鏽拾荒機"], "loot_multiplier": 1.2, "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_9274.png", "desc": "廢土輻射與殘渣在死水中發酵，這座城市的腸道正因腐敗而抽搐。黑暗中傳來黏稠的摩擦聲。那些閃爍紅光的空殼沒有靈魂，只剩對血肉的無盡飢渴，而甜膩的腐肉味鑽入鼻腔。在這被遺棄的下水道裡，你得親自為他們超渡。" },
-    { "id": "dungeon_2", "name": "[副本] 事件爆發的醫院", "req_atk": 40, "enemies": ["狂暴野熊", "暴走護理機器人", "嗜血雙頭犬", "醫院重症喪屍"], "loot_multiplier": 1.6, "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_9273.png", "desc": "慘白的螢光燈瘋狂閃爍，照亮了牆上如放射狀噴射的暗紅血跡。你的每一個細胞都在尖叫。走廊深處那拖沓的腳步聲，屬於曾經的醫生與護士，現在它們只是披著白袍的嗜血空殼。踩過地上那本沾著黏液與腦漿的病歷。毫無疑問，這裡就是災難的原點，所有變異與瘋狂的源頭。" },
-    { "id": "dungeon_3", "name": "[副本] 失控安保工廠", "req_atk": 80, "enemies": ["廢料聚合怪", "賽博改造暴徒", "失控安保機甲", "毒液噴射巨蛾"], "loot_multiplier": 2.2, "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_9275.png", "desc": "獵犬伏在生鏽的機油坑旁，耳朵緊貼著地面，牠聽見了液壓活塞在黑暗中無情運作的心跳，重金屬履帶正碾碎地上一具具殘缺的感染者屍骨。 恐懼像冰水一樣澆透全身，那些三公尺高的安保機甲根本不在乎你是什麼，在它們被徹底覆寫的底層代碼裡，只要是散發著熱能的碳基生物，一律被標記為「待清除的生化威脅」。" },
+    { "id": "dungeon_1", "name": "[副本] 廢棄下水道", "req_atk": 15, "enemies": ["mob_101", "mob_102", "mob_103", "mob_104"], "loot_multiplier": 1.2, "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_9274.png", "desc": "廢土輻射與殘渣在死水中發酵，這座城市的腸道正因腐敗而抽搐。黑暗中傳來黏稠的摩擦聲。那些閃爍紅光的空殼沒有靈魂，只剩對血肉的無盡飢渴，而甜膩的腐肉味鑽入鼻腔。在這被遺棄的下水道裡，你得親自為他們超渡。" },
+    { "id": "dungeon_2", "name": "[副本] 事件爆發的醫院", "req_atk": 40, "enemies": ["mob_201", "mob_202", "mob_203", "mob_204"], "loot_multiplier": 1.6, "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_9273.png", "desc": "慘白的螢光燈瘋狂閃爍，照亮了牆上如放射狀噴射的暗紅血跡。你的每一個細胞都在尖叫。走廊深處那拖沓的腳步聲，屬於曾經的醫生與護士，現在它們只是披著白袍的嗜血空殼。踩過地上那本沾著黏液與腦漿的病歷。毫無疑問，這裡就是災難的原點，所有變異與瘋狂的源頭。" },
+    { "id": "dungeon_3", "name": "[副本] 失控安保工廠", "req_atk": 80, "enemies": ["mob_301", "mob_302", "mob_303", "mob_304"], "loot_multiplier": 2.2, "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_9275.png", "desc": "獵犬伏在生鏽的機油坑旁，耳朵緊貼著地面，牠聽見了液壓活塞在黑暗中無情運作的心跳，重金屬履帶正碾碎地上一具具殘缺的感染者屍骨。 恐懼像冰水一樣澆透全身，那些三公尺高的安保機甲根本不在乎你是什麼，在它們被徹底覆寫的底層代碼裡，只要是散發著熱能的碳基生物，一律被標記為「待清除的生化威脅」。" },
 	        {
       "id": "dungeon_4",
       "name": "[副本] 廢棄動物園",
       "req_atk": 140,
-      "enemies": ["類猿擬態", "白色巨蟒", "狂暴水豚", "純粹金剛"],
+      "enemies": ["mob_401", "mob_402", "mob_403", "mob_404"],
       "loot_multiplier": 3.0,
       "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_placeholder_zoo.png",
       "desc": "曾經的市民樂園，現在連看起來溫馴的水豚都成了渴望血肉的狂暴生化猛獸。"
@@ -59,7 +60,7 @@
       "id": "dungeon_5",
       "name": "[副本] 死寂小鎮",
       "req_atk": 240,
-      "enemies": ["小丑殭屍", "膿皰童子軍", "血腥瑪麗", "曾是鎮長"],
+      "enemies": ["mob_501", "mob_502", "mob_503", "mob_504"],
       "loot_multiplier": 4.1,
       "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_placeholder_town.png",
       "desc": "被不明疫病與畸形信仰支配的廢土邊境，那個融合了不知名血肉的鎮長還在行政大樓裡等著你。"
@@ -68,12 +69,14 @@
       "id": "dungeon_6",
       "name": "[副本] 核心軍事堡壘",
       "req_atk": 400,
-      "enemies": ["防暴機甲", "強壯殭屍", "雷射砲台", "雷電將軍"],
+      "enemies": ["mob_601", "mob_602", "mob_603", "mob_604"],
       "loot_multiplier": 5.5,
       "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_placeholder_military.png",
       "desc": "由殘酷無情的極限雷電 AI 統治的自動化軍工核心，這裡有著舊時代最致命的防禦火力。"
     }
   ],
+
+
   "lore_database": {
     "categories": [
       {

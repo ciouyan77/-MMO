@@ -2,6 +2,14 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
+    <title>廢土犬伴</title>
+    <!-- ⚠️ 虛擬終端機：必須放在最上面！ -->
+    <script src="eruda.js"></script>
+<script>if (typeof eruda !== 'undefined') eruda.init();</script>
+
+    <!-- 下面才是你的 style 或其他 script -->
+
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SYSTEM://WASTELAND_HOUND_v0.8.2</title>
     <style>
@@ -120,10 +128,17 @@
 
     <!-- 🌐 按順序載入驅動與自訂邏輯模組 -->
     <script src="https://unpkg.com/dexie@latest/dist/dexie.js"></script>
-    <script src="./database.js"></script>
-    <script src="./game.js"></script>
+<script src="./database.js"></script>
+<script src="./base.js"></script>
+<script src="./inventory.js"></script>
+<!-- ✨ 新增這行：戰鬥與探索模組 -->
+<script src="./combat.js"></script>
+<script src="./game.js"></script>
+
+
 </head>
 <body>
+
     <header>
         <div class="system-title">root@wasteland_os:~# SYSTEM_LINKED</div>
         <div class="resource-bar">
@@ -333,7 +348,6 @@
             </div>
         </div>
     </div>
-
 
 <!-- ===== [06_BASE] 家園系統分頁 ===== -->
     <div id="tab-base" class="tab-content">
