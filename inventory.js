@@ -1,4 +1,16 @@
-// 計算能力值 (包含 +1~+9 強化倍率與套裝遞減效應)
+// ==========================================
+// 🧬 全域套裝字典 (Data-Driven Set Bonuses)
+// ==========================================
+const SET_BONUS_DB = {
+    'scavenger': { name: "清道夫", 2: { atk: 30, desc: "攻擊力 +30" }, 3: { atk: 15, desc: "攻擊力再 +15 (總和+45)" } },
+    'ninja':     { name: "都市忍者", 2: { dodge: 30, dodgeCrit: true, desc: "閃避率 +30% | 閃避後必爆" }, 3: { dodge: 10, desc: "閃避率再 +10% (總和+40%)" } },
+    'thug':      { name: "廢土暴徒", 2: { crit: 30, critMult: 3, desc: "暴擊率 +30% | 暴傷 3 倍" }, 3: { crit: 15, desc: "暴擊率再 +15% (總和+45%)" } },
+    'zombie':    { name: "殭屍骰", 2: { ohko: 12, desc: "秒殺機率 +12%" }, 3: { ohko: 5, desc: "秒殺機率再 +5% (總和+17%)" } },
+    'abyss':     { name: "深淵琉璃", 2: { def: 30, reflect: 0.5, desc: "防禦力 +30 | 反彈 50% 傷害" }, 3: { def: 15, desc: "防禦力再 +15 (總和+45)" } }
+};
+
+
+// 計算能力值 (包含 +1~+9 強化倍率與動態套裝引擎)
 function calculateHoundStats() {
     let bAtk = 0, bHp = 0, bDef = 0, bDodge = 0, bCrit = 0, ohko = 0;
     let setCounts = {};
@@ -18,28 +30,41 @@ function calculateHoundStats() {
 
     let activeText = []; 
     gameState.hound.activeSets = []; 
-    let atkMultiplier = 1; 
+        let atkMultiplier = 1; 
+    
+    // 🚀 初始化戰鬥隱藏參數 (預設值)
+    let critMult = 2; // 預設暴擊傷害為 2 倍
+    let reflectRate = 0; // 預設反傷率為 0
+    let dodgeCrit = false; // 預設閃避無必爆
 
+    // 動態套裝引擎 (Data-Driven Loop)
     for (const [setId, count] of Object.entries(setCounts)) {
-        let setName = gameConfig.loot_pool.sets[setId] ? gameConfig.loot_pool.sets[setId].name : setId;
-
-        if (count >= 2) {
-            gameState.hound.activeSets.push(`${setId}_2pc`);
-            if (setId === 'scavenger') { bAtk += 30; activeText.push(`[${setName}] 2件套: 攻擊力 +30`); }
-            if (setId === 'ninja') { bDodge += 30; activeText.push(`[${setName}] 2件套: 閃避率 +30% | 閃避後必爆`); }
-            if (setId === 'thug') { bCrit += 30; activeText.push(`[${setName}] 2件套: 暴擊率 +30% | 暴傷 3 倍`); }
-            if (setId === 'zombie') { ohko += 12; activeText.push(`[${setName}] 2件套: 秒殺機率 +12%`); }
-            if (setId === 'abyss') { bDef += 30; activeText.push(`[${setName}] 2件套: 防禦力 +30 | 反彈 50% 傷害`); }
-        }
+        let setDef = SET_BONUS_DB[setId];
+        if (!setDef) continue; 
         
-        if (count >= 3) {
-            gameState.hound.activeSets.push(`${setId}_3pc`);
-            if (setId === 'scavenger') { bAtk += 15; activeText.push(`[${setName}] 3件套: 攻擊力再 +15 (總和+45)`); }
-            if (setId === 'ninja') { bDodge += 10; activeText.push(`[${setName}] 3件套: 閃避率再 +10% (總和+40%)`); }
-            if (setId === 'thug') { bCrit += 15; activeText.push(`[${setName}] 3件套: 暴擊率再 +15% (總和+45%)`); }
-            if (setId === 'zombie') { ohko += 5; activeText.push(`[${setName}] 3件套: 秒殺機率再 +5% (總和+17%)`); }
-            if (setId === 'abyss') { bDef += 15; activeText.push(`[${setName}] 3件套: 防禦力再 +15 (總和+45)`); }
-        }
+        let setName = (typeof gameConfig !== 'undefined' && gameConfig?.loot_pool?.sets?.[setId]?.name) 
+                        ? gameConfig.loot_pool.sets[setId].name : setDef.name;
+
+        [2, 3].forEach(reqCount => {
+            if (count >= reqCount && setDef[reqCount]) {
+                gameState.hound.activeSets.push(`${setId}_${reqCount}pc`);
+                let bonus = setDef[reqCount];
+                
+                if (bonus.atk) bAtk += bonus.atk;
+                if (bonus.def) bDef += bonus.def;
+                if (bonus.hp) bHp += bonus.hp;
+                if (bonus.dodge) bDodge += bonus.dodge;
+                if (bonus.crit) bCrit += bonus.crit;
+                if (bonus.ohko) ohko += bonus.ohko;
+                
+                // 🚀 抓取戰鬥隱藏參數
+                if (bonus.critMult) critMult = bonus.critMult;
+                if (bonus.reflect) reflectRate += bonus.reflect;
+                if (bonus.dodgeCrit) dodgeCrit = true;
+                
+                activeText.push(`[${setName}] ${reqCount}件套: ${bonus.desc}`);
+            }
+        });
     }
 
     gameState.hound.totalAtk = Math.floor((gameState.hound.baseAtk + bAtk) * atkMultiplier);
@@ -49,11 +74,16 @@ function calculateHoundStats() {
     gameState.hound.totalCrit = gameState.hound.baseCrit + bCrit;
     gameState.hound.ohko = ohko;
     
-    if (gameState.hound.hp > gameState.hound.maxHp) gameState.hound.hp = gameState.hound.maxHp;
+    // 🚀 將戰鬥隱藏參數寫入獵犬狀態，供戰鬥引擎直接讀取
+    gameState.hound.critMult = critMult;
+    gameState.hound.reflect = reflectRate;
+    gameState.hound.dodgeCrit = dodgeCrit;
+
     
     const setText = document.getElementById('set-bonus-text');
     if (setText) setText.innerHTML = activeText.length > 0 ? activeText.join("<br>") : "<span style='color:#777;'>[未啟動任何套裝效果]</span>";
 }
+
 
 async function generateLoot(isBossDrop = false) {
     const r = Math.floor(Math.random() * 1000000);
@@ -630,19 +660,23 @@ async function enhanceItem(id) {
     gameState.resources.zaco -= data.zaco;
     if (useCoating) gameState.resources.coating -= 1;
 
-    // 計算機率 (加上鍍膜 15%，最高 100%)
-    let finalRate = data.rate + (useCoating ? 15 : 0);
+        // 🚀 微創修復：強制轉型純數字防 Bug，並將最終機率印出，打破測試員的幻象！
+    let baseRate = Number(data.rate) || 0;
+    let finalRate = baseRate + (useCoating ? 15 : 0);
     if (finalRate > 100) finalRate = 100;
 
     let roll = Math.random() * 100;
+    let rateLog = `[骰子機率: ${finalRate}%]`; // 將加成後的真實機率寫入戰報
+
     if (roll <= finalRate) {
         // 強化成功
         await db.inventory_items.update(id, { level: nextLvl });
-        logMessage(`>> ⚡ [強化成功！] <span class="${item.class}">${item.name}</span> 升級至 <strong style="color:#00ffcc;">+${nextLvl}</strong>！基礎屬性提升 ${nextLvl*10}%！`, "system");
+        logMessage(`>> ⚡ 強化成功 ${rateLog} <span class="${item.class}">${item.name}</span> 升級至 <strong style="color:#00ffcc;">+${nextLvl}</strong>！基礎屬性提升 ${nextLvl*10}%！`, "system");
     } else {
         // 強化失敗 (不損毀、不降級)
-        logMessage(`>> 💥 [強化失敗] <span class="${item.class}">${item.name}</span> 強化 +${nextLvl} 失敗！裝備維持原階級，素材已消耗。`, "zaco");
+        logMessage(`>> 💥 強化失敗 ${rateLog} <span class="${item.class}">${item.name}</span> 維持原階級，素材已消耗。`, "zaco");
     }
+
 
     // 若強化的是身上穿戴的裝備，立即刷新獵犬戰力
     if (item.is_equipped) {

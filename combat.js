@@ -63,10 +63,10 @@ function handleExplorationTick() {
         gameState.hound.guaranteedCrit = false;
     }
 
-    let dmgDealt = isCrit ? currentAtk * 2 : currentAtk;
+        // 🚀 動態戰鬥引擎：直接讀取暴擊倍率 (預設為 2)
+    let cMult = gameState.hound.critMult || 2;
+    let dmgDealt = isCrit ? Math.floor(currentAtk * cMult) : currentAtk;
 
-    // 🚀 微創對齊：暴擊傷害 3 倍移至 thug_2pc 觸發
-    if (isCrit && gameState.hound.activeSets.includes('thug_2pc')) dmgDealt = currentAtk * 3;
 
     let ohkoChance = gameState.hound.ohko || 0;
     if (Math.random() * 100 < ohkoChance) {
@@ -81,25 +81,27 @@ function handleExplorationTick() {
 
     // 3. 敵方反擊與秒殺檢定
     if (gameState.currentEnemy.hp > 0) {
-        if (Math.random() * 100 < currentDodge) { 
+                if (Math.random() * 100 < currentDodge) { 
             reportEl.innerHTML += `<br>💨 [幻影] 獵犬靈巧地閃避了敵人的攻擊！`; 
-            // 🚀 微創實裝：著裝都市忍者 2件套且閃避成功時，賦予下回合必爆旗標
-            if (gameState.hound.activeSets.includes('ninja_2pc')) {
+            // 🚀 動態戰鬥引擎：偵測閃避反擊旗標
+            if (gameState.hound.dodgeCrit) {
                 gameState.hound.guaranteedCrit = true;
-                reportEl.innerHTML += ` <span style="color:#00ff66;">[忍術殘影：下擊必定暴擊！]</span>`;
+                reportEl.innerHTML += ` <span style="color:#00ff66;">[殘影反擊：下擊必定暴擊！]</span>`;
             }
-        } else {
+                } else {
             let dmgTaken = Math.max(1, gameState.currentEnemy.atk - currentDef);
             gameState.hound.hp = Math.max(0, gameState.hound.hp - dmgTaken);
             reportEl.innerHTML += `<br>💥 遭受攻擊，裝甲抵禦後受傷 ${dmgTaken} 點。`;
             
-            // 🚀 微創對齊：深淵琉璃反傷移至 abyss_2pc 觸發
-            if (gameState.hound.activeSets.includes('abyss_2pc')) {
-                let reflectDmg = Math.floor(dmgTaken * 0.5); 
+            // 🚀 動態戰鬥引擎：讀取反傷倍率
+            let reflectRate = gameState.hound.reflect || 0;
+            if (reflectRate > 0) {
+                let reflectDmg = Math.floor(dmgTaken * reflectRate); 
                 gameState.currentEnemy.hp -= reflectDmg;
                 reportEl.innerHTML += ` <span style="color: #ff3333;">(反彈 ${reflectDmg} 傷害)</span>`;
             }
         }
+
 
         // 裝備檢定：秒殺警告
         if (gameState.hound.hp <= 0) {

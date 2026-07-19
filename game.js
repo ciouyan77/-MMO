@@ -415,6 +415,10 @@ function updateUI() {
     }
 }
 
+// 🛡️ 廢土裝甲：強制掛載至全域，免疫跨檔案 ReferenceError！
+window.updateUI = updateUI;
+
+
 
 function saveGame() { savePlayerState(); logMessage(">> 資料庫快照備份完成。", "system"); }
 
@@ -448,8 +452,18 @@ function decompressFromBase64(b64) {
 // 2. 匯出存檔 (極致防護與高壓縮比版)
 async function exportGameData() {
     try {
+        // 🚀 微創修復：防洗錢機制 - 匯出前強制撤退，杜絕掛機資源增生漏洞
+        if (gameState.isExploring) {
+            gameState.isExploring = false;
+            gameState.currentEnemy = null;
+            if (typeof exploreInterval !== 'undefined') clearInterval(exploreInterval); // 中斷線上探索計時器
+            if (typeof updateUI === 'function') updateUI();
+            logMessage(">> [系統] 偵測到匯出指令，已強制撤退並暫停探索。", "warning");
+        }
+
         await savePlayerState(); // 先確保最新狀態入庫
         let exportObject = { timestamp: Date.now(), tables: {} };
+
         
         for (const table of db.tables) {
             exportObject.tables[table.name] = await table.toArray();
@@ -637,16 +651,21 @@ function showImportUI() {
                 return;
             }
             
-            for (const table of db.tables) {
+                        for (const table of db.tables) {
                 await table.clear();
                 if (dataObj.tables[table.name]) {
                     await table.bulkAdd(dataObj.tables[table.name]);
                 }
             }
             
+            // 🚀 微創修復：防洗錢機制 - 匯入成功後，立刻廢掉全域存檔能力，防止 reload 瞬間的髒資料回寫
+            window.savePlayerState = () => { console.log(">> 系統已鎖死，攔截異常覆寫。"); };
+            if (typeof exploreInterval !== 'undefined') clearInterval(exploreInterval);
+            
             alert(">> 存檔匯入與復原成功！系統將立即重啟。");
-            location.reload();
+            location.replace(location.href); // 🚀 使用 replace 取代 reload，強制清除緩存跳轉
         } catch (e) {
+
             logMessage(">> [匯入失敗] 無法解析存檔代碼。", "warning");
             alert("匯入失敗：" + e.message);
             btnImport.innerText = "📥 驗證簽章並覆蓋存檔";
