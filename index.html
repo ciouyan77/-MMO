@@ -148,8 +148,64 @@
         border-image-repeat: stretch; 
     }
 
-    /* (其餘的 sys-menu-bar, nav-drawer 等樣式保持原樣，我已幫你接上) */
-    .sys-menu-bar { width: 100%; background: rgba(10, 15, 25, 0.95); border: 1px solid #00ffcc; color: #00ffcc; padding: 10px; cursor: pointer; text-align: center; font-family: monospace, "Courier New"; font-size: 14px; font-weight: bold; letter-spacing: 1px; box-shadow: inset 0 0 8px rgba(0, 255, 204, 0.2); transition: all 0.2s; margin-bottom: 12px; }
+    /* =========================================
+   廢土犬伴：第二欄 SYS_MENU 藍色電路板裝甲外框
+   (Eruda 相容增強版 - 強制注入)
+   ========================================= */
+.sys-menu-bar {
+    width: 100% !important;
+    background: transparent !important; /* 確保透明底 */
+    color: var(--text-color) !important;
+    padding: 5px 10px !important; /* 稍微增加 Padding，給電路板花紋更多空間 */
+    margin-bottom: 5px !important;
+    cursor: pointer;
+    text-align: center;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.95rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    box-sizing: border-box !important;
+    
+    /* === 九宮格邊框核心邏輯（加入重要的相容性與強制） === */
+    border-style: solid !important;
+    border-width: 15px 30px !important; /* 調整邊框寬度，配合原圖幾何形狀 */
+    
+    /* 🚨 圖片源（加入 -webkit- 相容性） */
+    -webkit-border-image-source: url('https://raw.githubusercontent.com/ciouyan77/-MMO/refs/heads/main/SYSTEM-MENU1.png') !important;
+    border-image-source: url('https://raw.githubusercontent.com/ciouyan77/-MMO/refs/heads/main/SYSTEM-MENU1.png') !important;
+    
+    /* 圖片切分（加入 -webkit- 相容性，使用 50 100，fill 保持乾淨） */
+    -webkit-border-image-slice: 50 100 fill !important; 
+    border-image-slice: 50 100 fill !important; 
+    
+    /* 圖片重複方式（加入 -webkit- 相容性） */
+    -webkit-border-image-repeat: stretch !important;
+    border-image-repeat: stretch !important;
+
+    /* 裝飾性效果 */
+    text-shadow: 0 0 5px rgba(85, 255, 85, 0.6) !important;
+    transition: all 0.2s ease;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    
+    /* 💡 在 Eruda 中確保按鈕不會有默認樣式 */
+    -webkit-appearance: none;
+    appearance: none;
+    outline: none !important;
+}
+
+.sys-menu-bar:active {
+    filter: brightness(1.2) !important;
+    transform: translateY(1px) !important;
+}
+
+
+.sys-menu-bar:active {
+    filter: brightness(1.2);
+    transform: translateY(1px);
+}
+
     .sys-menu-bar:active { background: rgba(0, 255, 204, 0.2); box-shadow: inset 0 0 15px rgba(0, 255, 204, 0.6); }
     .nav-drawer { position: fixed; top: 0; right: -280px; width: 260px; height: 100vh; background: rgba(8, 12, 20, 0.98); border-left: 2px solid #00ffcc; box-shadow: -5px 0 20px rgba(0, 0, 0, 0.9); z-index: 1000; transition: right 0.3s cubic-bezier(0.1, 0.9, 0.2, 1); display: flex; flex-direction: column; padding: 20px 15px; box-sizing: border-box; }
     .nav-drawer.open { right: 0; }
@@ -254,7 +310,7 @@
    
    <!-- 第二欄：橫向 SYS_MENU ... -->
    <button class="sys-menu-bar" onclick="toggleNavDrawer()">
-       ⚙️ [ SYS_MENU / 系統導航模組 ] ▾
+       [ SYS_MENU ] ⇝
    </button>
 </div>
 
