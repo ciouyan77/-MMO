@@ -10,155 +10,300 @@
     <!-- 下面才是你的 style 或其他 script -->
 
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
     <title>SYSTEM://WASTELAND_HOUND_v0.8.2</title>
-    <style>
-        :root {
-            --bg-color: #0a0a0a; --panel-color: #121212; --text-color: #55ff55;
-            --primary-color: #ff8800; --border-color: #224422; --zaco-color: #ffd700; 
-            --glow-effect: 0 0 8px rgba(85, 255, 85, 0.4);
-            --rarity-common: #888888; --rarity-rare: #55aaff;
-            --rarity-legendary: #ffcc00; --rarity-apocalyptic: #ff2222; --rarity-set: #55ff55;
-        }
-        body {
-            font-family: 'Courier New', Courier, monospace, "SF Pro Text";
-            background-color: var(--bg-color); color: var(--text-color);
-            margin: 0; padding: 12px; box-sizing: border-box;
-            text-shadow: var(--glow-effect); padding-bottom: 140px; 
-        }
-        body::before {
-            content: " "; display: block; position: fixed; top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            z-index: 999; background-size: 100% 4px, 3px 100%; pointer-events: none;
-        }
-        header {
-            background-color: var(--panel-color); padding: 12px; border: 1px solid var(--text-color);
-            box-shadow: inset var(--glow-effect); margin-bottom: 15px;
-        }
-        .system-title { margin: 0; font-size: 1.1rem; color: var(--primary-color); text-shadow: 0 0 8px rgba(255, 136, 0, 0.5); font-weight: bold; }
-        .resource-bar { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 5px; font-size: 0.85rem; margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 8px; }
-        nav { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 15px; }
-        .tab-btn { flex: 1 1 22%; padding: 8px 0; background-color: transparent; color: var(--text-color); border: 1px solid var(--text-color); font-family: inherit; font-size: 0.8rem; cursor: pointer; text-transform: uppercase; }
-        .tab-btn.active { background-color: var(--text-color); color: #000; font-weight: bold; box-shadow: var(--glow-effect); text-shadow: none; }
-        .tab-content { display: none; background-color: var(--panel-color); padding: 15px; border: 1px solid var(--border-color); min-height: 240px; }
-        .tab-content.active { display: block; }
-        .btn { background-color: rgba(85, 255, 85, 0.05); color: var(--text-color); border: 1px solid var(--border-color); padding: 12px; width: 100%; margin-bottom: 12px; font-family: inherit; font-size: 0.9rem; text-align: left; cursor: pointer; }
-        .btn::before { content: "> "; color: var(--primary-color); }
-        .btn:active:not(:disabled) { background-color: var(--text-color); color: #000; border-color: var(--text-color); }
-        .btn:disabled { opacity: 0.3; cursor: not-allowed; }
-        .warning-text { color: var(--primary-color); text-shadow: 0 0 8px rgba(255, 136, 0, 0.5); }
-        .loot-common { color: var(--rarity-common); text-shadow: none;}
-        .loot-rare { color: var(--rarity-rare); text-shadow: 0 0 5px rgba(85, 170, 255, 0.5); }
-        .loot-legendary { color: var(--rarity-legendary); text-shadow: 0 0 8px rgba(255, 204, 0, 0.8); font-weight: bold; }
-        .loot-apocalyptic { color: var(--rarity-apocalyptic); text-shadow: 0 0 10px rgba(255, 34, 34, 0.9); font-weight: bold; letter-spacing: 1px; }
-	.loot-set { color: var(--rarity-set); text-shadow: 0 0 8px rgba(85, 255, 85, 0.8); font-weight: bold; letter-spacing: 1px; }
-        .inv-list { max-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); padding: 8px; background: rgba(0,0,0,0.4); margin-top: 10px; }
-        .inv-item { padding: 10px 8px; border-bottom: 1px dashed #333; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; }
-        .inv-item:last-child { border-bottom: none; }
-        .inv-info { flex: 1; cursor: pointer; }
-        .inv-info:hover { background-color: rgba(85, 255, 85, 0.1); }
-        .equip-box { border: 1px solid var(--primary-color); padding: 10px; margin-bottom: 10px; background: rgba(255, 136, 0, 0.05); }
-        .log-panel { position: fixed; bottom: 0; left: 0; right: 0; height: 120px; background-color: #050505; border-top: 1px solid var(--text-color); padding: 8px 12px; box-sizing: border-box; font-size: 0.75rem; overflow-y: auto; z-index: 10; }
-        .log-container { display: flex; flex-direction: column; gap: 2px; }
-        .log-entry { color: #44aa44; } .log-entry.system { color: var(--primary-color); } .log-entry.zaco { color: var(--zaco-color); }
-.modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--panel-color); border: 2px solid var(--primary-color); padding: 15px; z-index: 1000; width: 90%; max-width: 400px; box-shadow: 0 0 20px rgba(255, 136, 0, 0.4); }
-        .modal-backdrop { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 999; }
-        .filter-bar { display: flex; gap: 5px; margin-bottom: 10px; }
-        .filter-bar input, .filter-bar select { flex: 1; background: #222; color: var(--text-color); border: 1px solid var(--border-color); padding: 8px; font-family: inherit; font-size: 0.8rem; }
-		.lore-modal-content {
-    background-color: #f0f4f8; /* 冷白色基底 */
-    color: #1a202c; /* 深灰色易讀內文 */
-    border: 2px solid #cbd5e0;
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
-    max-height: 85vh;
-    overflow-y: auto;
-    padding: 20px;
-    border-radius: 4px;
-}
-.lore-modal-content h2 {
-    color: #d69e2e; /* 璀璨金色標題 */
-    border-bottom: 2px solid #a0aec0;
-    padding-bottom: 8px;
-    margin-top: 0;
-    font-family: monospace;
-}
-.lore-category-title {
-    color: #2b6cb0; /* 科技深藍小分類 */
-    font-size: 1.1em;
-    margin-top: 15px;
-    margin-bottom: 5px;
-    font-weight: bold;
-}
-.lore-item-btn {
-    background: #e2e8f0;
-    border: 1px solid #cbd5e0;
-    color: #4a5568;
-    padding: 8px 12px;
-    margin: 4px 0;
-    width: 100%;
-    text-align: left;
-    cursor: pointer;
-    border-radius: 4px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.lore-item-btn.unlocked {
-    background: #ffffff;
-    color: #2d3748;
-    border-left: 4px solid #d69e2e; /* 金色解鎖標示 */
-    font-weight: bold;
-}
-.lore-item-btn.unlocked:hover {
-    background: #edf2f7;
-}
-.lore-detail-header {
-    font-size: 0.85em;
-    color: #718096; /* 冷灰資訊列 */
-    margin-bottom: 15px;
-    padding-bottom: 5px;
-    border-bottom: 1px dashed #cbd5e0;
-}
-.lore-detail-body {
-    line-height: 1.6;
-    font-size: 0.95em;
-    white-space: pre-wrap;
-}
-    </style>
+       <style>
+    :root {
+        --bg-color: #0a0a0a; --panel-color: #121212; --text-color: #55ff55;
+        --primary-color: #ff8800; --border-color: #224422; --zaco-color: #ffd700; 
+        --glow-effect: 0 0 8px rgba(85, 255, 85, 0.4);
+        --rarity-common: #888888; --rarity-rare: #55aaff;
+        --rarity-legendary: #ffcc00; --rarity-apocalyptic: #ff2222; --rarity-set: #55ff55;
+    }
+    body {
+        font-family: 'Courier New', Courier, monospace, "SF Pro Text";
+        background-color: var(--bg-color); color: var(--text-color);
+        margin: 0; padding: 12px; box-sizing: border-box;
+        text-shadow: var(--glow-effect); padding-bottom: 140px; 
+        touch-action: manipulation; 
+        -webkit-text-size-adjust: 100%; 
+    }
+    
+    button, .btn {
+        touch-action: manipulation;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+
+    body::before {
+        content: " "; display: block; position: fixed; top: 0; left: 0; bottom: 0; right: 0;
+        background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+        z-index: 999; background-size: 100% 4px, 3px 100%; pointer-events: none;
+    }
+    header {
+        background-color: var(--panel-color); padding: 12px; border: 1px solid var(--text-color);
+        box-shadow: inset var(--glow-effect); margin-bottom: 15px;
+    }
+    .system-title { margin: 0; font-size: 1.1rem; color: var(--primary-color); text-shadow: 0 0 8px rgba(255, 136, 0, 0.5); font-weight: bold; }
+    .resource-bar { display: flex; flex-direction: column; gap: 5px; font-size: 0.85rem; margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 8px; }
+    nav { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 15px; }
+    .tab-btn { flex: 1 1 22%; padding: 8px 0; background-color: transparent; color: var(--text-color); border: 1px solid var(--text-color); font-family: inherit; font-size: 0.8rem; cursor: pointer; text-transform: uppercase; }
+    .tab-btn.active { background-color: var(--text-color); color: #000; font-weight: bold; box-shadow: var(--glow-effect); text-shadow: none; }
+    .tab-content { display: none; background-color: var(--panel-color); padding: 15px; border: 1px solid var(--border-color); min-height: 240px; }
+    .tab-content.active { display: block; }
+    .btn { background-color: rgba(85, 255, 85, 0.05); color: var(--text-color); border: 1px solid var(--border-color); padding: 12px; width: 100%; margin-bottom: 12px; font-family: inherit; font-size: 0.9rem; text-align: left; cursor: pointer; }
+    .btn::before { content: "> "; color: var(--primary-color); }
+    .btn:active:not(:disabled) { background-color: var(--text-color); color: #000; border-color: var(--text-color); }
+    .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .warning-text { color: var(--primary-color); text-shadow: 0 0 8px rgba(255, 136, 0, 0.5); }
+    .loot-common { color: var(--rarity-common); text-shadow: none;}
+    .loot-rare { color: var(--rarity-rare); text-shadow: 0 0 5px rgba(85, 170, 255, 0.5); }
+    .loot-legendary { color: var(--rarity-legendary); text-shadow: 0 0 8px rgba(255, 204, 0, 0.8); font-weight: bold; }
+    .loot-apocalyptic { color: var(--rarity-apocalyptic); text-shadow: 0 0 10px rgba(255, 34, 34, 0.9); font-weight: bold; letter-spacing: 1px; }
+    .loot-set { color: var(--rarity-set); text-shadow: 0 0 8px rgba(85, 255, 85, 0.8); font-weight: bold; letter-spacing: 1px; }
+    .inv-list { max-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); padding: 8px; background: rgba(0,0,0,0.4); margin-top: 10px; }
+    .inv-item { padding: 10px 8px; border-bottom: 1px dashed #333; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; }
+    .inv-item:last-child { border-bottom: none; }
+    .inv-info { flex: 1; cursor: pointer; }
+    .inv-info:hover { background-color: rgba(85, 255, 85, 0.1); }
+    .equip-box { border: 1px solid var(--primary-color); padding: 10px; margin-bottom: 10px; background: rgba(255, 136, 0, 0.05); }
+    .log-panel { position: fixed; bottom: 0; left: 0; right: 0; height: 120px; background-color: #050505; border-top: 1px solid var(--text-color); padding: 8px 12px; box-sizing: border-box; font-size: 0.75rem; overflow-y: auto; z-index: 10; }
+    .log-container { display: flex; flex-direction: column; gap: 2px; }
+    .log-entry { color: #44aa44; } .log-entry.system { color: var(--primary-color); } .log-entry.zaco { color: var(--zaco-color); }
+    .modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--panel-color); border: 2px solid var(--primary-color); padding: 15px; z-index: 1000; width: 90%; max-width: 400px; box-shadow: 0 0 20px rgba(255, 136, 0, 0.4); }
+    .modal-backdrop { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 999; }
+    .filter-bar { display: flex; gap: 5px; margin-bottom: 10px; }
+    .filter-bar input, .filter-bar select { flex: 1; background: #222; color: var(--text-color); border: 1px solid var(--border-color); padding: 8px; font-family: inherit; font-size: 0.8rem; }
+    .lore-modal-content { background-color: #f0f4f8; color: #1a202c; border: 2px solid #cbd5e0; box-shadow: 0 0 20px rgba(255, 255, 255, 0.2); max-height: 85vh; overflow-y: auto; padding: 20px; border-radius: 4px; }
+    .lore-modal-content h2 { color: #d69e2e; border-bottom: 2px solid #a0aec0; padding-bottom: 8px; margin-top: 0; font-family: monospace; }
+    .lore-category-title { color: #2b6cb0; font-size: 1.1em; margin-top: 15px; margin-bottom: 5px; font-weight: bold; }
+    .lore-item-btn { background: #e2e8f0; border: 1px solid #cbd5e0; color: #4a5568; padding: 8px 12px; margin: 4px 0; width: 100%; text-align: left; cursor: pointer; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
+    .lore-item-btn.unlocked { background: #ffffff; color: #2d3748; border-left: 4px solid #d69e2e; font-weight: bold; }
+    .lore-item-btn.unlocked:hover { background: #edf2f7; }
+    .lore-detail-header { font-size: 0.85em; color: #718096; margin-bottom: 15px; padding-bottom: 5px; border-bottom: 1px dashed #cbd5e0; }
+    .lore-detail-body { line-height: 1.6; font-size: 0.95em; white-space: pre-wrap; }
+
+    #sticky-top-zone {
+        position: sticky;
+        top: 0;
+        z-index: 110;
+        background-color: var(--bg-color); 
+        margin: -12px -12px 15px -12px;
+        padding: 12px 12px 0 12px;
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.85); 
+    }
+
+    #sticky-top-zone header {
+        margin-bottom: 0; 
+        border-bottom: none; 
+    }
+
+    /* =========================================
+       廢土犬伴：第一欄 System_Linked 裝甲面板
+       ========================================= */
+    .cyber-frame-container {
+        position: relative;
+        width: 100%;
+        margin-top: 5px; 
+    }
+
+    /* 🚨 這裡修正了標籤的置中與縮小 */
+    .cyber-title-badge {
+        position: absolute;
+        top: 5px; 
+        left: 50%; /* 絕對置中 */
+        transform: translateX(-50%); /* 絕對置中 */
+        background-color: #000;
+        color: var(--primary-color);
+        padding: 0 10px;
+        font-size: 0.75rem; /* 縮小字體 */
+        font-weight: bold;
+        text-shadow: 0 0 5px rgba(255, 136, 0, 0.5);
+        z-index: 10;
+        font-family: monospace;
+        white-space: nowrap;
+    }
+
+    .cyber-frame-top {
+        position: relative; 
+        box-sizing: border-box;
+        padding: 45px 50px 40px 40px !important; 
+        box-shadow: none !important;
+        border: none !important; 
+        background-color: transparent !important; 
+        margin-bottom: 15px !important;
+    }
+
+    .cyber-frame-top::before {
+        content: "";
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0; 
+        z-index: -1; 
+        opacity: 0.7; 
+        border-style: solid !important;
+        border-width: 5px !important; 
+        border-image-source: url('https://raw.githubusercontent.com/ciouyan77/-MMO/refs/heads/main/IMG_9644.png');
+        border-image-slice: 35 fill; 
+        border-image-repeat: stretch; 
+    }
+
+    /* (其餘的 sys-menu-bar, nav-drawer 等樣式保持原樣，我已幫你接上) */
+    .sys-menu-bar { width: 100%; background: rgba(10, 15, 25, 0.95); border: 1px solid #00ffcc; color: #00ffcc; padding: 10px; cursor: pointer; text-align: center; font-family: monospace, "Courier New"; font-size: 14px; font-weight: bold; letter-spacing: 1px; box-shadow: inset 0 0 8px rgba(0, 255, 204, 0.2); transition: all 0.2s; margin-bottom: 12px; }
+    .sys-menu-bar:active { background: rgba(0, 255, 204, 0.2); box-shadow: inset 0 0 15px rgba(0, 255, 204, 0.6); }
+    .nav-drawer { position: fixed; top: 0; right: -280px; width: 260px; height: 100vh; background: rgba(8, 12, 20, 0.98); border-left: 2px solid #00ffcc; box-shadow: -5px 0 20px rgba(0, 0, 0, 0.9); z-index: 1000; transition: right 0.3s cubic-bezier(0.1, 0.9, 0.2, 1); display: flex; flex-direction: column; padding: 20px 15px; box-sizing: border-box; }
+    .nav-drawer.open { right: 0; }
+    .drawer-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0, 255, 204, 0.3); padding-bottom: 8px; margin-bottom: 15px; }
+    .drawer-title { color: #00ffcc; font-weight: bold; font-size: 14px; font-family: monospace; }
+    .drawer-close-btn { background: transparent; border: none; color: #ff5555; font-size: 18px; cursor: pointer; }
+    .drawer-section { display: flex; flex-direction: column; gap: 8px; }
+    .drawer-btn { background: rgba(20, 30, 45, 0.8); border: 1px solid #335566; color: #ccc; padding: 12px; text-align: left; font-size: 14px; font-weight: bold; border-radius: 4px; cursor: pointer; transition: all 0.2s; }
+    .drawer-btn:active { background: rgba(0, 255, 204, 0.2); }
+    .active-btn { border-color: #00ffcc; color: #00ffcc; background: rgba(0, 255, 204, 0.1); }
+    .audio-slider-container { display: flex; flex-direction: column; color: #aaa; font-size: 12px; margin-bottom: 10px; }
+    .audio-slider-container label { margin-bottom: 5px; font-family: monospace; }
+    .audio-slider-container input[type=range] { -webkit-appearance: none; width: 100%; background: #223; height: 6px; border-radius: 3px; outline: none; border: 1px solid #446; }
+    .audio-slider-container input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #00ffcc; cursor: pointer; box-shadow: 0 0 5px #00ffcc; }
+    .audio-btn { border-color: #ffaa00; color: #ffaa00; background: rgba(45, 30, 10, 0.6); text-align: center; margin-top: 5px;}
+    .drawer-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.6); z-index: 999; display: none; }
+    .drawer-overlay.open { display: block; }
+</style>
+
 
     <!-- 🌐 按順序載入驅動與自訂邏輯模組 -->
     <script src="https://unpkg.com/dexie@latest/dist/dexie.js"></script>
-<script src="./database.js"></script>
-<script src="./base.js"></script>
-<script src="./inventory.js"></script>
-<!-- ✨ 新增這行：戰鬥與探索模組 -->
-<script src="./combat.js"></script>
-<script src="./game.js"></script>
+    <script src="./database.js"></script>
+    
+    <!-- 🟢 新增這行：獨立的音效引擎 -->
+    <script src="./audio.js"></script>
+    
+    <script src="./base.js"></script>
+    <script src="./inventory.js"></script>
+    <!-- ✨ 戰鬥與探索模組 -->
 
+    <script src="./combat.js"></script>
+    
+    <!-- 🟢 新增這行：主線與征途資料庫 (一定要在 game.js 上面) -->
+    <script src="./story.js"></script>
+    
+    <script src="./game.js"></script>
 
 </head>
 <body>
 
-    <header>
-        <div class="system-title">root@wasteland_os:~# SYSTEM_LINKED</div>
-        <div class="resource-bar">
-            <span>[SCRAP: <b id="res-scrap">0</b>]</span>
-            <span>[FOOD: <b id="res-food">10</b>]</span>
-            <span>[ZACO: <b id="res-zaco" style="color: var(--zaco-color);">0</b>]</span>
-        </div>
-    </header>
+        <!-- 頂部鎖定防護罩 (包含第一欄與第二欄) -->
+<div id="sticky-top-zone">
+    
+   <!-- 🚨 乾淨的外框容器 -->
+   <div class="cyber-frame-container">
+       
+       <!-- 🚨 這裡才是正確的 HTML 標籤！不是放 CSS 的地方喔 -->
+       <div class="cyber-title-badge">root@wasteland_os:~#</div>
+       
+       <!-- 裝甲面板 -->
+       <header class="cyber-frame-top">
+           <div style="display:flex; justify-content:space-between; align-items:center;">
+               
+               <!-- 左側：系統資訊 -->
+               <div>
+                   <p style="margin: 0; font-weight:bold; font-size: 1.1rem; color:var(--text-color);">SYSTEM_LINKED</p>
+               </div>
 
-    <nav>
-        <button class="tab-btn active" data-tab="status" onclick="switchTab('status')">[01_CAMP]</button>
-        <button class="tab-btn" data-tab="gather" onclick="switchTab('gather')">[02_SCAV]</button>
-        <button class="tab-btn" data-tab="battle" onclick="switchTab('battle')">[03_EXPL]</button>
-        <button class="tab-btn" data-tab="inv" onclick="switchTab('inv')">[04_INV]</button>
-        <button class="tab-btn" data-tab="shop" onclick="switchTab('shop')" style="border-color: var(--zaco-color); color: var(--zaco-color);">[05_SHOP]</button>
-        <button class="tab-btn" data-tab="base" onclick="switchTab('base')" style="border-color: #55aaff; color: #55aaff;">[06_BASE]</button>
-    </nav>
+               <!-- 右側：微縮資源區塊 (垂直緊湊版) -->
+               <div style="display: flex; flex-direction: column; align-items: flex-end; font-size: 0.75rem; gap: 6px; line-height: 1.1; min-width: 90px;">
+                   
+                   <!-- 廢料 -->
+                   <div style="display: flex; flex-direction: column; align-items: flex-end; width: 100%;">
+                       <div style="display: flex; align-items: center;">
+                           <span class="res-icon" style="margin-right: 4px;">⚙️</span> 
+                           <span>[<span id="res-scrap">0</span>]</span>
+                           <span id="cap-scrap" style="display:none;">11000</span>
+                       </div>
+                       <!-- 進度條 -->
+                       <div style="width: 80px; height: 3px; background-color: #111; border: 1px solid #333; margin-top: 3px;">
+                           <div id="bar-scrap" style="width: 50%; height: 100%; background-color: #aaa; transition: width 0.3s;"></div>
+                       </div>
+                   </div>
+
+                   <!-- 肉乾 -->
+                   <div style="display: flex; flex-direction: column; align-items: flex-end; width: 100%;">
+                       <div style="display: flex; align-items: center;">
+                           <span class="res-icon" style="margin-right: 4px;">🥩</span> 
+                           <span>[<span id="res-food">0</span>]</span>
+                           <span id="cap-food" style="display:none;">4000</span>
+                       </div>
+                       <!-- 進度條 -->
+                       <div style="width: 80px; height: 3px; background-color: #111; border: 1px solid #333; margin-top: 3px;">
+                           <div id="bar-food" style="width: 30%; height: 100%; background-color: #e55; transition: width 0.3s;"></div>
+                       </div>
+                   </div>
+
+                   <!-- ZaCo (無容量) -->
+                   <div style="display: flex; align-items: center;">
+                       <span class="res-icon" style="margin-right: 4px;">💿</span> 
+                       <span>[<span id="res-zaco">0</span>]</span>
+                   </div>
+
+               </div>
+               
+           </div>
+       </header>
+
+   </div>
+   <!-- 第一欄結束 -->
+   
+   <!-- 第二欄：橫向 SYS_MENU ... -->
+   <button class="sys-menu-bar" onclick="toggleNavDrawer()">
+       ⚙️ [ SYS_MENU / 系統導航模組 ] ▾
+   </button>
+</div>
+
+
+
+<!-- 右側滑出式系統抽屜 -->
+<div id="nav-drawer" class="nav-drawer">
+  <div class="drawer-header">
+    <span class="drawer-title">>> NAVIGATION</span>
+    <button class="drawer-close-btn" onclick="toggleNavDrawer()">✖</button>
+  </div>
+
+  <!-- 核心分頁選單 -->
+  <div class="drawer-section">
+    <button class="drawer-btn" style="border-color: #ff5555; color: #ff5555; text-shadow: 0 0 5px rgba(255,85,85,0.5);" onclick="switchTab('odyssey'); initOdysseySystem(); toggleNavDrawer();">[00] 征途</button>
+    <button class="drawer-btn active-btn" onclick="switchTab('status'); toggleNavDrawer();">[01] 營地</button>
+    <button class="drawer-btn" onclick="switchTab('gather'); toggleNavDrawer();">[02] 搜刮</button>
+    <button class="drawer-btn" onclick="switchTab('battle'); toggleNavDrawer();">[03] 探索</button>
+    <button class="drawer-btn" onclick="switchTab('inv'); toggleNavDrawer();">[04] 裝備</button>
+    <button class="drawer-btn" style="border-color: var(--zaco-color); color: var(--zaco-color);" onclick="switchTab('shop'); toggleNavDrawer();">[05] 黑市</button>
+    <button class="drawer-btn" style="border-color: #55aaff; color: #55aaff;" onclick="switchTab('base'); toggleNavDrawer();">[06] 基地</button>
+  </div>
+
+  <!-- 音樂與音效控制面板 -->
+  <div class="drawer-header" style="margin-top: auto; padding-top: 15px; border-top: 1px dashed rgba(0,255,204,0.3);">
+    <span class="drawer-title">>> AUDIO_SYS</span>
+  </div>
+  
+  <div class="drawer-section">
+    <div class="audio-slider-container">
+      <label>音樂 (BGM) <span id="bgm-val">50</span>%</label>
+      <input type="range" id="bgm-volume" min="0" max="100" value="50" oninput="updateVolume('bgm', this.value)">
+    </div>
+    <div class="audio-slider-container">
+      <label>音效 (SFX) <span id="sfx-val">50</span>%</label>
+      <input type="range" id="sfx-volume" min="0" max="100" value="50" oninput="updateVolume('sfx', this.value)">
+    </div>
+    
+    <button id="audio-toggle-btn" class="drawer-btn audio-btn" onclick="toggleMute()">
+      <span id="audio-icon">🔊</span> 系統靜音：未開啟
+    </button>
+  </div>
+</div>
+
+<!-- 遮罩背景 -->
+<div id="drawer-overlay" class="drawer-overlay" onclick="toggleNavDrawer()"></div>
 
     <div id="tab-status" class="tab-content active">
-        <div id="camp-main-view">
+                <div id="camp-main-view">
             <div style="display:flex; gap:8px; margin-bottom:10px;">
                 <button class="btn" onclick="toggleCampView('hound')" style="flex:1; margin:0; border-color:#ffaa00; color:#ffaa00; box-shadow: 0 0 5px rgba(255,170,0,0.3); font-weight:bold;">獵犬終端機</button>
                 <button class="btn" onclick="toggleCampView('profile')" style="flex:1; margin:0; border-color:#888; color:#aaa;">倖存者識別證</button>
@@ -167,6 +312,7 @@
             <button class="btn" onclick="healHound()" style="border-color: #55aaff; color: #55aaff; margin-bottom:10px;">FEED_JERKY (恢復 25% HP) [消耗: 1 肉乾]</button>
             <hr style="border-style: dashed; border-color: var(--border-color);">
         </div>
+
 
                 <div id="camp-hound-view" style="display:none; border:1px solid #ffaa00; padding:10px; margin-bottom:10px; background:rgba(0,0,0,0.6); box-shadow: 0 0 8px rgba(255,170,0,0.2);">
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px dashed #ffaa00; padding-bottom:5px; margin-bottom:8px;">
@@ -205,25 +351,51 @@
                 <button class="btn" onclick="toggleCampView('main')" style="width:auto; margin:0; padding:2px 8px; font-size:0.75rem; border-color:#888; color:#888;"><< 返回營地</button>
             </div>
             
-            <div style="display:flex; gap:12px; align-items:center; margin-bottom:10px;">
-                <div style="width:70px; height:70px; border:1px dashed #666; display:flex; justify-content:center; align-items:center; overflow:hidden; background:#0a0a0a; flex-shrink:0;">
-                    <img id="profile-avatar-img" src="" alt="NO_IMG" style="width:100%; height:100%; object-fit:cover; display:none;">
-                    <span id="profile-avatar-placeholder" style="font-size:0.65rem; color:#555; text-align:center;">無相片<br>點擊上傳</span>
+            <!-- 🟢 倖存者相片區塊 -->
+            <div style="display:flex; gap:12px; align-items:center; margin-bottom:10px; border-bottom:1px solid #333; padding-bottom:10px;">
+                <div style="width:60px; height:60px; border:1px dashed #666; display:flex; justify-content:center; align-items:center; overflow:hidden; background:transparent; flex-shrink:0;">
+                    <img id="profile-avatar-img" src="" alt="NO_IMG" style="width:100%; height:100%; object-fit:contain; display:none;">
+                    <span id="profile-avatar-placeholder" style="font-size:0.55rem; color:#555; text-align:center;">倖存者<br>無相片</span>
                 </div>
                 <div style="flex:1; min-width:0;">
-                    <label class="btn" style="display:inline-block; width:auto; margin:0; padding:6px 14px; font-size:0.8rem; border-color:#55aaff; color:#55aaff; cursor:pointer; text-align:center;">
-                        上傳相片
-                        <input type="file" accept="image/*" onchange="handleAvatarUpload(event)" style="display:none;">
-                    </label>
-                    <div style="font-size:0.65rem; color:#666; margin-top:4px;">*支援相簿，自動正方形裁剪與輕量化。</div>
+                    <div style="display:flex; gap:8px; margin-bottom:4px;">
+                        <label class="btn" style="display:inline-block; width:auto; margin:0; padding:4px 10px; font-size:0.75rem; border-color:#55aaff; color:#55aaff; cursor:pointer;">
+                            上傳倖存者
+                            <input type="file" accept="image/*" onchange="handleAvatarUpload('player', event)" style="display:none;">
+                        </label>
+                        <button class="btn" onclick="removeAvatar('player')" style="width:auto; margin:0; padding:4px 10px; font-size:0.75rem; border-color:#ff5555; color:#ff5555; cursor:pointer; background:transparent;">移除</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 🟢 獵犬相片區塊 -->
+            <div style="display:flex; gap:12px; align-items:center; margin-bottom:10px;">
+                <div style="width:60px; height:60px; border:1px dashed #666; display:flex; justify-content:center; align-items:center; overflow:hidden; background:transparent; flex-shrink:0;">
+                    <img id="hound-avatar-img" src="" alt="NO_IMG" style="width:100%; height:100%; object-fit:contain; display:none;">
+                    <span id="hound-avatar-placeholder" style="font-size:0.55rem; color:#555; text-align:center;">獵犬<br>無相片</span>
+                </div>
+                <div style="flex:1; min-width:0;">
+                    <div style="display:flex; gap:8px; margin-bottom:4px;">
+                        <label class="btn" style="display:inline-block; width:auto; margin:0; padding:4px 10px; font-size:0.75rem; border-color:#ffaa00; color:#ffaa00; cursor:pointer;">
+                            上傳獵犬
+                            <input type="file" accept="image/*" onchange="handleAvatarUpload('hound', event)" style="display:none;">
+                        </label>
+                        <button class="btn" onclick="removeAvatar('hound')" style="width:auto; margin:0; padding:4px 10px; font-size:0.75rem; border-color:#ff5555; color:#ff5555; cursor:pointer; background:transparent;">移除</button>
+                    </div>
                 </div>
             </div>
             
             <div style="display:flex; flex-direction:column; gap:6px; font-size:0.85rem; color:#aaa;">
                 <div>生存者代號: <input type="text" id="input-player-name" placeholder="輸入代號" style="width:140px; background:#111; border:1px solid #444; color:#fff; padding:3px 6px;" onchange="saveProfileNames()"></div>
                 <div>忠犬名稱: <input type="text" id="input-hound-name" placeholder="輸入獵犬名" style="width:140px; background:#111; border:1px solid #444; color:#fff; padding:3px 6px;" onchange="saveProfileNames()"></div>
+                <div style="margin-top:4px; display:flex; align-items:center; gap:6px; font-size:0.8rem; color:#55ff55;">
+                    <input type="checkbox" id="chk-story-avatar" onchange="toggleStoryAvatarSetting(this.checked)" style="cursor:pointer;">
+                    <label for="chk-story-avatar" style="cursor:pointer;">[v] 在主線劇情中使用相片取代預設角色立繪</label>
+                </div>
             </div>
         </div>
+
+
 
         <h3 class="warning-text">// BASE_CAMP</h3>
 
@@ -295,12 +467,42 @@
             </div>
             <div style="font-size:0.75rem; color:#aaa; margin-top:5px;">⚠️ 警告：系統將銷毀所有未裝備且「未鎖定」的選定品質裝備。</div>
         </div>
-        <div id="inv-subtabs" style="display:flex; gap:6px; overflow-x:auto; white-space:nowrap; margin-bottom:8px; padding-bottom:4px;">
-            <button class="btn subtab-btn active-subtab" onclick="switchInvTab('all', this)" style="margin:0; padding:4px 10px; font-size:0.8rem; border-color:var(--text-color, #ffffff); color:var(--text-color, #ffffff);">全部</button>
-            <button class="btn subtab-btn" onclick="switchInvTab('head', this)" style="margin:0; padding:4px 10px; font-size:0.8rem; border-color:#555; color:#888;">頭盔</button>
-            <button class="btn subtab-btn" onclick="switchInvTab('neck', this)" style="margin:0; padding:4px 10px; font-size:0.8rem; border-color:#555; color:#888;">項圈</button>
-            <button class="btn subtab-btn" onclick="switchInvTab('body', this)" style="margin:0; padding:4px 10px; font-size:0.8rem; border-color:#555; color:#888;">胸背帶</button>
-        </div>
+        <style>
+#inv-subtabs .btn-inv-filter {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+    color: #718096;
+    font-size: 0.8rem;
+    padding: 6px 0;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+}
+#inv-subtabs .btn-inv-filter.active {
+    color: #00ffcc !important;
+    font-weight: bold;
+    text-shadow: 0 0 6px rgba(0, 255, 204, 0.6);
+}
+#inv-subtabs .btn-inv-filter.core-tab {
+    color: #c355ff;
+}
+#inv-subtabs .btn-inv-filter.core-tab.active {
+    color: #e09eff !important;
+    text-shadow: 0 0 8px rgba(195, 85, 255, 0.8);
+}
+</style>
+<div id="inv-subtabs" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; margin-bottom: 12px; width: 100%; background: #0d1117; padding: 6px 4px; border-radius: 6px; border: 1px solid #2d3748;">
+    <button class="btn-inv-filter active" onclick="switchInvSubTab('all', this)">> 全部</button>
+    <button class="btn-inv-filter" onclick="switchInvSubTab('head', this)">> 頭盔</button>
+    <button class="btn-inv-filter" onclick="switchInvSubTab('neck', this)">> 項圈</button>
+    <button class="btn-inv-filter" onclick="switchInvSubTab('body', this)">> 胸背帶</button>
+    <button class="btn-inv-filter core-tab" onclick="switchInvSubTab('core', this)">> 核心</button>
+</div>
+
+
+
 
         <div class="filter-bar">
             <input type="text" id="inv-search" placeholder="輸入關鍵字..." oninput="renderInventory()">
@@ -373,12 +575,13 @@
             <button class="btn" onclick="toggleRadio()" id="btn-radio-state" style="margin-bottom:0; border-color:#888; color:#888;">[目前狀態: 關閉] TURN_ON</button>
         </div>
 
-        <!-- 設施 3: 誘餌廣播塔 (改為危險紫色) -->
+                <!-- 設施 3: 誘餌廣播塔 (改為危險紫色) -->
         <div style="margin-bottom: 15px; border: 1px solid #aa55ff; padding: 10px; background: rgba(85, 0, 150, 0.1);">
             <div style="color:#aa55ff; font-weight:bold; margin-bottom:5px;">[03] 誘餌廣播塔 (離線蓄力)</div>
             <div style="font-size:0.75rem; color:#aaa; margin-bottom:8px;">離線期間吸引屍群，重新連線時可引爆收割。蓄力值: <span id="base-tower-charge" style="color:#aa55ff; font-weight:bold;">0%</span></div>
-            <button class="btn" onclick="detonateTower()" style="border-color:#aa55ff; color:#aa55ff; margin-bottom:8px;">DETONATE_EMP [一鍵引爆收割]</button>
-            <button class="btn" onclick="upgradeFacility('tower')" style="margin-bottom:0; border-color:#aa55ff; color:#aa55ff; font-size:0.75rem; padding:6px;">BUILD / UPGRADE FACILITY [建立/升級廣播塔]</button>
+            <!-- 🔧 [修改] 加入 id 讓 JS 能夠動態控制狀態 -->
+            <button class="btn" id="btn-detonate-tower" onclick="detonateTower()" style="border-color:#aa55ff; color:#aa55ff; margin-bottom:8px;">DETONATE_EMP [一鍵引爆收割]</button>
+            <button class="btn" id="btn-upgrade-tower" onclick="upgradeFacility('tower')" style="margin-bottom:0; border-color:#aa55ff; color:#aa55ff; font-size:0.75rem; padding:6px;">BUILD / UPGRADE FACILITY [建立/升級廣播塔]</button>
         </div>
 
         <!-- 設施 4: 倖存者派遣電台 -->
@@ -429,5 +632,134 @@
         </div>
     </div>
 </div>
+
+        <!-- ===== [00_STORY] 征途模式專屬分頁 ===== -->
+    <div id="tab-odyssey" class="tab-content" style="flex-direction: column; padding: 0; border: none; background: transparent;">
+
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ff5555; padding-bottom: 10px; margin-bottom: 15px;">
+            <span style="color: #ff5555; font-weight: bold; font-size: 1.2em; letter-spacing: 1px;">SYSTEM // ODYSSEY_PROTOCOL</span>
+            <span style="color: #888; font-size: 0.8em;">[主線進度與死鬥]</span>
+        </div>
+
+
+        <!-- 🔽 這是新加的「階段零：章節選擇」🔽 -->
+        <div id="odyssey-phase-select" style="display: none; flex: 1; flex-direction: column;">
+            <h3 style="color: #ffaa00; border-bottom: 1px dashed #ffaa00; padding-bottom: 10px; margin-top: 0;">[ 記憶同步_ARCHIVES ]</h3>
+            <p style="color: #aaa; font-size: 0.9em; margin-bottom: 15px;">請選擇要載入的歷史神經段落：</p>
+            <div id="odyssey-chapter-list" style="display: flex; flex-direction: column; gap: 10px; overflow-y: auto;">
+                <!-- 這裡會由 JS 動態生成按鈕 -->
+            </div>
+        </div>
+        <!-- 🔼 新增結束 🔼 -->
+
+                        <!-- ＝＝＝ 階段一：賽博 Galgame 劇本閱讀器 (Cyber Story Stage) ＝＝＝ -->
+        <div id="odyssey-phase-story" style="display: none; flex: 1; flex-direction: column;">
+            
+            <!-- 🎬 虛擬視覺舞台：背景與立繪疊加核心 -->
+            <div id="odyssey-visual-stage" style="position: relative; width: 100%; height: 65vh; border: 1px solid var(--border-color); background-color: #050505; background-size: cover; background-position: center; overflow: hidden; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); margin-bottom: 10px;">
+                
+                <!-- 👤 人物立繪層 (還原完美比例，靠底對齊，下半身自然被對話框遮擋) -->
+<img id="odyssey-character-sprite" src="" style="position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); max-height: 95%; max-width: 100%; object-fit: contain; filter: drop-shadow(0 0 10px rgba(85, 255, 85, 0.3)); transition: all 0.3s ease; display: none; z-index: 0; pointer-events: none;">
+
+
+                
+                <!-- 💬 賽博風格對話框 (絕對定位壓在舞台最下方) -->
+                <div style="position: absolute; bottom: 10px; left: 10px; right: 10px; background-color: rgba(5, 12, 5, 0.85); border: 1px solid var(--text-color); box-shadow: 0 0 10px rgba(85,255,85,0.2); padding: 12px; min-height: 110px; box-sizing: border-box; font-family: monospace; backdrop-filter: blur(3px); pointer-events: none;">
+                    
+                    <!-- 講者標籤：霓虹邊框小外殼 -->
+                    <div style="display: inline-block; background: var(--text-color); color: #000; font-weight: bold; font-size: 0.85rem; padding: 2px 8px; margin-bottom: 6px; letter-spacing: 1px; text-shadow: none;" id="odyssey-speaker-badge">
+                        SYSTEM
+                    </div>
+                    
+                    <!-- 劇情核心內文 -->
+                    <p id="odyssey-text" style="color: #fff; margin: 0; line-height: 1.5; font-size: 1rem; text-shadow: 0 0 2px rgba(255,255,255,0.5); font-weight: normal;"></p>
+                </div>
+            </div>
+
+            <!-- 🎮 下方操控按鈕列 -->
+            <div style="display: flex; gap: 10px;">
+                <button id="odyssey-next-btn" class="btn" onclick="nextOdysseyDialogue()" style="flex: 2; margin: 0; border-color: var(--text-color); color: var(--text-color); font-weight: bold; text-align: center;">[點擊繼續_TAP_TO_NEXT]</button>
+                <button id="odyssey-prep-btn" class="btn" onclick="enterOdysseyPrep()" style="flex: 1; margin: 0; border-color: #ff5555; color: #ff5555; font-weight: bold; display: none; text-align: center; background: rgba(255,85,85,0.1);">[鎖定強敵_PREP]</button>
+            </div>
+        </div>
+
+        <!-- ＝＝＝ 階段二：戰術整備室 (Tactical Prep Room) ＝＝＝ -->
+        <div id="odyssey-phase-prep" style="display: none; flex: 1; flex-direction: column;">
+            <h3 style="color: #ff5555; text-align: center; margin-top: 0; letter-spacing: 2px;">⚠ 戰術整備室 ⚠</h3>
+            
+            <!-- 王關情報 -->
+            <div style="border: 1px solid #ff5555; padding: 10px; background-color: rgba(255,85,85,0.05); margin-bottom: 10px;">
+                <h4 style="margin: 0 0 5px 0; color: #ff5555; font-size: 0.95em;">[鎖定目標情報]</h4>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <div id="boss-prep-img" style="width: 60px; height: 60px; background-color: #222; border: 1px solid #ff5555; display: flex; align-items: center; justify-content: center; font-size: 0.7em; color: #555;">IMG</div>
+                    <div style="flex: 1;">
+                        <p style="margin: 0; color: #fff; font-size: 1.1em;"><strong id="boss-prep-name">未知生化體</strong></p>
+                        <p style="margin: 3px 0; font-size: 0.85em; color: #aaa;">血量極限: <span id="boss-prep-hp" style="color:#ff5555; font-weight:bold;">----</span> | 攻擊力: <span id="boss-prep-atk" style="color:#ffaa00; font-weight:bold;">---</span></p>
+                    </div>
+                </div>
+                <!-- 裝備檢定與抗性警告 -->
+                <div style="margin-top: 8px; padding: 8px; background-color: #1a0505; border-left: 3px solid #ff5555;">
+                    <p style="margin: 0; font-size: 0.8em; color: #ff5555; font-weight: bold;">[環境/抗性壓制]</p>
+                    <p id="boss-prep-trait" style="margin: 3px 0 0 0; font-size: 0.8em; color: #ffaa00;"></p>
+                </div>
+            </div>
+
+            <!-- 獵犬目前狀態對比與快速換裝 (由 JS 終端機介面完全接管渲染) -->
+            <div id="prep-mini-inv" style="flex: 1; display: flex; flex-direction: column; overflow-y: auto; margin-bottom: 10px;">
+                <div style="color:#777; font-size:0.8em; text-align:center;">[終端機戰術介面載入中...]</div>
+            </div>
+
+            <button class="btn" onclick="startOdysseyBattle()" style="width: 100%; border-color: #ff5555; color: #ff5555; background-color: rgba(255,85,85,0.15); font-weight: bold; font-size: 1.2em; padding: 12px 0; margin-top: 10px; text-shadow: 0 0 5px rgba(255,85,85,0.5);">
+                [ 展開死鬥_ENGAGE ]
+            </button>
+        </div>
+
+
+                                <!-- ＝＝＝ 階段三：絕境死鬥 (Boss Arena) 沉浸流 2.1 ＝＝＝ -->
+        <div id="odyssey-phase-battle" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 9999; flex-direction: column; background-color: transparent;">
+            
+            <!-- 📺 CRT 終端機掃描線濾鏡 -->
+            <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.04)); background-size: 100% 4px, 3px 100%; z-index: 9999;"></div>
+
+            <!-- 🚪 右上角緊急撤退按鈕 (絕對定位，層級最高) -->
+            <button id="odyssey-emergency-exit" class="btn" style="position: absolute; top: 15px; right: 15px; width: auto; margin: 0; padding: 6px 12px; background: rgba(0,0,0,0.6); border: 1px solid #ff5555; color: #ff5555; z-index: 10000; font-size: 0.85rem; backdrop-filter: blur(4px); box-shadow: 0 0 8px rgba(255,85,85,0.4);" onclick="forceExitOdysseyBattle()">✖ 緊急撤退</button>
+
+            <!-- 1. 全螢幕 Boss 立繪層 (加入 min-height: 0 避免溢位) -->
+            <div style="flex: 1; min-height: 0; display: flex; justify-content: center; align-items: center; position: relative; z-index: 1;">
+                <img id="boss-battle-sprite" src="" alt="BOSS" style="max-width: 95%; max-height: 95%; object-fit: contain; filter: drop-shadow(0 0 20px rgba(255,50,50,0.4));">
+            </div>
+
+            <!-- 2. 底部 UI 區塊 -->
+            <div style="height: 40%; display: flex; flex-direction: column; position: relative; z-index: 10;">
+                <!-- 深淵漸層遮罩 -->
+                <div style="position: absolute; top: -50px; left: 0; width: 100%; height: calc(100% + 50px); background: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0.85) 45%, rgba(0,0,0,0.3) 80%, transparent 100%); z-index: -1; pointer-events: none;"></div>
+
+                <!-- 🩸 血條與名稱 (flex-shrink: 0 保證不被壓縮) -->
+                <div style="padding: 0 15px; text-align: center; margin-top: -20px; flex-shrink: 0;">
+                    <h3 id="boss-battle-name" style="color: #ff5555; margin: 0 0 5px 0; letter-spacing: 2px; text-shadow: 0 0 8px rgba(255,0,0,0.8); font-size: 1.2rem;">-</h3>
+                    <div style="width: 100%; height: 18px; border: 1px solid rgba(255, 85, 85, 0.6); background-color: rgba(0, 0, 0, 0.6); position: relative; box-shadow: 0 0 8px rgba(255,85,85,0.3); clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);">
+                        <div id="boss-battle-hp-bar" style="width: 100%; height: 100%; background: linear-gradient(90deg, #880000 0%, #ff3333 100%); transition: width 0.2s ease-out;"></div>
+                        <span style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; text-align: center; line-height: 18px; color: #fff; font-weight: bold; text-shadow: 1px 1px 2px #000, 0 0 4px #ff5555; font-size: 0.85rem;">
+                            <span id="boss-battle-hp">0</span> / <span id="boss-battle-maxhp">0</span>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- 💬 戰鬥日誌區 (加入 min-height: 0 徹底解決撐破螢幕的 Bug) -->
+                <div id="odyssey-battle-log" style="flex: 1; min-height: 0; padding: 10px 15px; overflow-y: hidden; font-family: monospace; font-size: 0.85rem; display: flex; flex-direction: column; justify-content: flex-end; -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 100%); mask-image: linear-gradient(to bottom, transparent 0%, black 15%, black 100%);">
+                    <!-- 內容由 JS 注入 -->
+                </div>
+
+                <!-- 戰鬥結束按鈕區 (確保最小高度與不被壓縮) -->
+                <div id="odyssey-battle-action-area" style="padding: 0 15px 15px 15px; flex-shrink: 0; min-height: 55px; display: flex; align-items: flex-end; justify-content: center;"></div>
+            </div>
+        </div>
+
+
+
+
+
+
 </body>
 </html>

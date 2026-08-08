@@ -1,4 +1,95 @@
 // ==========================================
+// ⚙️ 紫色核心數值控制中心 (可隨時調整數值)
+// ==========================================
+const CORE_CONFIG = {
+    // --- 1. 清道夫 (Scavenger) ---
+    scavenger_A: { maxStacks: 10, stackAtkPercent: 0.10, fusionAtkAdd: 120 },
+    scavenger_B: { hpThreshold: 0.50, boostedAtk: 60, bleedChance: 0.25, bleedAtkPercent: 0.50 },
+    scavenger_C: { lifestealShieldPercent: 0.15, extraLootChance: 0.25, doubleLootChance: 0.10 },
+    scavenger_D: { scrapStep: 1000, zacoStep: 100, stepBonusPercent: 0.03, maxBonusPercent: 1.20, stealChance: 0.10, stealPercent: 0.05 },
+
+    // --- 2. 都市忍者 (Ninja) ---
+    ninja_A: { postCritAtkBonus: 0.25, echoDmgPercent: 0.50 },
+    ninja_B: { dodgeToShieldRatio: 1.0, doubleCritChance: 0.25 },
+    ninja_C: { dodgeOverflowThreshold: 50, defShredPercent: 0.05, maxDefShredPercent: 0.20 },
+    ninja_D: { stunChance: 0.20, doubleDodgeCritIgnoreDef: 1.0 },
+
+    // --- 3. 廢土暴徒 (Thug) ---
+    thug_A: { critLifestealPercent: 0.15, selfDmgPenalty: 0.10 },
+    thug_B: { stunChance: 0.35, splashAtkPercent: 0.30 },
+    thug_C: { lowHpThreshold: 0.30, critRatePerLossHp: 0.005, boostedCritMult: 4.0 },
+    thug_D: { nonCritAddMult: 1.0, maxCritMult: 8.0, baseCritMult: 3.0 },
+
+    // --- 4. 殭屍骰 (Zombie) ---
+    zombie_A: { missAddOHKO: 4, baseOHKO: 12 },
+    zombie_B: { bossCurrentHpPercent: 0.05 },
+    zombie_C: { maxOHKO: 48, baseOHKO: 12 },
+    zombie_D: { explosionAtkMult: 3.0, permStackAddAtk: 1, permStackAddOHKO: 1, maxStacks: 15 },
+
+    // --- 5. 深淵琉璃 (Abyss) ---
+    abyss_A: { reflectCritHealHpPercent: 0.05 },
+    abyss_B: { cheatDeathHpThreshold: 0.20, reflectAccumulatedBurstMult: 3.0 },
+    abyss_C: { reflectToShieldPercent: 0.30, maxShieldHpPercent: 1.0, shieldedDefAdd: 35 },
+    abyss_D: { enemyAtkDebuffStep: 0.05, maxEnemyAtkDebuff: 0.30, reflectDmgTakenAdd: 0.10, maxDebuffDefBonus: 100 }
+};
+
+// ==========================================
+// 🟣 終局獨立紫色核心 O(1) 全域字典 (完全解綁套裝)
+// ==========================================
+const EXOTIC_CORE_DATABASE = {
+    // 1. 清道夫系列戰術核心
+    "core_scavenger_A": { id: "core_scavenger_A", name: "廢鐵聚變・核心", slot: "core", slotText: "核心", rarity: "epic", class: "loot-epic", setId: null, resonance: "scavenger_A", desc: "命中有機率回收殘屑，疊滿 10 層觸發『聚變反應』(ATK +120)。" },
+    "core_scavenger_B": { id: "core_scavenger_B", name: "重壓引擎・核心", slot: "core", slotText: "核心", rarity: "epic", class: "loot-epic", setId: null, resonance: "scavenger_B", desc: "目標 HP>50% 時攻擊加成翻倍；25% 機率撕裂護甲造成 50% 流血傷害。" },
+    "core_scavenger_C": { id: "core_scavenger_C", name: "磁流掠奪・核心", slot: "core", slotText: "核心", rarity: "epic", class: "loot-epic", setId: null, resonance: "scavenger_C", desc: "15% 傷害轉護盾；擊殺敵額外掉落率 +25%，10% 觸發雙倍掉落。" },
+    "core_scavenger_D": { id: "core_scavenger_D", name: "煉金術師・核心", slot: "core", slotText: "核心", rarity: "epic", class: "loot-epic", setId: null, resonance: "scavenger_D", desc: "每持 1,000 廢料或 100 ZaCo 動態 +3% 攻擊(上限+120%)；攻擊 10% 掠奪廢料。" },
+
+    // 2. 都市忍者系列戰術核心
+    "core_ninja_A":     { id: "core_ninja_A", name: "量子怨靈・核心", slot: "core", slotText: "核心", rarity: "epic", class: "loot-epic", setId: null, resonance: "ninja_A", desc: "打出暴擊時，下次攻擊 +25% 攻擊力並召喚殘影追加 50% 傷害連擊。" },
+    "core_ninja_B":     { id: "core_ninja_B", name: "微型電弧・核心", slot: "core", slotText: "核心", rarity: "epic", class: "loot-epic", setId: null, resonance: "ninja_B", desc: "成功閃避將閃避率 100% 轉為護盾；打出暴擊時 25% 機率暴傷翻倍。" },
+    "core_ninja_C":     { id: "core_ninja_C", name: "致命演算・核心", slot: "core", slotText: "核心", rarity: "epic", class: "loot-epic", setId: null, resonance: "ninja_C", desc: "暴擊時溢出閃避率轉真傷，且永久扣除目標 5% 防禦力(最多20%)。" },
+    "core_ninja_D":     { id: "core_ninja_D", name: "都市因果・核心", slot: "core", slotText: "核心", rarity: "epic", class: "loot-epic", setId: null, resonance: "ninja_D", desc: "暴擊時 20% 跳過敵攻擊；連續 2 次閃避必爆，下擊必定穿透 100% 防禦。" },
+
+    // 3. 廢土暴徒系列戰術核心
+    "core_thug_A":      { id: "core_thug_A", name: "嗜血狂爆・核心", slot: "core", slotText: "核心", rarity: "epic", class: "loot-epic", setId: null, resonance: "thug_A", desc: "打出暴擊時吸血 15% HP；代價為受到的所有傷害額外 +10%。" },
+    "core_thug_B":      { id: "core_thug_B", name: "腦部震盪・核心", slot: "core", slotText: "核心", rarity: "epic", class: "loot-epic", setId: null, resonance: "thug_B", desc: "打出暴擊時 35% 機率使敵人眩暈跳過回合，並造成 30% 濺射傷害。" },
+    "core_thug_C":      { id: "core_thug_C", name: "血海深仇・核心", slot: "core", slotText: "核心", rarity: "epic", class: "loot-epic", setId: null, resonance: "thug_C", desc: "血量<30%才自動吃肉乾；血量每低 1% 暴擊+0.5%；<30% 時暴傷進化為 4 倍。" },
+    "core_thug_D":      { id: "core_thug_D", name: "無惡不作・核心", slot: "core", slotText: "核心", rarity: "epic", class: "loot-epic", setId: null, resonance: "thug_D", desc: "未暴擊時累積動能使暴傷 +1 倍(最高 8 倍)；打出暴擊後重置。" },
+
+    // 4. 殭屍骰系列戰術核心
+    "core_zombie_A":    { id: "core_zombie_A", name: "崩壞天平・核心", slot: "core", slotText: "核心", rarity: "epic", class: "loot-epic", setId: null, resonance: "zombie_A", desc: "未秒殺時下一擊秒殺率 +4%(可無限無上限疊加)；觸發秒殺後重置。" },
+    "core_zombie_B":    { id: "core_zombie_B", name: "死靈壞疽・核心", slot: "core", slotText: "核心", rarity: "epic", class: "loot-epic", setId: null, resonance: "zombie_B", desc: "對 Boss 觸發秒殺時，改為注入壞疽，強制削減 Boss 當前 5% HP。" },
+    "core_zombie_C":    { id: "core_zombie_C", name: "盲目下注・核心", slot: "core", slotText: "核心", rarity: "epic", class: "loot-epic", setId: null, resonance: "zombie_C", desc: "秒殺成功後下次秒殺率翻倍(24%->48%)；未秒殺則降回原本數值。" },
+    "core_zombie_D":    { id: "core_zombie_D", name: "生化菌絲・核心", slot: "core", slotText: "核心", rarity: "epic", class: "loot-epic", setId: null, resonance: "zombie_D", desc: "秒殺改為 3 倍屍爆傷害；每觸發一次永久 +1% 攻擊與 +1% 秒殺率(最多15層)。" },
+
+    // 5. 深淵琉璃系列戰術核心
+    "core_abyss_A":     { id: "core_abyss_A", name: "猖狂反噬・核心", slot: "core", slotText: "核心", rarity: "epic", class: "loot-epic", setId: null, resonance: "abyss_A", desc: "反傷享有暴擊判定；若反傷觸發暴擊，額外回復 5% 最大生命。" },
+    "core_abyss_B":     { id: "core_abyss_B", name: "零度晶核・核心", slot: "core", slotText: "核心", rarity: "epic", class: "loot-epic", setId: null, resonance: "abyss_B", desc: "HP<20% 時觸發迴光返照，並將累積反傷的 300% 化為晶體風暴轟向敵人。" },
+    "core_abyss_C":     { id: "core_abyss_C", name: "絕對防禦・核心", slot: "core", slotText: "核心", rarity: "epic", class: "loot-epic", setId: null, resonance: "abyss_C", desc: "反傷時將 30% 轉為護盾(上限100% HP)；護盾存在時防禦力額外 +35。" },
+    "core_abyss_D":     { id: "core_abyss_D", name: "重力坍縮・核心", slot: "core", slotText: "核心", rarity: "epic", class: "loot-epic", setId: null, resonance: "abyss_D", desc: "反傷永久降低敵人 5% 攻擊(上限30%)；敵降攻達極限時防禦+100。" }
+};
+
+
+// ==========================================
+// ⚡ 紫光開獎感官特效 (Cyber Neon Flash & Vibration)
+// ==========================================
+function triggerPurpleJackpotEffect() {
+    // 1. 手機實體震動 (Android / 支持震動之 iOS WebView)
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        try { navigator.vibrate([100, 50, 200, 50, 300]); } catch(e) {}
+    }
+    // 2. 全螢幕霓虹紫光閃爍 (Cyber Flash)
+    const flash = document.createElement('div');
+    flash.style.cssText = "position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(195,85,255,0.35);box-shadow:inset 0 0 50px #c355ff;z-index:9999;pointer-events:none;transition:opacity 0.6s ease-out;";
+    document.body.appendChild(flash);
+    setTimeout(() => { 
+        flash.style.opacity = '0'; 
+        setTimeout(() => flash.remove(), 600); 
+    }, 100);
+}
+
+
+
+// ==========================================
 // 🧬 全域套裝字典 (Data-Driven Set Bonuses)
 // ==========================================
 const SET_BONUS_DB = {
@@ -10,6 +101,71 @@ const SET_BONUS_DB = {
 };
 
 
+
+// ==========================================
+// 專屬武裝庫：主線/王關掉落特殊裝備
+// ==========================================
+
+const STORY_GEAR_DATABASE = {
+    "set_3_body_purple": {
+        name: "鐵衛的液態合金胸甲",
+        slot: "body",
+        slotText: "胸背帶",
+        rarity: "epic",        // 全新稀有度：史詩 (紫裝)
+        class: "loot-epic",    // 對應 CSS
+        atk: 0,
+        def: 55,
+        maxHp: 350,
+        crit: 0,
+        dodge: 0,
+        desc: "從液態鐵衛身上剝離的裝甲，雖然殘破但防禦力驚人。"
+    }
+};
+
+// 呼叫此函數，自動將主線專屬裝備／紫色核心寫入玩家背包
+async function generateStoryGear(gearId) {
+    // 🚀 微創手術：雙路徑 O(1) 檢索，同時支援主線紫裝與 20 枚紫色核心字典
+    const gearTemplate = STORY_GEAR_DATABASE[gearId] || (typeof EXOTIC_CORE_DATABASE !== 'undefined' ? EXOTIC_CORE_DATABASE[gearId] : null);
+    
+    if (!gearTemplate) {
+        console.error(`>> 找不到指定的專屬裝備 ID: ${gearId}`);
+        return null;
+    }
+
+    // 實體化裝備數據
+    let newItem = {
+        slot: gearTemplate.slot,
+        slotText: gearTemplate.slotText,
+        rarity: gearTemplate.rarity,
+        class: gearTemplate.class,
+        name: `[史詩] ${gearTemplate.name}`,
+        atk: gearTemplate.atk || 0,
+        def: gearTemplate.def || 0,
+        maxHp: gearTemplate.maxHp || 0,
+        crit: gearTemplate.crit || 0,
+        dodge: gearTemplate.dodge || 0,
+        setId: gearTemplate.setId || null,
+        resonance: gearTemplate.resonance || null, // 🚀 將流派大招共鳴標籤寫入實體裝備
+        is_equipped: 0,
+        is_locked: 1 // 💎 專屬裝備預設自動鎖定，防止玩家手滑賣掉！
+    };
+
+    if (typeof db !== 'undefined' && db.inventory_items) {
+        await db.inventory_items.add(newItem);
+        
+        const invTab = document.getElementById('tab-inv');
+        if (invTab && invTab.classList.contains('active') && typeof renderInventory === 'function') {
+            renderInventory();
+        }
+        
+        return newItem; // 回傳給戰鬥系統印出日誌
+    }
+    return null;
+}
+
+
+
+
 // 計算能力值 (包含 +1~+9 強化倍率與動態套裝引擎)
 function calculateHoundStats() {
     let bAtk = 0, bHp = 0, bDef = 0, bDodge = 0, bCrit = 0, ohko = 0;
@@ -17,8 +173,10 @@ function calculateHoundStats() {
 
     Object.values(gameState.equipped).forEach(item => {
         if (!item) return;
-        // 🚀 微創手術：實裝 +1~+9 強化屬性成長 (每階提升 10%)
-        let lvlMult = 1 + (item.level || 0) * 0.1;
+        
+        // 🚀 廢土重構：指數型強化倍率 (1.12 的 level 次方)
+        // 這樣 +6 會有 1.97 倍的爆發增幅，+9 會達到 2.77 倍，完美契合檢定！
+        let lvlMult = Math.pow(1.12, item.level || 0);
         
         if (item.atk) bAtk += Math.floor(item.atk * lvlMult);
         if (item.maxHp) bHp += Math.floor(item.maxHp * lvlMult);
@@ -27,6 +185,8 @@ function calculateHoundStats() {
         if (item.crit) bCrit += Math.floor(item.crit * lvlMult);
         if (item.setId) setCounts[item.setId] = (setCounts[item.setId] || 0) + 1;
     });
+
+    // ... 下方的套裝與隱藏參數邏輯保持不變 ...
 
     let activeText = []; 
     gameState.hound.activeSets = []; 
@@ -67,6 +227,47 @@ function calculateHoundStats() {
         });
     }
 
+        // 🟣 紫色核心共鳴檢定與動態被動算式
+    const coreItem = gameState.equipped.core;
+    const coreRes = coreItem?.resonance || null;
+    gameState.hound.coreResonance = coreRes;
+
+    if (coreRes && typeof CORE_CONFIG !== 'undefined') {
+        // 1. 清道夫 A (疊滿 10 層聚變加成)
+        if (coreRes === 'scavenger_A' && gameState.hound.scavengerFusionActive) {
+            bAtk += CORE_CONFIG.scavenger_A.fusionAtkAdd;
+        }
+        // 2. 清道夫 D (財富動態加成)
+        if (coreRes === 'scavenger_D') {
+            const cfgD = CORE_CONFIG.scavenger_D;
+            const scrapBonus = Math.floor(gameState.resources.scrap / cfgD.scrapStep) * cfgD.stepBonusPercent;
+            const zacoBonus = Math.floor(gameState.resources.zaco / cfgD.zacoStep) * cfgD.stepBonusPercent;
+            const totalBonus = Math.min(cfgD.maxBonusPercent, scrapBonus + zacoBonus);
+            atkMultiplier += totalBonus;
+        }
+        // 3. 廢土暴徒 C (血量越低暴擊越高)
+        if (coreRes === 'thug_C') {
+            const currentHp = gameState.hound.hp || 100;
+            const maxHpVal = 100 + bHp;
+            const lostHpPercent = Math.max(0, (maxHpVal - currentHp) / maxHpVal) * 100;
+            bCrit += Math.floor(lostHpPercent * (CORE_CONFIG.thug_C.critRatePerLossHp * 100));
+        }
+        // 4. 殭屍骰 D (菌絲永久層數加成)
+        if (coreRes === 'zombie_D') {
+            const zStacks = gameState.hound.zombieDStacks || 0;
+            bAtk += Math.floor((gameState.hound.baseAtk + bAtk) * (zStacks * 0.01));
+            ohko += zStacks;
+        }
+        // 5. 深淵琉璃 C (護盾存在追加防禦)
+        if (coreRes === 'abyss_C' && (gameState.hound.shield || 0) > 0) {
+            bDef += CORE_CONFIG.abyss_C.shieldedDefAdd;
+        }
+        // 6. 深淵琉璃 D (重力極限追加防禦)
+        if (coreRes === 'abyss_D' && gameState.hound.abyssDMaxed) {
+            bDef += CORE_CONFIG.abyss_D.maxDebuffDefBonus;
+        }
+    }
+
     gameState.hound.totalAtk = Math.floor((gameState.hound.baseAtk + bAtk) * atkMultiplier);
     gameState.hound.maxHp = 100 + bHp; 
     gameState.hound.totalDef = gameState.hound.baseDef + bDef;
@@ -79,6 +280,7 @@ function calculateHoundStats() {
     gameState.hound.reflect = reflectRate;
     gameState.hound.dodgeCrit = dodgeCrit;
 
+
     
     const setText = document.getElementById('set-bonus-text');
     if (setText) setText.innerHTML = activeText.length > 0 ? activeText.join("<br>") : "<span style='color:#777;'>[未啟動任何套裝效果]</span>";
@@ -89,22 +291,21 @@ async function generateLoot(isBossDrop = false) {
     const r = Math.floor(Math.random() * 1000000);
     let rarity = "common", rarityText = "普通", rarityClass = "loot-common", statMult = 1; let isSet = false;
     
+        // ... 前面的掉落機率不變 ...
     if (isBossDrop) {
-        // 霸主保底機制：95% 傳奇(金)，5% 滅世(紅)
-        if (Math.random() * 100 < 5) { rarity = "apocalyptic"; rarityText = "滅世"; rarityClass = "loot-apocalyptic"; statMult = 5; }
+        if (Math.random() * 100 < 5) { rarity = "apocalyptic"; rarityText = "滅世"; rarityClass = "loot-apocalyptic"; statMult = 5.5; } // 🚀 紅裝微幅上調，確保 1件紅 就能撐起半邊天
         else { rarity = "legendary"; rarityText = "傳奇"; rarityClass = "loot-legendary"; statMult = 3; }
     } else {
-        // 長線掉落率 (假設 1 小時約 720 次擊殺): 
-        // 紅裝~4小時 (機率約 340/1M)
         if (gameState.currentArea !== "wasteland" && r > 999660) { 
-            rarity = "apocalyptic"; rarityText = "滅世"; rarityClass = "loot-apocalyptic"; statMult = 5;
+            rarity = "apocalyptic"; rarityText = "滅世"; rarityClass = "loot-apocalyptic"; statMult = 5.5; 
         } 
-        // 金裝~0.5小時 (機率約 2700/1M)
         else if (r > 997300) { rarity = "legendary"; rarityText = "傳奇"; rarityClass = "loot-legendary"; statMult = 3; } 
-        // 🚀 強化 1：綠裝(套裝)倍率由 2 提升至 2.4，完美界於稀有(1.8)與傳奇(3)正中間！
-        else if (r > 988500) { rarity = "set"; rarityText = "套裝"; rarityClass = "loot-set"; statMult = 2.4; isSet = true; } 
+        // 🚀 綠裝基礎給予 2.8 倍率，搭配下方的 1.5 倍補正，單件主屬性高達 4.2 倍！
+        // 這樣玩家穿 2 件綠裝，不僅能拿到套裝效果，血量/防禦的底盤也會超級穩。
+        else if (r > 988500) { rarity = "set"; rarityText = "套裝"; rarityClass = "loot-set"; statMult = 2.8; isSet = true; } 
         else if (r > 838500) { rarity = "rare"; rarityText = "稀有"; rarityClass = "loot-rare"; statMult = 1.8; }
     }
+
 
     // 裝備品質浮動機制 (同階級中的素質高低，模擬 2~6 小時的極品獲取)
     let qualityRoll = Math.random();
@@ -138,11 +339,28 @@ async function generateLoot(isBossDrop = false) {
         else if (slot === 'harness') item.maxHp = Math.floor(30 * statMult * 1.5); 
         else if (slot === 'helmet') item.def = Math.floor(5 * statMult * 1.5);
     } else {
+
         const affix = pool.affixes[Math.floor(Math.random() * pool.affixes.length)];
         item.name = `[${rarityText}] ${affix.name}${baseName}`;
-        if (slot === 'collar') item.atk = Math.floor((Math.random() * 4 + 3) * statMult); else if (slot === 'harness') item.maxHp = Math.floor((Math.random() * 15 + 20) * statMult); else if (slot === 'helmet') item.def = Math.floor((Math.random() * 3 + 2) * statMult);
-        if (affix.type === 'atk') item.atk += Math.floor(3 * statMult); if (affix.type === 'hp') item.maxHp += Math.floor(15 * statMult); if (affix.type === 'def') item.def += Math.floor(3 * statMult); if (affix.type === 'crit') item.crit += Math.floor(3 * statMult); if (affix.type === 'dodge') item.dodge += Math.floor(3 * statMult);
+        
+        // 🛡️ 主屬性：維持無限膨脹，吃滿副本難度的 statMult
+        if (slot === 'collar') item.atk = Math.floor((Math.random() * 4 + 3) * statMult); 
+        else if (slot === 'harness') item.maxHp = Math.floor((Math.random() * 15 + 20) * statMult); 
+        else if (slot === 'helmet') item.def = Math.floor((Math.random() * 3 + 2) * statMult);
+        
+        if (affix.type === 'atk') item.atk += Math.floor(3 * statMult); 
+        if (affix.type === 'hp') item.maxHp += Math.floor(15 * statMult); 
+        if (affix.type === 'def') item.def += Math.floor(3 * statMult); 
+        
+        // 🚀 副屬性獨立演算法：只依賴「稀有度」與「品質浮動」，徹底拔除副本無限倍率！
+        // 保證產出結果永遠介於 1% ~ 15% 之間
+        let secMult = (rarity === 'apocalyptic' ? 2.5 : rarity === 'legendary' ? 1.8 : rarity === 'rare' ? 1.2 : 1) * qualityMult;
+        let secRoll = Math.min(15, Math.max(1, Math.floor((Math.random() * 4 + 2) * secMult)));
+        
+        if (affix.type === 'crit') item.crit += secRoll; 
+        if (affix.type === 'dodge') item.dodge += secRoll;
     }
+
 
     if (gameState.autoSell && gameState.autoSell[rarity]) {
         let val = rarity === 'rare' ? 5 : 1;
@@ -174,11 +392,15 @@ async function equipItem(id) {
     await db.inventory_items.where("slot").equals(item.slot).modify({ is_equipped: 0 });
     await db.inventory_items.update(id, { is_equipped: 1 });
     const equippedItems = await db.inventory_items.where("is_equipped").equals(1).toArray();
-    gameState.equipped = { helmet: null, collar: null, harness: null };
+    
+    // 🟢 補上 core 欄位防呆，避免讀取 undefined
+    gameState.equipped = { helmet: null, collar: null, harness: null, core: null };
     equippedItems.forEach(i => { gameState.equipped[i.slot] = i; });
+    
     calculateHoundStats(); updateUI(); renderInventory();
     logMessage(`裝備成功：獵犬已配備 <span class="${item.class}">${item.name}</span>`);
 }
+
 
 async function unequipSlot(slot) {
     const item = gameState.equipped[slot]; if(!item) return;
@@ -223,7 +445,6 @@ async function showCompare(id) {
         let lvlMult = 1 + (eqItem.level || 0) * 0.1;
         let lvlStr = eqItem.level ? ` <span style="color:#00ffcc; font-weight:bold;">+${eqItem.level}</span>` : "";
 
-        // 🚀 微創手術：新增數值分離顯示 DIV 輔助函數
         const getStatDiv = (label, baseVal, isPct = false) => {
             if (!baseVal) return '';
             let total = Math.floor(baseVal * lvlMult);
@@ -234,17 +455,37 @@ async function showCompare(id) {
         };
 
         let setHtml = "";
-        if (eqItem.setId && gameConfig.loot_pool.sets[eqItem.setId]) {
+        
+        if (eqItem.slot !== 'core' && eqItem.setId && gameConfig.loot_pool.sets[eqItem.setId]) {
             const s = gameConfig.loot_pool.sets[eqItem.setId];
-            setHtml = `<div style="margin-top:6px; padding-top:4px; border-top:1px dotted #444; font-size:0.75rem; color:#00ff66;">
+            setHtml += `<div style="margin-top:6px; padding-top:4px; border-top:1px dotted #444; font-size:0.75rem; color:#00ff66;">
                 <div>[2PC] ${s['2pc']}</div>
                 <div>[3PC] ${s['3pc']}</div>
             </div>`;
         }
 
+                let descText = eqItem.desc || eqItem.effect;
+        if (!descText && (eqItem.slot === 'core' || eqItem.rarity === 'epic')) {
+            const dictKey = Object.keys(EXOTIC_CORE_DATABASE).find(k => EXOTIC_CORE_DATABASE[k].name === eqItem.name || EXOTIC_CORE_DATABASE[k].resonance === eqItem.resonance);
+            if (dictKey && EXOTIC_CORE_DATABASE[dictKey]) descText = EXOTIC_CORE_DATABASE[dictKey].desc;
+        }
+        if (descText) {
+
+            let isCore = eqItem.slot === 'core' || eqItem.rarity === 'epic';
+            let borderColor = isCore ? '#c355ff' : '#00ffcc';
+            let textColor = isCore ? '#e09eff' : '#ddd';
+            let descTitle = isCore ? '⚡ 核心共鳴' : '💡 裝備說明';
+            setHtml += `<div style="margin-top:6px; padding:6px; background:rgba(0,0,0,0.3); border-left:3px solid ${borderColor}; font-size:0.8rem; color:${textColor}; line-height: 1.3; text-shadow:${isCore ? '0 0 5px rgba(195,85,255,0.4)' : 'none'};">
+                <b style="color:${borderColor};">${descTitle}：</b><br>${descText}
+            </div>`;
+        }
+
+                let extraNameStyle = (eqItem.slot === 'core' || eqItem.rarity === 'epic') ? 'color:#c355ff !important; text-shadow: 0 0 6px rgba(195,85,255,0.6); font-weight:bold;' : '';
+
+
         return `<div style="border:1px dashed ${eqItem.is_equipped ? 'var(--text-color)' : 'var(--primary-color)'}; padding:8px;">
             <div style="color:#888; margin-bottom:5px;">[${title}]</div>
-            <div class="${eqItem.class}" style="margin-bottom:5px; font-weight:bold;">${eqItem.name}${lvlStr}</div>
+            <div class="${eqItem.class}" style="margin-bottom:5px; font-weight:bold; ${extraNameStyle}">${eqItem.name}${lvlStr}</div>
             ${getStatDiv('ATK', eqItem.atk)} 
             ${getStatDiv('HP', eqItem.maxHp)}
             ${getStatDiv('DEF', eqItem.def)} 
@@ -253,9 +494,15 @@ async function showCompare(id) {
             ${setHtml}
         </div>`;
     };
-document.getElementById('compare-content').innerHTML = buildStatsHTML(currentEquip, "當前著裝") + buildStatsHTML(item, "準備換上");
-    pendingEquipId = id; document.getElementById('compare-backdrop').style.display = 'block'; document.getElementById('compare-modal').style.display = 'block';
+
+    document.getElementById('compare-content').innerHTML = buildStatsHTML(currentEquip, "當前著裝") + buildStatsHTML(item, "準備換上");
+    pendingEquipId = id; 
+    document.getElementById('compare-backdrop').style.display = 'block'; 
+    document.getElementById('compare-modal').style.display = 'block';
 }
+window.showCompare = showCompare;
+
+
 
 function closeCompare() { pendingEquipId = null; document.getElementById('compare-backdrop').style.display = 'none'; document.getElementById('compare-modal').style.display = 'none'; }
 async function confirmEquip() { if(pendingEquipId) await equipItem(pendingEquipId); closeCompare(); }
@@ -263,36 +510,45 @@ async function confirmEquip() { if(pendingEquipId) await equipItem(pendingEquipI
 // 🚀 新增：背包當前分頁狀態與模組化切換函式
 let currentInvTab = 'all';
 
-function switchInvTab(tabId, btnEl) {
-    currentInvTab = tabId;
-    // 1. 移除所有按鈕的高亮發光狀態
-    document.querySelectorAll('.subtab-btn').forEach(btn => {
-        btn.style.borderColor = '#555';
-        btn.style.color = '#888';
-        btn.classList.remove('active-subtab');
+function switchInvSubTab(tabId, btnEl) {
+    if (typeof currentInvTab !== 'undefined') currentInvTab = tabId;
+    window.currentInvTab = tabId;
+    window.currentInvSubTab = tabId;
+
+    if (!btnEl && window.event) {
+        btnEl = window.event.currentTarget || window.event.target;
+    }
+
+    document.querySelectorAll('#inv-subtabs .btn-inv-filter').forEach(btn => {
+        btn.classList.remove('active', 'active-subtab');
+        btn.style.color = '';
     });
-    // 2. 點亮玩家當前點選的按鈕 (繼承 Cyberpunk 主題色)
-    btnEl.style.borderColor = 'var(--text-color, #ffffff)';
-    btnEl.style.color = 'var(--text-color, #ffffff)';
-    btnEl.classList.add('active-subtab');
-    
-    // 3. 重新渲染列表
-    renderInventory();
+
+    if (btnEl) {
+        btnEl.classList.add('active', 'active-subtab');
+    }
+
+    if (typeof renderInventory === 'function') {
+        renderInventory();
+    }
 }
+window.switchInvSubTab = switchInvSubTab;
+window.switchInvTab = switchInvSubTab;
+
+
 
 
 async function renderInventory() {
     const list = document.getElementById('inventory-list');
     let items = await db.inventory_items.where("is_equipped").equals(0).toArray();
     
-    // 🚀 微創植入：模組化擴充過濾模組 (Extensible Filter Map)
-    // 為了做到絕對防錯，我們同時比對英文 slot 與中文 slotText，確保零幻覺命中！
-    // 未來擴充新功能時，只需在這裡多加一行，例如： 'doc': i => i.type === 'lore'
+    // 🚀 微創植入：擴充 'core' 過濾模組
     const tabFilters = {
         'all': () => true,
-        'head': i => i.slot === 'head' || i.slotText === '頭盔',
+        'head': i => i.slot === 'head' || i.slot === 'helmet' || i.slotText === '頭盔',
         'neck': i => i.slot === 'neck' || i.slot === 'collar' || i.slotText === '項圈',
-        'body': i => i.slot === 'body' || i.slot === 'harness' || i.slot === 'chest' || i.slotText === '胸背帶'
+        'body': i => i.slot === 'body' || i.slot === 'harness' || i.slot === 'chest' || i.slotText === '胸背帶',
+        'core': i => i.slot === 'core' || i.slotText === '核心' // 🟢 讓核心裝備能正確顯示
     };
     
     if (tabFilters[currentInvTab]) {
@@ -308,7 +564,8 @@ async function renderInventory() {
     const sortEl = document.getElementById('inv-sort');
     if(sortEl) {
         const sortQ = sortEl.value;
-        const rWeights = { common: 1, rare: 2, set: 3, legendary: 4, apocalyptic: 5 };
+        // 🟢 修復：補上 epic (史詩紫裝) 的排序權重，防止排序引擎當機
+        const rWeights = { common: 1, rare: 2, set: 3, epic: 4, legendary: 5, apocalyptic: 6 };
         items.sort((a, b) => {
             if(sortQ === 'rarity-desc') return rWeights[b.rarity] - rWeights[a.rarity];
             if(sortQ === 'rarity-asc') return rWeights[a.rarity] - rWeights[b.rarity];
@@ -318,18 +575,18 @@ async function renderInventory() {
         });
     }
 
-
     if (items.length === 0) { list.innerHTML = "<span style='color:#777;'>[數據空載 / 無符合條件的裝備]</span>"; return; }
     list.innerHTML = "";
-            items.forEach((item) => {
+    
+    items.forEach((item) => {
         const el = document.createElement('div'); el.className = 'inv-item';
-        let price = 1; if(item.rarity==='rare') price=5; if(item.rarity==='set') price=80; if(item.rarity==='legendary') price=25; if(item.rarity==='apocalyptic') price=150;
+        // 🟢 補上 epic 級別裝備的出售價格
+        let price = 1; if(item.rarity==='rare') price=5; if(item.rarity==='set') price=80; if(item.rarity==='epic') price=250; if(item.rarity==='legendary') price=25; if(item.rarity==='apocalyptic') price=150;
         
         let lvlMult = 1 + (item.level || 0) * 0.1;
         let lvlStr = item.level ? ` <span style="color:#00ffcc; font-weight:bold;">+${item.level}</span>` : "";
         
         let descArr = []; 
-        // 🚀 微創手術：新增數值分離顯示輔助函數
         const pushStat = (label, baseVal, isPct = false) => {
             let total = Math.floor(baseVal * lvlMult);
             let bonus = total - baseVal;
@@ -347,11 +604,18 @@ async function renderInventory() {
         if (item.setId && gameConfig.loot_pool.sets[item.setId]) {
              descArr.push(`套裝: ${gameConfig.loot_pool.sets[item.setId].name}`);
         }
+        // 🟢 顯示這顆核心是否自帶流派共鳴
+        if (item.resonance) {
+             descArr.push(`<span style="color:#c355ff;">[流派共鳴: 啟動]</span>`);
+        }
         
+                const isEpic = item.slot === 'core' || item.rarity === 'epic';
+        const nameStyle = isEpic ? 'color: #c355ff !important; text-shadow: 0 0 6px rgba(195,85,255,0.6); font-weight: bold;' : '';
         const lockIcon = item.is_locked ? "🔒" : "🔓"; const lockColor = item.is_locked ? "var(--primary-color)" : "#555";
         el.innerHTML = `
             <div class="inv-info" onclick="showCompare(${item.id})">
-                <span class="${item.class}">${item.name}${lvlStr}</span><br>
+                <span class="${item.class}" style="${nameStyle}">${item.name}${lvlStr}</span><br>
+
                 <span style="color:#888; font-size:0.75rem;">[${item.slotText}] ${descArr.length > 0 ? descArr.join(" | ") : "無附加"}</span>
             </div>
             <div style="display:flex; gap:5px; align-items: flex-start;">
@@ -361,6 +625,7 @@ async function renderInventory() {
         list.appendChild(el);
     });
 }
+
 
 async function buyShopItem(index) {
     const item = gameConfig.shop_database[index];

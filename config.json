@@ -6,76 +6,129 @@
     { "id": "mob_003", "name": "變異輻射鼠", "hp": 35, "atk": 8 },
     { "id": "mob_004", "name": "暴力倖存者", "hp": 50, "atk": 10 },
     
-    { "id": "mob_101", "name": "鐵鏽輾骨機", "hp": 150, "atk": 15 },
-    { "id": "mob_102", "name": "廢土流浪暴徒", "hp": 100, "atk": 18 },
-    { "id": "mob_103", "name": "感染的下水道工", "hp": 130, "atk": 22 },
-    { "id": "mob_104", "name": "變異毒蛙", "hp": 90, "atk": 25 },
-    
-    { "id": "mob_201", "name": "疫病殭屍", "hp": 350, "atk": 35 },
-    { "id": "mob_202", "name": "暴走護理師", "hp": 400, "atk": 40 },
-    { "id": "mob_203", "name": "嗜血醫師", "hp": 280, "atk": 45 },
-    { "id": "mob_204", "name": "重症喪屍", "hp": 250, "atk": 50 },
-    
-    { "id": "mob_301", "name": "機甲擬態", "hp": 850, "atk": 60 },
-    { "id": "mob_302", "name": "賽博改造暴徒", "hp": 600, "atk": 70 },
-    { "id": "mob_303", "name": "失控安保機甲", "hp": 1200, "atk": 95 },
-    { "id": "mob_304", "name": "警用重型機甲", "hp": 550, "atk": 110 },
+    { "id": "mob_101", "name": "變異感染鼠", "hp": 100, "atk": 12, "def": 5, "dodge": 5, "isBoss": false },
+    { "id": "mob_102", "name": "污水淤泥怪", "hp": 150, "atk": 9, "def": 7, "dodge": 0, "isBoss": false },
+    { "id": "mob_103", "name": "敏捷寄生蟲", "hp": 80, "atk": 14, "def": 2, "dodge": 15, "isBoss": false },
+    { "id": "mob_104", "name": "狂暴食屍鬼", "hp": 120, "atk": 18, "def": 4, "dodge": 5, "isBoss": false },
 
-    { "id": "mob_401", "name": "類猿擬態", "hp": 180, "atk": 35 },
-    { "id": "mob_402", "name": "白色巨蟒", "hp": 200, "atk": 45 },
-    { "id": "mob_403", "name": "狂暴水豚", "hp": 260, "atk": 30 },
-    { "id": "mob_404", "name": "純粹金剛", "hp": 550, "atk": 75 },
+    { "id": "mob_201", "name": "感染病患", "hp": 140, "atk": 17, "def": 7, "dodge": 5, "isBoss": false },
+    { "id": "mob_202", "name": "重裝護工", "hp": 209, "atk": 13, "def": 10, "dodge": 0, "isBoss": false },
+    { "id": "mob_203", "name": "狂亂護士", "hp": 112, "atk": 20, "def": 3, "dodge": 15, "isBoss": false },
+    { "id": "mob_204", "name": "變異主治醫", "hp": 168, "atk": 25, "def": 6, "dodge": 5, "isBoss": false },
 
-    { "id": "mob_501", "name": "小丑殭屍", "hp": 380, "atk": 65 },
-    { "id": "mob_502", "name": "膿皰童子軍", "hp": 300, "atk": 90 },
-    { "id": "mob_503", "name": "血腥瑪麗", "hp": 500, "atk": 55 },
-    { "id": "mob_504", "name": "曾是鎮長", "hp": 1100, "atk": 130 },
+    { "id": "mob_301", "name": "基礎巡邏兵", "hp": 195, "atk": 23, "def": 10, "dodge": 5, "isBoss": false },
+    { "id": "mob_302", "name": "重型安保機甲", "hp": 293, "atk": 18, "def": 14, "dodge": 0, "isBoss": false },
+    { "id": "mob_303", "name": "刺客型無人機", "hp": 156, "atk": 27, "def": 4, "dodge": 15, "isBoss": false },
+    { "id": "mob_304", "name": "失控切割機", "hp": 234, "atk": 35, "def": 8, "dodge": 5, "isBoss": false },
 
-    { "id": "mob_601", "name": "防暴機甲", "hp": 700, "atk": 125 },
-    { "id": "mob_602", "name": "強壯殭屍", "hp": 800, "atk": 100 },
-    { "id": "mob_603", "name": "雷射砲台", "hp": 650, "atk": 110 },
-    { "id": "mob_604", "name": "雷電將軍", "hp": 2500, "atk": 220 },
+    { "id": "mob_401", "name": "狂犬變異體", "hp": 272, "atk": 33, "def": 14, "dodge": 5, "isBoss": false },
+    { "id": "mob_402", "name": "裝甲犀牛", "hp": 408, "atk": 25, "def": 19, "dodge": 0, "isBoss": false },
+    { "id": "mob_403", "name": "迅捷獵豹", "hp": 218, "atk": 38, "def": 5, "dodge": 15, "isBoss": false },
+    { "id": "mob_404", "name": "暴走巨猿", "hp": 327, "atk": 49, "def": 11, "dodge": 5, "isBoss": false },
 
-    { "id": "mob_10001", "name": "裝甲喪屍巨獸", "hp": 3500, "atk": 120 },
-    { "id": "mob_10002", "name": "實驗體 X", "hp": 2000, "atk": 140 },
-    { "id": "mob_10003", "name": "舊時代軍用突擊犬", "hp": 1800, "atk": 180 },
-    { "id": "mob_10004", "name": "終極兵器・滅世機甲", "hp": 5000, "atk": 250 }
+    { "id": "mob_501", "name": "瘋狂鎮民", "hp": 380, "atk": 46, "def": 19, "dodge": 5, "isBoss": false },
+    { "id": "mob_502", "name": "腫脹肉山", "hp": 570, "atk": 34, "def": 27, "dodge": 0, "isBoss": false },
+    { "id": "mob_503", "name": "異教刺客", "hp": 304, "atk": 53, "def": 8, "dodge": 15, "isBoss": false },
+    { "id": "mob_504", "name": "嗜血屠夫", "hp": 456, "atk": 68, "def": 15, "dodge": 5, "isBoss": false },
+
+    { "id": "mob_601", "name": "改造士兵", "hp": 531, "atk": 64, "def": 27, "dodge": 5, "isBoss": false },
+    { "id": "mob_602", "name": "強化機甲兵", "hp": 797, "atk": 48, "def": 37, "dodge": 0, "isBoss": false },
+    { "id": "mob_603", "name": "隱形突擊手", "hp": 425, "atk": 74, "def": 11, "dodge": 15, "isBoss": false },
+    { "id": "mob_604", "name": "極限破壞者", "hp": 637, "atk": 96, "def": 21, "dodge": 5, "isBoss": false },
+
+    { "id": "mob_701", "name": "沼澤潛伏者", "hp": 741, "atk": 88, "def": 37, "dodge": 5, "isBoss": false },
+    { "id": "mob_702", "name": "強酸黏液怪", "hp": 1111, "atk": 70, "def": 55, "dodge": 0, "isBoss": false },
+    { "id": "mob_703", "name": "巨型食腐蠅", "hp": 592, "atk": 105, "def": 18, "dodge": 15, "isBoss": false },
+    { "id": "mob_704", "name": "腐敗毒蛙", "hp": 889, "atk": 132, "def": 29, "dodge": 5, "isBoss": false },
+
+    { "id": "mob_801", "name": "異星寄生蟲", "hp": 1036, "atk": 124, "def": 51, "dodge": 5, "isBoss": false },
+    { "id": "mob_802", "name": "星艦守護者", "hp": 1554, "atk": 99, "def": 77, "dodge": 0, "isBoss": false },
+    { "id": "mob_803", "name": "失控護衛機", "hp": 828, "atk": 149, "def": 25, "dodge": 15, "isBoss": false },
+    { "id": "mob_804", "name": "虛空掠奪者", "hp": 1243, "atk": 186, "def": 41, "dodge": 5, "isBoss": false },
+
+    { "id": "mob_901", "name": "暗夜喪屍", "hp": 1447, "atk": 173, "def": 72, "dodge": 5, "isBoss": false },
+    { "id": "mob_902", "name": "盲眼掘地獸", "hp": 2170, "atk": 138, "def": 108, "dodge": 0, "isBoss": false },
+    { "id": "mob_903", "name": "地下鐵巨鼠", "hp": 1157, "atk": 207, "def": 36, "dodge": 15, "isBoss": false },
+    { "id": "mob_904", "name": "狂暴流浪者", "hp": 1736, "atk": 260, "def": 57, "dodge": 5, "isBoss": false },
+
+    { "id": "mob_1001", "name": "變異礦工", "hp": 2021, "atk": 242, "def": 101, "dodge": 5, "isBoss": false },
+    { "id": "mob_1002", "name": "輻射結晶獸", "hp": 3031, "atk": 193, "def": 151, "dodge": 0, "isBoss": false },
+    { "id": "mob_1003", "name": "毒氣噴吐者", "hp": 1616, "atk": 290, "def": 50, "dodge": 15, "isBoss": false },
+    { "id": "mob_1004", "name": "岩石粉碎機", "hp": 2425, "atk": 363, "def": 80, "dodge": 5, "isBoss": false },
+
+    { "id": "mob_1101", "name": "失敗試驗品", "hp": 2824, "atk": 338, "def": 141, "dodge": 5, "isBoss": false },
+    { "id": "mob_1102", "name": "基因暴君", "hp": 4236, "atk": 270, "def": 211, "dodge": 0, "isBoss": false },
+    { "id": "mob_1103", "name": "失控生化犬", "hp": 2259, "atk": 406, "def": 70, "dodge": 15, "isBoss": false },
+    { "id": "mob_1104", "name": "合成奇美拉", "hp": 3388, "atk": 508, "def": 112, "dodge": 5, "isBoss": false },
+
+    { "id": "mob_1201", "name": "黑水祭司", "hp": 3945, "atk": 473, "def": 197, "dodge": 5, "isBoss": false },
+    { "id": "mob_1202", "name": "深淵召喚物", "hp": 5917, "atk": 378, "def": 295, "dodge": 0, "isBoss": false },
+    { "id": "mob_1203", "name": "狂熱鞭笞者", "hp": 3156, "atk": 568, "def": 98, "dodge": 15, "isBoss": false },
+    { "id": "mob_1204", "name": "鮮血劊子手", "hp": 4734, "atk": 709, "def": 157, "dodge": 5, "isBoss": false },
+
+    { "id": "mob_1301", "name": "冰原巨熊", "hp": 5511, "atk": 661, "def": 275, "dodge": 5, "isBoss": false },
+    { "id": "mob_1302", "name": "絕對零度機甲", "hp": 8266, "atk": 529, "def": 413, "dodge": 0, "isBoss": false },
+    { "id": "mob_1303", "name": "冰晶守衛", "hp": 4408, "atk": 793, "def": 137, "dodge": 15, "isBoss": false },
+    { "id": "mob_1304", "name": "霜凍撕裂者", "hp": 6613, "atk": 991, "def": 220, "dodge": 5, "isBoss": false },
+
+    { "id": "mob_1401", "name": "黑市打手", "hp": 7700, "atk": 924, "def": 385, "dodge": 5, "isBoss": false },
+    { "id": "mob_1402", "name": "裝甲傭兵", "hp": 11550, "atk": 739, "def": 577, "dodge": 0, "isBoss": false },
+    { "id": "mob_1403", "name": "走私無人機", "hp": 6160, "atk": 1108, "def": 192, "dodge": 15, "isBoss": false },
+    { "id": "mob_1404", "name": "財閥死士", "hp": 9240, "atk": 1386, "def": 308, "dodge": 5, "isBoss": false },
+
+    { "id": "mob_1501", "name": "枯骨拾荒者", "hp": 10757, "atk": 1290, "def": 537, "dodge": 5, "isBoss": false },
+    { "id": "mob_1502", "name": "沙蟲幼體", "hp": 16135, "atk": 1032, "def": 806, "dodge": 0, "isBoss": false },
+    { "id": "mob_1503", "name": "幻影刺客", "hp": 8605, "atk": 1549, "def": 268, "dodge": 15, "isBoss": false },
+    { "id": "mob_1504", "name": "荒漠巨蠍", "hp": 12908, "atk": 1936, "def": 430, "dodge": 5, "isBoss": false },
+
+    { "id": "mob_1601", "name": "衰敗貴族", "hp": 15029, "atk": 1803, "def": 751, "dodge": 5, "isBoss": false },
+    { "id": "mob_1602", "name": "浮空守衛", "hp": 22543, "atk": 1442, "def": 1127, "dodge": 0, "isBoss": false },
+    { "id": "mob_1603", "name": "軌道巡邏機", "hp": 12023, "atk": 2164, "def": 375, "dodge": 15, "isBoss": false },
+    { "id": "mob_1604", "name": "能量聚合體", "hp": 18034, "atk": 2705, "def": 601, "dodge": 5, "isBoss": false },
+
+    { "id": "mob_1701", "name": "奈米蟲群", "hp": 21000, "atk": 2520, "def": 1050, "dodge": 5, "isBoss": false },
+    { "id": "mob_1702", "name": "重組機甲", "hp": 31500, "atk": 2016, "def": 1575, "dodge": 0, "isBoss": false },
+    { "id": "mob_1703", "name": "分解者", "hp": 16800, "atk": 3024, "def": 525, "dodge": 15, "isBoss": false },
+    { "id": "mob_1704", "name": "奈米母體", "hp": 25200, "atk": 3780, "def": 840, "dodge": 5, "isBoss": false },
+
+    { "id": "mob_1801", "name": "暗物質靈體", "hp": 29341, "atk": 3520, "def": 1467, "dodge": 5, "isBoss": false },
+    { "id": "mob_1802", "name": "虛空巨獸", "hp": 44011, "atk": 2816, "def": 2200, "dodge": 0, "isBoss": false },
+    { "id": "mob_1803", "name": "裂隙爬行者", "hp": 23472, "atk": 4225, "def": 733, "dodge": 15, "isBoss": false },
+    { "id": "mob_1804", "name": "扭曲畸變體", "hp": 35209, "atk": 5281, "def": 1173, "dodge": 5, "isBoss": false },
+
+    { "id": "mob_1901", "name": "引力扭曲者", "hp": 40991, "atk": 4918, "def": 2049, "dodge": 5, "isBoss": false },
+    { "id": "mob_1902", "name": "事件視界守衛", "hp": 61486, "atk": 3935, "def": 3074, "dodge": 0, "isBoss": false },
+    { "id": "mob_1903", "name": "坍縮靈體", "hp": 32792, "atk": 5902, "def": 1024, "dodge": 15, "isBoss": false },
+    { "id": "mob_1904", "name": "奇點吞噬者", "hp": 49189, "atk": 7378, "def": 1639, "dodge": 5, "isBoss": false },
+
+    { "id": "mob_2001", "name": "終焉使徒", "hp": 57273, "atk": 6872, "def": 2863, "dodge": 5, "isBoss": false },
+    { "id": "mob_2002", "name": "絕對毀滅者", "hp": 85909, "atk": 5498, "def": 4295, "dodge": 0, "isBoss": false },
+    { "id": "mob_2003", "name": "神之殘影", "hp": 45818, "atk": 8247, "def": 1431, "dodge": 15, "isBoss": false },
+    { "id": "mob_2004", "name": "滅世前鋒", "hp": 68727, "atk": 10309, "def": 2290, "dodge": 5, "isBoss": false }
   ],
-
 
   "dungeon_database": [
     { "id": "dungeon_1", "name": "[副本] 廢棄下水道", "req_atk": 15, "enemies": ["mob_101", "mob_102", "mob_103", "mob_104"], "loot_multiplier": 1.2, "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_9274.png", "desc": "廢土輻射與殘渣在死水中發酵，這座城市的腸道正因腐敗而抽搐。黑暗中傳來黏稠的摩擦聲。那些閃爍紅光的空殼沒有靈魂，只剩對血肉的無盡飢渴，而甜膩的腐肉味鑽入鼻腔。在這被遺棄的下水道裡，你得親自為他們超渡。" },
-    { "id": "dungeon_2", "name": "[副本] 事件爆發的醫院", "req_atk": 40, "enemies": ["mob_201", "mob_202", "mob_203", "mob_204"], "loot_multiplier": 1.6, "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_9273.png", "desc": "慘白的螢光燈瘋狂閃爍，照亮了牆上如放射狀噴射的暗紅血跡。你的每一個細胞都在尖叫。走廊深處那拖沓的腳步聲，屬於曾經的醫生與護士，現在它們只是披著白袍的嗜血空殼。踩過地上那本沾著黏液與腦漿的病歷。毫無疑問，這裡就是災難的原點，所有變異與瘋狂的源頭。" },
-    { "id": "dungeon_3", "name": "[副本] 失控安保工廠", "req_atk": 80, "enemies": ["mob_301", "mob_302", "mob_303", "mob_304"], "loot_multiplier": 2.2, "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_9275.png", "desc": "獵犬伏在生鏽的機油坑旁，耳朵緊貼著地面，牠聽見了液壓活塞在黑暗中無情運作的心跳，重金屬履帶正碾碎地上一具具殘缺的感染者屍骨。 恐懼像冰水一樣澆透全身，那些三公尺高的安保機甲根本不在乎你是什麼，在它們被徹底覆寫的底層代碼裡，只要是散發著熱能的碳基生物，一律被標記為「待清除的生化威脅」。" },
-	        {
-      "id": "dungeon_4",
-      "name": "[副本] 廢棄動物園",
-      "req_atk": 140,
-      "enemies": ["mob_401", "mob_402", "mob_403", "mob_404"],
-      "loot_multiplier": 3.0,
-      "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_placeholder_zoo.png",
-      "desc": "曾經的市民樂園，現在連看起來溫馴的水豚都成了渴望血肉的狂暴生化猛獸。"
-    },
-    {
-      "id": "dungeon_5",
-      "name": "[副本] 死寂小鎮",
-      "req_atk": 240,
-      "enemies": ["mob_501", "mob_502", "mob_503", "mob_504"],
-      "loot_multiplier": 4.1,
-      "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_placeholder_town.png",
-      "desc": "被不明疫病與畸形信仰支配的廢土邊境，那個融合了不知名血肉的鎮長還在行政大樓裡等著你。"
-    },
-    {
-      "id": "dungeon_6",
-      "name": "[副本] 核心軍事堡壘",
-      "req_atk": 400,
-      "enemies": ["mob_601", "mob_602", "mob_603", "mob_604"],
-      "loot_multiplier": 5.5,
-      "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_placeholder_military.png",
-      "desc": "由殘酷無情的極限雷電 AI 統治的自動化軍工核心，這裡有著舊時代最致命的防禦火力。"
-    }
+    { "id": "dungeon_2", "name": "[副本] 事件爆發的醫院", "req_atk": 20, "enemies": ["mob_201", "mob_202", "mob_203", "mob_204"], "loot_multiplier": 1.68, "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_9273.png", "desc": "慘白的螢光燈瘋狂閃爍，照亮了牆上如放射狀噴射的暗紅血跡。你的每一個細胞都在尖叫。走廊深處那拖沓的腳步聲，屬於曾經的醫生與護士，現在它們只是披著白袍的嗜血空殼。踩過地上那本沾著黏液與腦漿的病歷。毫無疑問，這裡就是災難的原點，所有變異與瘋狂的源頭。" },
+    { "id": "dungeon_3", "name": "[副本] 失控安保工廠", "req_atk": 29, "enemies": ["mob_301", "mob_302", "mob_303", "mob_304"], "loot_multiplier": 2.34, "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_9275.png", "desc": "獵犬伏在生鏽的機油坑旁，耳朵緊貼著地面，牠聽見了液壓活塞在黑暗中無情運作的心跳，重金屬履帶正碾碎地上一具具殘缺的感染者屍骨。 恐懼像冰水一樣澆透全身，那些三公尺高的安保機甲根本不在乎你是什麼，在它們被徹底覆寫的底層代碼裡，只要是散發著熱能的碳基生物，一律被標記為「待清除的生化威脅」。" },
+    { "id": "dungeon_4", "name": "[副本] 廢棄動物園", "req_atk": 40, "enemies": ["mob_401", "mob_402", "mob_403", "mob_404"], "loot_multiplier": 3.27, "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_placeholder_zoo.png", "desc": "曾經的市民樂園，現在連看起來溫馴的水豚都成了渴望血肉的狂暴生化猛獸。" },
+    { "id": "dungeon_5", "name": "[副本] 死寂小鎮", "req_atk": 57, "enemies": ["mob_501", "mob_502", "mob_503", "mob_504"], "loot_multiplier": 4.56, "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_placeholder_town.png", "desc": "被不明疫病與畸形信仰支配的廢土邊境，那個融合了不知名血肉的鎮長還在行政大樓裡等著你。" },
+    { "id": "dungeon_6", "name": "[副本] 核心軍事堡壘", "req_atk": 79, "enemies": ["mob_601", "mob_602", "mob_603", "mob_604"], "loot_multiplier": 6.37, "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_placeholder_military.png", "desc": "由殘酷無情的極限雷電 AI 統治的自動化軍工核心，這裡有著舊時代最致命的防禦火力。" },
+    { "id": "dungeon_7", "name": "[副本] 輻射變異沼澤", "req_atk": 111, "enemies": ["mob_701", "mob_702", "mob_703", "mob_704"], "loot_multiplier": 8.9, "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_placeholder.png", "desc": "劇毒的孢子在空氣中飄散，每踩一步都會陷入充滿強酸與腐肉的泥濘之中。" },
+    { "id": "dungeon_8", "name": "[副本] 墜毀星艦殘骸", "req_atk": 155, "enemies": ["mob_801", "mob_802", "mob_803", "mob_804"], "loot_multiplier": 12.43, "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_placeholder.png", "desc": "不屬於這個星球的科技結晶，如今成了異星寄生蟲與失控護衛兵的巢穴。" },
+    { "id": "dungeon_9", "name": "[副本] 舊時代地鐵總站", "req_atk": 216, "enemies": ["mob_901", "mob_902", "mob_903", "mob_904"], "loot_multiplier": 17.35, "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_placeholder.png", "desc": "深不見底的地下交通網，黑暗中無數雙猩紅的眼睛正盯著擅闖的獵物。" },
+    { "id": "dungeon_10", "name": "[副本] 毒氣採礦場", "req_atk": 302, "enemies": ["mob_1001", "mob_1002", "mob_1003", "mob_1004"], "loot_multiplier": 24.23, "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_placeholder.png", "desc": "為了開採珍貴礦石而建立，礦工們吸入過量輻射氣體後，已經完全變異。" },
+    { "id": "dungeon_11", "name": "[副本] 基因合成實驗室", "req_atk": 422, "enemies": ["mob_1101", "mob_1102", "mob_1103", "mob_1104"], "loot_multiplier": 33.83, "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_placeholder.png", "desc": "培養槽碎裂一地，那些被強行拼接的生化合成獸，正渴望著新鮮的碳基基因。" },
+    { "id": "dungeon_12", "name": "[副本] 狂信徒大本營", "req_atk": 590, "enemies": ["mob_1201", "mob_1202", "mob_1203", "mob_1204"], "loot_multiplier": 47.25, "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_placeholder.png", "desc": "崇拜古神黑水的瘋狂教徒，他們用自己的血肉作為祭品，召喚著深淵的降臨。" },
+    { "id": "dungeon_13", "name": "[副本] 冰封水壩", "req_atk": 824, "enemies": ["mob_1301", "mob_1302", "mob_1303", "mob_1304"], "loot_multiplier": 65.98, "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_placeholder.png", "desc": "絕對零度的環境讓一切生機停滯，只有適應了極寒的生化冰獸在這裡巡邏。" },
+    { "id": "dungeon_14", "name": "[副本] 廢土黑市中心", "req_atk": 1151, "enemies": ["mob_1401", "mob_1402", "mob_1403", "mob_1404"], "loot_multiplier": 92.13, "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_placeholder.png", "desc": "這裡沒有法律，只有金屬與血肉的交易，財閥的鋼鐵衛兵會無情碾碎所有入侵者。" },
+    { "id": "dungeon_15", "name": "[副本] 幻影荒漠", "req_atk": 1608, "enemies": ["mob_1501", "mob_1502", "mob_1503", "mob_1504"], "loot_multiplier": 128.65, "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_placeholder.png", "desc": "空間的界線在這裡變得模糊，海市蜃樓中隱藏著能撕裂現實的異變體。" },
+    { "id": "dungeon_16", "name": "[副本] 浮空城遺跡", "req_atk": 2245, "enemies": ["mob_1601", "mob_1602", "mob_1603", "mob_1604"], "loot_multiplier": 179.66, "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_placeholder.png", "desc": "舊時代權貴逃離地表的烏托邦，如今只剩失控的防衛兵器在天際線上遊蕩。" },
+    { "id": "dungeon_17", "name": "[副本] 奈米機械巢穴", "req_atk": 3135, "enemies": ["mob_1701", "mob_1702", "mob_1703", "mob_1704"], "loot_multiplier": 250.88, "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_placeholder.png", "desc": "無數肉眼難見的奈米機器人匯聚成金屬洪流，能瞬間將任何闖入者分解至原子狀態。" },
+    { "id": "dungeon_18", "name": "[副本] 虛空裂隙", "req_atk": 4379, "enemies": ["mob_1801", "mob_1802", "mob_1803", "mob_1804"], "loot_multiplier": 350.33, "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_placeholder.png", "desc": "時空連續體被強行撕裂，暗物質能量在此沸騰，現實的物理法則已經失效。" },
+    { "id": "dungeon_19", "name": "[副本] 奇點迴廊", "req_atk": 6115, "enemies": ["mob_1901", "mob_1902", "mob_1903", "mob_1904"], "loot_multiplier": 489.21, "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_placeholder.png", "desc": "通往終焉的最後通道，巨大的引力拉扯著靈魂，沒有達到極致強化的獵犬會瞬間灰飛煙滅。" },
+    { "id": "dungeon_20", "name": "[副本] 終焉核心", "req_atk": 8539, "enemies": ["mob_2001", "mob_2002", "mob_2003", "mob_2004"], "loot_multiplier": 683.14, "img_url": "https://raw.githubusercontent.com/ciouyan77/DMMO_PIC/refs/heads/main/IMG_placeholder.png", "desc": "大崩潰事件的源頭，吞噬一切物質與能量的終極試煉。只有最強者才有資格挑戰神明。" }
   ],
-
 
   "lore_database": {
     "categories": [
@@ -88,7 +141,7 @@
             "name": "一、 [恐水] - 零號病患",
             "items": [
               { "id": "lore_00_00", "title": "00-00：[系統讀我檔案]", "sourceType": "all", "sourceTarget": "all", "location": "避難所・終端機主機", "date": "大崩潰後 Year 02", "content": "歡迎使用【廢土犬伴】終端機資料庫系統。\n\n本檔案為系統初始化之自動生成的讀我檔案（README）。如果你能成功看到這段文字，代表：\n1. 終端機 UI 渲染引擎正常運作。\n2. JSON 資料庫結構對接成功。\n3. 手機版全螢幕防裁切排版已正確啟動。\n\n【廢土提示】：與你的獵犬共同探索廢土區域、或前往挑戰各區霸主副本，皆有機會解密並獲得更多珍貴的末日機密文件！" },
-					{ "id": "lore_01_01", "title": "01-01：恐水", "sourceType": "combat", "sourceTarget": "dungeon_1", "location": "廢棄醫院・急診室", "date": "大崩潰前 Day -14", "content": "患者為女性，24歲。入院前已於自家附近利用口腔啃咬方式，攻擊至少十人。入院時伴隨極度恐水、咽喉肌痙攣與大量半透明涎液分泌。疑似狂犬病之病徵。她的雙眼鞏膜已徹底變為混濁的瀝青色，瞳孔成矩形擴張。她對無影燈的特定波長展現出強烈的趨光性，喉嚨深處持續發出類似高壓洋流湧動的低頻擬音。" },
+              { "id": "lore_01_01", "title": "01-01：恐水", "sourceType": "combat", "sourceTarget": "dungeon_1", "location": "廢棄醫院・急診室", "date": "大崩潰前 Day -14", "content": "患者為女性，24歲。入院前已於自家附近利用口腔啃咬方式，攻擊至少十人。入院時伴隨極度恐水、咽喉肌痙攣與大量半透明涎液分泌。疑似狂犬病之病徵。她的雙眼鞏膜已徹底變為混濁的瀝青色，瞳孔成矩形擴張。她對無影燈的特定波長展現出強烈的趨光性，喉嚨深處持續發出類似高壓洋流湧動的低頻擬音。" },
               { "id": "lore_01_02", "title": "01-02：瘋狂I", "sourceType": "combat", "sourceTarget": "dungeon_1", "location": "重症監護室 B 區", "date": "大崩潰前 Day -12", "content": "午夜突發惡性事件。患者在約束帶完好的情況下，硬生生咬斷了自己的左側大魚際肌以掙脫束縛。值班護士試圖壓制，卻被患者以超越常人三倍的咬合力直接撕裂頸總動脈。現場慘不忍睹。患者在進食同類血肉時，大腦邊緣系統（Limbic system）的活躍度突破了儀器峰值，呈癲狂狀態。" },
               { "id": "lore_01_03", "title": "01-03：瘋狂II", "sourceType": "combat", "sourceTarget": "dungeon_1", "location": "醫院地下隔離房", "date": "大崩潰前 Day -10", "content": "第三日，臨床觀測顯示，患者的犬齒與頜骨正發生嚴生的急性骨質骨增生，尖端刺破唇部向外延伸。她對活物的攻擊不帶有任何理智，純粹是出於某種高等捕食者的本能。她甚至在啃食自己的手指。" },
               { "id": "lore_01_04", "title": "01-04：高燒", "sourceType": "dispatch", "sourceTarget": "all", "location": "首席病理學家終端", "date": "大崩潰前 Day -08", "content": "第五日。患者體溫已飆升至 44.2°C。在這種足以引發蛋白質徹底變性的超高熱下，她竟然還活著。但大腦神經元突觸已像液態血肉般相互熔融。超音波顯示，她的碳基內臟正迅速融化、空化，化為泛著幽暗虹光的黑色膠狀物。她吐出的每一口空氣都帶著濃重的氨氣與腐敗黏液。" },
@@ -118,9 +171,87 @@
             ]
           }
         ]
+      },
+      {
+        "id": "odyssey_bosses",
+        "name": "【主線機密：征途霸主】",
+        "subcategories": [
+          {
+            "id": "boss_01_lore",
+            "name": "一、 B01 - 腐血狂犬",
+            "items": [
+              { "id": "lore_boss01_1", "title": "B01-01：沾血的識別牌", "sourceType": "odyssey", "sourceTarget": "boss_01", "location": "廢土公路", "date": "不明", "content": "這是王關專屬掉落檔案一..." },
+              { "id": "lore_boss01_2", "title": "B01-02：突變觀察報告", "sourceType": "odyssey", "sourceTarget": "boss_01", "location": "廢土公路", "date": "不明", "content": "這是王關專屬掉落檔案二..." },
+              { "id": "lore_boss01_3", "title": "B01-03：最後的遺言", "sourceType": "odyssey", "sourceTarget": "boss_01", "location": "廢土公路", "date": "不明", "content": "這是王關專屬掉落檔案三..." }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "dungeon_zones",
+        "name": "【區域檔案：副本殘卷】",
+        "subcategories": [
+          {
+            "id": "dungeon_01_lore",
+            "name": "一、 廢棄醫院",
+            "items": [
+              { "id": "lore_dg01_1", "title": "DG01-01：急診室當值表", "sourceType": "dungeon", "sourceTarget": "dungeon_1", "location": "醫院一樓", "date": "大崩潰前", "content": "副本隨機掉落檔案一..." },
+              { "id": "lore_dg01_2", "title": "DG01-02：醫療廢棄物清單", "sourceType": "dungeon", "sourceTarget": "dungeon_1", "location": "醫院後巷", "date": "大崩潰前", "content": "副本隨機掉落檔案二..." }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "epic_gears",
+        "name": "【武裝解析：紫裝核心】",
+        "subcategories": [
+          {
+            "id": "epic_core_lore",
+            "name": "一、 核心鍛造圖紙",
+            "items": [
+              { "id": "lore_epic_ninja", "title": "EPIC-01：都市忍者潮牌衰亡史", "sourceType": "craft", "sourceTarget": "gear_ninja", "location": "鍛造台", "date": "解密即時", "content": "打造紫裝後解鎖..." },
+              { "id": "lore_epic_zombie", "title": "EPIC-02：致命衝擊力學", "sourceType": "craft", "sourceTarget": "gear_zombie", "location": "鍛造台", "date": "解密即時", "content": "打造紫裝後解鎖..." }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "dispatch_radio",
+        "name": "【電台攔截：廢土通訊】",
+        "subcategories": [
+          {
+            "id": "dispatch_sets",
+            "name": "一、 套裝傳說",
+            "items": [
+              { "id": "lore_set_abyss_1", "title": "SET-01：深淵琉璃的起源", "sourceType": "dispatch", "sourceTarget": "all", "location": "無線電波", "date": "即時攔截", "content": "派遣機率掉落..." }
+            ]
+          },
+          {
+            "id": "dispatch_trio",
+            "name": "二、 三巨頭絕密",
+            "items": [
+              { "id": "lore_trio_x_1", "title": "TRIO-X1：電馭X通訊攔截", "sourceType": "dispatch", "sourceTarget": "all", "location": "加密頻段", "date": "即時攔截", "content": "派遣機率掉落..." }
+            ]
+          },
+          {
+            "id": "dispatch_blackmarket",
+            "name": "三、 黑市交易紀錄",
+            "items": [
+              { "id": "lore_bm_1", "title": "BM-01：走私者的帳本", "sourceType": "dispatch", "sourceTarget": "all", "location": "黑市頻道", "date": "即時攔截", "content": "派遣機率掉落..." }
+            ]
+          },
+          {
+            "id": "dispatch_hounds",
+            "name": "四、 獵犬培育檔案",
+            "items": [
+              { "id": "lore_hound_1", "title": "DOG-01：犬科神經連結測試", "sourceType": "dispatch", "sourceTarget": "all", "location": "獸醫頻道", "date": "即時攔截", "content": "派遣機率掉落..." }
+            ]
+          }
+        ]
       }
     ]
   },
+
   "loot_pool": {
     "affixes": [
       { "name": "嗜血", "type": "atk", "desc": "攻擊力增強" },
@@ -129,20 +260,20 @@
       { "name": "致命", "type": "crit", "desc": "暴擊率提升" },
       { "name": "幻影", "type": "dodge", "desc": "閃避率提升" }
     ],
-        "sets": {
+    "sets": {
       "scavenger": { "id": "scavenger", "name": "清道夫", "2pc": "基礎攻擊力 +30", "3pc": "基礎攻擊力再 +15 (總和 +45)" },
       "ninja": { "id": "ninja", "name": "都市忍者", "2pc": "閃避率 +30% | 閃避成功後下回合必定暴擊", "3pc": "閃避率再 +10% (總和 +40%)" },
       "thug": { "id": "thug", "name": "廢土暴徒", "2pc": "暴擊率 +30% | 暴擊傷害變為 3 倍", "3pc": "暴擊率再 +15% (總和 +45%)" },
       "zombie": { "id": "zombie", "name": "殭屍骰", "2pc": "12% 機率一擊必殺", "3pc": "秒殺機率再 +5% (總和 +17%)" },
       "abyss": { "id": "abyss", "name": "深淵琉璃", "2pc": "防禦力 +30 | 反彈 50% 承受傷害", "3pc": "防禦力再 +15 (總和 +45)" }
     },
-
     "slots": {
       "helmet": { "names": ["生化面甲", "戰術頭盔", "防毒呼吸器"], "typeName": "頭盔" },
-      "collar": { "names": ["釘刺項圈", "電擊束環", "鈦鋼頸甲"], "typeName": "項圈" },
+      "collar": { "names": ["釘刺項圈", "電擊束環", "鈦鋼頸甲", "金屬項圈"], "typeName": "項圈" },
       "harness": { "names": ["防彈胸背帶", "重型外骨骼", "減震裝甲"], "typeName": "胸背帶" }
     }
   },
+  
   "shop_database": [
     { "id": "shop_jerky_bulk", "name": "[物資箱] 脫水肉乾配給包", "slot": "usable", "rarity": "common", "atk": 0, "maxHp": 0, "class": "loot-common", "price": 5, "desc": "內含 200 份肉乾" },
     { "id": "shop_ninja_1", "name": "[套裝] 都市忍者・生化面甲", "slot": "helmet", "rarity": "set", "setId": "ninja", "atk": 2, "maxHp": 10, "class": "loot-set", "price": 80, "desc": "【都市忍者】套件 (頭盔)" },
